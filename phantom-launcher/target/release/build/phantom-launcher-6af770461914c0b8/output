@@ -1,0 +1,11 @@
+Selected RC path: 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\rc.exe'
+RC Output:
+Microsoft (R) Windows (R) Resource Compiler Version 10.0.10011.16384
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+------
+RC Error:
+
+------
+cargo:rustc-link-arg=C:\Users\Ярослав\Phantom\phantom-launcher\target\release\build\phantom-launcher-6af770461914c0b8\out\main_res.res

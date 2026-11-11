@@ -1,0 +1,14 @@
+C:\Users\Ярослав\Phantom\phantom-launcher\target\release\deps\serde-4c616c264ebc8fb7.d: C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs C:\Users\Ярослав\Phantom\phantom-launcher\target\release\build\serde-b0c1e5fe3f7bbc41\out/private.rs
+
+C:\Users\Ярослав\Phantom\phantom-launcher\target\release\deps\libserde-4c616c264ebc8fb7.rlib: C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs C:\Users\Ярослав\Phantom\phantom-launcher\target\release\build\serde-b0c1e5fe3f7bbc41\out/private.rs
+
+C:\Users\Ярослав\Phantom\phantom-launcher\target\release\deps\libserde-4c616c264ebc8fb7.rmeta: C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs C:\Users\Ярослав\Phantom\phantom-launcher\target\release\build\serde-b0c1e5fe3f7bbc41\out/private.rs
+
+C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs:
+C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs:
+C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs:
+C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs:
+C:\Users\Ярослав\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs:
+C:\Users\Ярослав\Phantom\phantom-launcher\target\release\build\serde-b0c1e5fe3f7bbc41\out/private.rs:
+
+# env-dep:OUT_DIR=C:\\Users\\Ярослав\\Phantom\\phantom-launcher\\target\\release\\build\\serde-b0c1e5fe3f7bbc41\\out
