@@ -772,7 +772,7 @@ impl ItemRenderer {
             (library?, None)
         };
         let permutations = PalettedPermutations::from_atlas(
-            &fs::read_to_string(root.join("assets/minecraft/atlases/items.json"))
+            &horizon_core::prepared_files::read_to_string(&root.join("assets/minecraft/atlases/items.json"))
                 .unwrap_or_default(),
         );
         let parts = if drawn {

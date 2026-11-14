@@ -64,9 +64,18 @@ pub fn format_size(bytes: u64) -> String {
 }
 
 pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
+    // Only the chosen install target decides which catalog is shown, not the build in the dock.
+    let is_phantom = app.install_target == "phantom" || app.install_target.is_empty();
+    if is_phantom && app.kind == Kind::Mod {
+        app.kind = Kind::Shader;
+        app.hits.clear();
+        app.mods_loaded = false; // search again: .jar mods are hidden on the Rust build
+    }
+
     let sub = match app.kind {
         Kind::Shader => "Управление шейдерами и каталог Modrinth",
         Kind::ResourcePack => "Управление ресурспаками и каталог Modrinth",
+        Kind::Datapack => "Управление датапаками и каталог Modrinth",
         Kind::Mod => "Управление модами и каталог Modrinth",
     };
     app::heading(ui, t, "МОДЫ И ШЕЙДЕРЫ", sub);
@@ -101,7 +110,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                         ui.horizontal(|ui| {
                             ui.label(
                                 RichText::new(format!("УСТАНОВЛЕНО ({count})"))
-                                    .size(13.)
+                                    .size(14.)
                                     .color(theme::TEXT)
                                     .strong(),
                             );
@@ -110,7 +119,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                     .add(
                                         egui::Button::new(
                                             RichText::new("📁 Папка")
-                                                .size(11.)
+                                                .size(13.)
                                                 .color(theme::YELLOW),
                                         )
                                         .fill(theme::SIDE)
@@ -132,7 +141,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                 [ui.available_width(), 26.],
                                 egui::Button::new(
                                     RichText::new("+ Добавить с ПК")
-                                        .size(11.5)
+                                        .size(13.)
                                         .color(theme::YELLOW),
                                 )
                                 .fill(theme::SIDE)
@@ -162,12 +171,12 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                 ui.add_space(20.);
                                 ui.label(
                                     RichText::new("Нет установленных файлов")
-                                        .size(13.)
+                                        .size(14.)
                                         .color(theme::MUTED),
                                 );
                                 ui.label(
                                     RichText::new("Выберите дополнение справа в каталоге")
-                                        .size(11.)
+                                        .size(13.)
                                         .color(theme::TEXT_SOFT),
                                 );
                             });
@@ -233,7 +242,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                                 check_rect.center(),
                                                 Align2::CENTER_CENTER,
                                                 "✓",
-                                                FontId::proportional(13.),
+                                                FontId::proportional(14.),
                                                 Color32::BLACK,
                                             );
                                         }
@@ -266,7 +275,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                             del_rect.center(),
                                             Align2::CENTER_CENTER,
                                             "✕",
-                                            FontId::proportional(12.),
+                                            FontId::proportional(13.),
                                             if del_hover { theme::DANGER } else { theme::MUTED },
                                         );
                                         if del_resp.clicked() {
@@ -281,8 +290,8 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                             theme::MUTED
                                         };
 
-                                        let name_display: String = if file.clean_name.len() > 22 {
-                                            format!("{}…", &file.clean_name[..20])
+                                        let name_display: String = if file.clean_name.chars().count() > 22 {
+                                            format!("{}…", file.clean_name.chars().take(20).collect::<String>())
                                         } else {
                                             file.clean_name.clone()
                                         };
@@ -291,18 +300,47 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                             pos2(text_left, rect.top() + 6.),
                                             Align2::LEFT_TOP,
                                             name_display,
-                                            FontId::proportional(12.),
+                                            FontId::proportional(13.),
                                             title_color,
                                         );
                                         p.text(
                                             pos2(text_left, rect.top() + 22.),
                                             Align2::LEFT_TOP,
                                             format_size(file.size),
-                                            FontId::proportional(10.),
+                                            FontId::proportional(13.),
                                             theme::TEXT_SOFT,
                                         );
                                     }
                                 });
+                        }
+
+                        // For Phantom Engine, display detected .hmod native plugins as well
+                        if is_phantom {
+                            let hmods_dir = if app.install_target == "phantom" {
+                                crate::config::data_root().join("phantom").join("mods")
+                            } else {
+                                PathBuf::from(&app.cfg.game_dir).join("mods")
+                            };
+                            let hmod_files = scan_installed(&hmods_dir);
+                            let hmods_only: Vec<_> = hmod_files.into_iter().filter(|f| f.clean_name.ends_with(".hmod")).collect();
+                            if !hmods_only.is_empty() {
+                                ui.add_space(8.);
+                                ui.separator();
+                                ui.add_space(4.);
+                                ui.label(
+                                    RichText::new(format!("RUST ПЛАГИНЫ .hmod ({})", hmods_only.len()))
+                                        .size(13.)
+                                        .color(theme::YELLOW)
+                                        .strong(),
+                                );
+                                for hf in &hmods_only {
+                                    ui.horizontal(|ui| {
+                                        ui.label(RichText::new("⚙").size(13.).color(theme::YELLOW));
+                                        ui.label(RichText::new(&hf.clean_name).size(13.).color(theme::TEXT));
+                                        ui.label(RichText::new(format_size(hf.size)).size(13.).color(theme::TEXT_SOFT));
+                                    });
+                                }
+                            }
                         }
                     });
             },
@@ -317,13 +355,24 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
             vec2(right_w, ui.available_height()),
             Layout::top_down(Align::Min),
             |ui| {
-                // Kind Tabs: Shaders, ResourcePacks, Mods
+                // Kind Tabs: Shaders, ResourcePacks, Datapacks, Mods (filtered for Rust build)
                 ui.horizontal(|ui| {
-                    for (k, label) in [
-                        (Kind::Shader, "Шейдеры"),
-                        (Kind::ResourcePack, "Ресурспаки"),
-                        (Kind::Mod, "Моды"),
-                    ] {
+                    let available_kinds: &[(Kind, &str)] = if is_phantom {
+                        &[
+                            (Kind::Shader, "Шейдеры"),
+                            (Kind::ResourcePack, "Ресурспаки"),
+                            (Kind::Datapack, "Датапаки"),
+                        ]
+                    } else {
+                        &[
+                            (Kind::Shader, "Шейдеры"),
+                            (Kind::ResourcePack, "Ресурспаки"),
+                            (Kind::Datapack, "Датапаки"),
+                            (Kind::Mod, "Моды (.jar)"),
+                        ]
+                    };
+
+                    for &(k, label) in available_kinds {
                         if ui.selectable_label(app.kind == k, label).clicked() && app.kind != k {
                             app.kind = k;
                             app.hits.clear();
@@ -348,7 +397,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                 });
 
                 // Engine notice for Phantom Native
-                if app.install_target == "phantom" {
+                if is_phantom {
                     ui.add_space(4.);
                     Frame::none()
                         .fill(theme::CARD_HI)
@@ -358,9 +407,9 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                         .show(ui, |ui| {
                             ui.label(
                                 RichText::new(
-                                    "⚡ Сборка Phantom (Rust): нативно работают Шейдеры, Ресурспаки и .hmod плагины. Для Forge/Fabric .jar выберите Java-сборку.",
+                                    "⚡ Сборка Phantom (Rust): нативно работают Шейдеры, Ресурспаки, Датапаки и .hmod плагины.\nДля .jar модов выберите Java-сборку во вкладке «Сборки».",
                                 )
-                                .size(11.)
+                                .size(13.)
                                 .color(theme::YELLOW),
                             );
                         });
@@ -370,7 +419,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
 
                 // Search Bar & Loader Filters
                 ui.horizontal(|ui| {
-                    if app.kind == Kind::Mod {
+                    if !is_phantom && app.kind == Kind::Mod {
                         for l in ["fabric", "forge", "neoforge", "quilt"] {
                             if ui.selectable_label(app.loader == l, l).clicked() {
                                 app.loader = l.into();

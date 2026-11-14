@@ -200,7 +200,7 @@ fn parse_hex(text: &[u8], out: &mut HashMap<u32, HexGlyph>) {
     }
 }
 fn read_json(root: &Path, path: &str) -> Option<serde_json::Value> {
-    serde_json::from_slice(&std::fs::read(root.join(path)).ok()?).ok()
+    serde_json::from_slice(&horizon_core::prepared_files::read(&root.join(path)).ok()?).ok()
 }
 fn resource_path(id: &str, folder: &str, ext: &str) -> String {
     let (ns, path) = id.split_once(':').unwrap_or(("minecraft", id));
@@ -384,7 +384,7 @@ fn load_bitmap(
 /// `font/`, its Unicode characters but the `skip` ones.
 fn load_true_type(root: &Path, p: &serde_json::Value) -> Option<TrueType> {
     let file = p["file"].as_str()?;
-    let data = std::fs::read(root.join(resource_path(file, "font", "")))
+    let data = horizon_core::prepared_files::read(&root.join(resource_path(file, "font", "")))
         .map_err(|e| log::warn!("font file {file}: {e}"))
         .ok()?;
     // FT_Get_Font_Format must say TrueType: CFF outlines ("OTTO") are refused.
@@ -538,17 +538,33 @@ fn font_ids(root: &Path) -> Vec<String> {
         }
     }
     let mut ids = Vec::new();
-    for ns in std::fs::read_dir(root.join("assets"))
-        .into_iter()
-        .flatten()
-        .flatten()
-    {
-        let ns = ns.file_name().to_string_lossy().into_owned();
+    let mut namespaces = Vec::new();
+    if let Ok(ns) = std::fs::read_dir(root.join("assets")) {
+        for e in ns.flatten() {
+            namespaces.push(e.file_name().to_string_lossy().into_owned());
+        }
+    } else if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+        namespaces = archive.namespaces();
+    }
+    for ns in namespaces {
+        let before_len = ids.len();
         walk(
             &root.join("assets").join(&ns).join("font"),
             &format!("{ns}:"),
             &mut ids,
         );
+        if ids.len() == before_len {
+            if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+                let prefix = format!("assets/{ns}/font/");
+                for f in archive.list(&prefix) {
+                    if let Some(rel) = f.strip_prefix(&prefix) {
+                        if let Some(stem) = rel.strip_suffix(".json") {
+                            ids.push(format!("{ns}:{stem}"));
+                        }
+                    }
+                }
+            }
+        }
     }
     ids.sort();
     ids

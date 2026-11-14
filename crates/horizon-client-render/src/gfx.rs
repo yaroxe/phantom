@@ -2287,7 +2287,7 @@ async fn open_backend(
     // (`MC_GL_KHR_shader_subgroup_*`); storage buffers in vertex shaders, clearing and
     // atomics on images: their buffers and images. Filtering 32-bit float textures: shader
     // packs' RGBA32F buffers, which GL filters and mipmaps. Count draws: GPU culling's (`gpu_culling`).
-    let features = timing::GpuTimer::features(&adapter)
+    let mut features = timing::GpuTimer::features(&adapter)
         | cull::Cull::features(&adapter)
         | oit::features(&adapter)
         | (adapter.features()
@@ -2302,6 +2302,13 @@ async fn open_backend(
                 | wgpu::Features::CLEAR_TEXTURE
                 | wgpu::Features::TEXTURE_ATOMIC
                 | wgpu::Features::FLOAT32_FILTERABLE));
+    if info.backend == wgpu::Backend::Dx12 {
+        features.remove(
+            wgpu::Features::MULTI_DRAW_INDIRECT_COUNT
+                | wgpu::Features::VERTEX_WRITABLE_STORAGE
+                | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS,
+        );
+    }
     let driver = format!("{} {}", info.driver, info.driver_info);
     startup_step(format_args!(
         "requesting the device (driver {}) with features [{features}] and the adapter's \
@@ -2630,7 +2637,11 @@ impl Renderer {
                 ));
             }
             surface.configure(&device, &config);
-            let hdr_output = hdr::output(&caps);
+            let hdr_output = if adapter.get_info().backend == wgpu::Backend::Dx12 {
+                None
+            } else {
+                hdr::output(&caps)
+            };
             crate::graphics::offer_hdr(hdr_output.is_some());
             if previous.is_none() {
                 log::info!(
@@ -6423,11 +6434,13 @@ impl Renderer {
     /// HDR10 or scRGB while HDR output is on.
     fn surface_config(&self) -> wgpu::SurfaceConfiguration {
         let mut config = self.config.clone();
-        if let Some(hdr) = &self.hdr {
-            config.format = hdr.output.format();
-            config.view_formats = vec![hdr.output.format()];
-            config.color_space = hdr.output.color_space();
-            config.usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
+        if self.adapter.get_info().backend != wgpu::Backend::Dx12 {
+            if let Some(hdr) = &self.hdr {
+                config.format = hdr.output.format();
+                config.view_formats = vec![hdr.output.format()];
+                config.color_space = hdr.output.color_space();
+                config.usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
+            }
         }
         config
     }
@@ -6468,9 +6481,12 @@ impl Renderer {
         ui: f32,
         marker: &std::path::Path,
     ) {
-        let output = self
-            .hdr_output
-            .filter(|_| on && (self.surface.is_some() || self.offscreen.is_some()));
+        let output = if self.adapter.get_info().backend == wgpu::Backend::Dx12 {
+            None
+        } else {
+            self.hdr_output
+                .filter(|_| on && (self.surface.is_some() || self.offscreen.is_some()))
+        };
         if output.is_some() != self.hdr.is_some() {
             // If the game dies before HDR output shows a frame, the marker is still there at
             // the next start, which then comes up with HDR off.

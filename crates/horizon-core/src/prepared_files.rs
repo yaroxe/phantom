@@ -221,11 +221,20 @@ pub fn find(path: &Path) -> Option<(Arc<PreparedFiles>, String)> {
 /// else from the disk.
 pub fn read(path: &Path) -> io::Result<Vec<u8>> {
     match find(path) {
-        Some((files, rel)) if holds_file(&rel) => files
-            .read(&rel)
-            .unwrap_or_else(|| Err(io::ErrorKind::NotFound.into())),
-        _ => fs::read(path),
+        Some((files, rel)) if holds_file(&rel) => {
+            if let Some(res) = files.read(&rel) {
+                return res;
+            }
+        }
+        _ => {}
     }
+    if path.is_file() {
+        return fs::read(path);
+    }
+    if let Some(bytes) = crate::asset_archive::read_by_path(path) {
+        return Ok(bytes);
+    }
+    fs::read(path)
 }
 
 /// The files under `dir` (a folder of a prepared root) and its subfolders, as
@@ -233,29 +242,43 @@ pub fn read(path: &Path) -> io::Result<Vec<u8>> {
 /// without listing the disk: empty when it holds none there. `None` when no
 /// data file holds `dir` (walk the folder).
 pub fn files_under(dir: &Path) -> Option<Vec<String>> {
-    let (files, rel) = find(dir)?;
-    let names = files.list(&rel).unwrap_or_default();
-    Some(
-        names
-            .into_iter()
-            .map(|name| name[rel.len() + 1..].to_owned())
-            .collect(),
-    )
+    if let Some((files, rel)) = find(dir) {
+        let names = files.list(&rel).unwrap_or_default();
+        if !names.is_empty() {
+            return Some(
+                names
+                    .into_iter()
+                    .map(|name| name[rel.len() + 1..].to_owned())
+                    .collect(),
+            );
+        }
+    }
+    crate::asset_archive::files_under_path(dir)
 }
 
 /// At most the first `max` bytes of `path`, from where [`read`] takes them:
 /// a header, without reading the whole file.
 pub fn read_head(path: &Path, max: u64) -> io::Result<Vec<u8>> {
     match find(path) {
-        Some((files, rel)) if holds_file(&rel) => files
-            .read_head(&rel, max)
-            .unwrap_or_else(|| Err(io::ErrorKind::NotFound.into())),
-        _ => {
-            let mut bytes = Vec::new();
-            io::Read::read_to_end(&mut io::Read::take(File::open(path)?, max), &mut bytes)?;
-            Ok(bytes)
+        Some((files, rel)) if holds_file(&rel) => {
+            if let Some(res) = files.read_head(&rel, max) {
+                return res;
+            }
         }
+        _ => {}
     }
+    if path.is_file() {
+        let mut bytes = Vec::new();
+        io::Read::read_to_end(&mut io::Read::take(File::open(path)?, max), &mut bytes)?;
+        return Ok(bytes);
+    }
+    if let Some(bytes) = crate::asset_archive::read_by_path(path) {
+        let len = (bytes.len() as u64).min(max) as usize;
+        return Ok(bytes[..len].to_vec());
+    }
+    let mut bytes = Vec::new();
+    io::Read::read_to_end(&mut io::Read::take(File::open(path)?, max), &mut bytes)?;
+    Ok(bytes)
 }
 
 /// [`read`] as UTF-8 text.

@@ -461,6 +461,7 @@ fn carry(shared: &Arc<Shared>, session: u64, (r, w): session::Secure, direct: bo
         shared.sessions.fetch_sub(1, Ordering::Relaxed);
         return;
     };
+    let _ = server.set_nodelay(true);
     shared.emit(HostEvent::Connected { session, direct });
     if let Ok(t) = crate::pump(server, r, w) {
         let _ = t.join();

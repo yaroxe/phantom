@@ -372,6 +372,8 @@ pub enum Action {
     Language,
     /// AccessibilityOnboardingScreen's Music & Sounds button.
     Sounds,
+    /// Direct shortcut to the Mods screen (`Page::Mods`).
+    Mods,
     /// The title's bottom text (`PlainTextButton`): `CreditsAndAttributionScreen`.
     Credits,
     /// `Blaze3D.openUri`: a ConfirmLinkScreen's Open in Browser.
@@ -758,7 +760,7 @@ impl Title {
         use chrono::Datelike;
         let today = chrono::Local::now();
         let splashes =
-            std::fs::read_to_string(resources.join("assets/minecraft/texts/splashes.txt"))
+            horizon_core::prepared_files::read_to_string(&resources.join("assets/minecraft/texts/splashes.txt"))
                 .unwrap_or_default();
         let seed = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -1793,7 +1795,15 @@ impl Title {
                     b(
                         cx - 100.0,
                         y + 48.0,
-                        200.0,
+                        98.0,
+                        &lang::get_or("horizon.pages.open.mods", "Mods..."),
+                        true,
+                        19,
+                    ),
+                    b(
+                        cx + 2.0,
+                        y + 48.0,
+                        98.0,
                         &lang::get_or("menu.online", "Minecraft Realms"),
                         // TitleScreen.createNormalMenuOptions: Realms is off when
                         // multiplayer is.
@@ -2575,7 +2585,7 @@ Would you like to enable the Narrator or visit the Accessibility Settings?",
                         ];
                     }
                 }
-                let version = format!("Horizon {} (Rust)", horizon_core::VANILLA_VERSION);
+                let version = format!("Phantom Engine {} (Rust)", horizon_core::VANILLA_VERSION);
                 batch.text(atlas, &version, 2.0, h - 10.0, u32::MAX, true);
                 // A nightly names its build in the top-left corner, the one spot no button reaches at any GUI
                 // scale, so screenshots and reports say which build they come from.
@@ -3603,6 +3613,7 @@ Would you like to enable the Narrator or visit the Accessibility Settings?",
                 Action::None
             }
             (Mode::Main, Some(3)) => Action::Options,
+            (Mode::Main, Some(19)) => Action::Mods,
             (Mode::Main, Some(7)) => Action::Accessibility,
             (Mode::Main, Some(6)) => Action::Language,
             (Mode::Select { worlds, selected }, Some(10)) => {

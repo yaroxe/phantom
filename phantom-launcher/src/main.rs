@@ -7,6 +7,7 @@ pub mod fx;
 pub mod java;
 pub mod launch;
 pub mod modrinth;
+pub mod server;
 pub mod tabs;
 pub mod theme;
 

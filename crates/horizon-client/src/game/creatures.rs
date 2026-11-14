@@ -2542,9 +2542,18 @@ impl Game<'_> {
                     self.combat.explosion_in_water = in_water;
                     // The creeper causes the blast's damage, but it is out of
                     // the mob list already: its name comes with the event.
+                    if self.combat.exploded.len() >= 512 {
+                        self.combat.exploded.drain(..256);
+                    }
                     self.combat.exploded.push((mob, name));
+                    if self.combat.exploded_kinds.len() >= 512 {
+                        self.combat.exploded_kinds.drain(..256);
+                    }
                     self.combat.exploded_kinds.push((mob, kind));
                     if charged {
+                        if self.combat.charged_exploders.len() >= 256 {
+                            self.combat.charged_exploders.drain(..128);
+                        }
                         self.combat.charged_exploders.push(mob);
                     }
                 }
@@ -7439,6 +7448,14 @@ impl Game<'_> {
                 == super::perspective::CameraType::ThirdPersonFront,
             ..Default::default()
         });
+        // Camera forward direction for fast entity culling
+        let (cam_yaw, cam_pitch) = (self.yaw.to_radians(), self.pitch.to_radians());
+        let cam_forward = glam::DVec3::new(
+            f64::from(-cam_yaw.sin() * cam_pitch.cos()),
+            f64::from(-cam_pitch.sin()),
+            f64::from(cam_yaw.cos() * cam_pitch.cos()),
+        );
+
         for mob in &self.mobs {
             // LevelRenderer: the entity the view looks out of is not drawn
             // in first person.
@@ -7447,13 +7464,28 @@ impl Game<'_> {
             }
             let is_player = &*mob.kind.id == "minecraft:player";
             let d = glam::DVec3::new(mob.position.x, mob.position.y, mob.position.z) - camera;
+            let dist_sq = d.length_squared();
+
+            // Distance culling for non-players (> 64 blocks)
+            if !is_player && dist_sq > 64.0 * 64.0 {
+                continue;
+            }
+
+            // Behind-camera culling: if outside FOV (> 4 blocks away and dot < -0.2)
+            if dist_sq > 4.0 {
+                let dir = d.normalize();
+                if dir.dot(cam_forward) < -0.2 {
+                    continue;
+                }
+            }
+
             // Entity.shouldRenderAtSqrDistance: 64 times the bounding box's
             // mean edge, scaled by the view scale. RemotePlayer's box counts
             // ten times.
             let (w, h, _) = mob.dims();
             let edge = (w + h + w) / 3.0 * if is_player { 10.0 } else { 1.0 };
             let range = edge * 64.0 * scale;
-            if d.length_squared() >= range * range {
+            if dist_sq >= range * range {
                 continue;
             }
             let beam = horizon_client::mobs::guardian::beam(mob, alpha as f32);

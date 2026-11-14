@@ -267,17 +267,36 @@ impl SoundRegistry {
             .flatten()
             .filter_map(|e| e.file_name().to_str().map(str::to_owned))
             .collect();
+        if namespaces.is_empty() {
+            if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+                namespaces = archive.namespaces();
+            }
+        }
         namespaces.sort();
         // Each namespace's sound files are listed once, as the resource manager
         // lists a pack, instead of one file lookup per sound (thousands).
         let files: HashMap<&str, HashSet<String>> = namespaces
             .iter()
-            .map(|ns| (ns.as_str(), sound_files(&assets.join(ns))))
+            .map(|ns| {
+                let mut set = sound_files(&assets.join(ns));
+                if set.is_empty() {
+                    if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+                        let prefix = format!("assets/{ns}/");
+                        for f in archive.list(&prefix) {
+                            if let Some(rel) = f.strip_prefix(&prefix) {
+                                set.insert(rel.to_string());
+                            }
+                        }
+                    }
+                }
+                (ns.as_str(), set)
+            })
             .collect();
         let exists = |ns: &str, path: &str| files.get(ns).is_some_and(|f| f.contains(path));
         let mut registry = Self::default();
         for namespace in &namespaces {
-            let Ok(text) = fs::read(assets.join(namespace).join("sounds.json")) else {
+            let file_path = assets.join(namespace).join("sounds.json");
+            let Ok(text) = fs::read(&file_path).or_else(|_| horizon_core::prepared_files::read(&file_path)) else {
                 continue;
             };
             registry.add_file(namespace, &text, &exists);

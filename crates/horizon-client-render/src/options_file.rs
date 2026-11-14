@@ -128,7 +128,7 @@ static TABLE: LazyLock<Vec<Def>> = LazyLock::new(|| {
             V::Double(0.75),
         ),
         b("cutoutLeaves", true),
-        b("enableVsync", true),
+        b("enableVsync", false),
         def(
             "entityDistanceScaling",
             O(Scaled(2, 20, 4.0, 0.5, 5.0)),
@@ -153,7 +153,7 @@ static TABLE: LazyLock<Vec<Def>> = LazyLock::new(|| {
         def("debugGuiScale", O(LazyInt(-1)), V::Int(0)),
         i("maxAnisotropyBit", 1, 3, 2),
         id("textureFiltering", 3, 0),
-        def("maxFps", O(FrameLimit), V::Int(120)),
+        def("maxFps", O(FrameLimit), V::Int(260)),
         b("improvedTransparency", false),
         n("inactivityFpsLimit", INACTIVITY, 1),
         i("mipmapLevels", 0, 4, 4),

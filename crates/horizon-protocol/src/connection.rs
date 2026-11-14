@@ -273,6 +273,7 @@ pub struct Connection {
 fn configure_stream(stream: &TcpStream) -> Result<()> {
     stream.set_nodelay(true)?;
     let sock = socket2::SockRef::from(stream);
+    #[allow(unused_mut)]
     let mut keepalive = socket2::TcpKeepalive::new()
         .with_time(Duration::from_secs(10))
         .with_interval(Duration::from_secs(3));

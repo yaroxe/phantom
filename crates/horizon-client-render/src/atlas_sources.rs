@@ -174,12 +174,16 @@ fn decode_source(s: &Value) -> Option<SpriteSource> {
 /// `assets/<namespace>/textures/<path>.png`.
 pub fn list_textures(root: &Path) -> Vec<String> {
     let mut out = Vec::new();
-    let Ok(namespaces) = fs::read_dir(root.join("assets")) else {
-        return out;
-    };
-    for ns in namespaces.flatten() {
-        let namespace = ns.file_name().to_string_lossy().into_owned();
-        let base = ns.path().join("textures");
+    let mut namespaces = Vec::new();
+    if let Ok(ns) = fs::read_dir(root.join("assets")) {
+        for e in ns.flatten() {
+            namespaces.push(e.file_name().to_string_lossy().into_owned());
+        }
+    } else if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+        namespaces = archive.namespaces();
+    }
+    for namespace in namespaces {
+        let base = root.join("assets").join(&namespace).join("textures");
         // A prepared root's: from its data file, without listing the disk.
         if let Some(files) = horizon_core::prepared_files::files_under(&base) {
             out.extend(
@@ -399,22 +403,44 @@ pub fn generate(
 /// namespace), by atlas id.
 pub fn atlases(root: &Path) -> BTreeMap<String, Vec<SpriteSource>> {
     let mut out = BTreeMap::new();
-    let Ok(namespaces) = fs::read_dir(root.join("assets")) else {
-        return out;
-    };
-    for ns in namespaces.flatten() {
-        let namespace = ns.file_name().to_string_lossy().into_owned();
-        let Ok(files) = fs::read_dir(ns.path().join("atlases")) else {
-            continue;
-        };
-        for f in files.flatten() {
-            let path = f.path();
-            if path.extension().is_none_or(|e| e != "json") {
-                continue;
+    let mut namespaces = Vec::new();
+    if let Ok(ns) = fs::read_dir(root.join("assets")) {
+        for e in ns.flatten() {
+            namespaces.push(e.file_name().to_string_lossy().into_owned());
+        }
+    } else if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+        namespaces = archive.namespaces();
+    }
+    for namespace in namespaces {
+        let atlases_dir = root.join("assets").join(&namespace).join("atlases");
+        let mut found_on_disk = false;
+        if let Ok(files) = fs::read_dir(&atlases_dir) {
+            found_on_disk = true;
+            for f in files.flatten() {
+                let path = f.path();
+                if path.extension().is_none_or(|e| e != "json") {
+                    continue;
+                }
+                let name = path.file_stem().unwrap_or_default().to_string_lossy();
+                if let Some(sources) = fs::read_to_string(&path).ok().and_then(|t| decode(&t)) {
+                    out.insert(format!("{namespace}:{name}"), sources);
+                }
             }
-            let name = path.file_stem().unwrap_or_default().to_string_lossy();
-            if let Some(sources) = fs::read_to_string(&path).ok().and_then(|t| decode(&t)) {
-                out.insert(format!("{namespace}:{name}"), sources);
+        }
+        if !found_on_disk {
+            if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+                let prefix = format!("assets/{namespace}/atlases/");
+                for f in archive.list(&prefix) {
+                    if let Some(rel) = f.strip_prefix(&prefix) {
+                        if let Some(name) = rel.strip_suffix(".json") {
+                            if let Some(text) = archive.read_text(&f) {
+                                if let Some(sources) = decode(&text) {
+                                    out.insert(format!("{namespace}:{name}"), sources);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

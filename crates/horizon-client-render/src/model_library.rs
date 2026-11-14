@@ -41,27 +41,33 @@ impl AssetReader for RootAssets {
 impl ParsedModels {
     /// Every `models/**.json` of a namespace directory, by identifier.
     pub fn load(root: &Path) -> Self {
-        let Ok(namespaces) = fs::read_dir(root.join("assets")) else {
+        let mut namespaces_list = Vec::new();
+        if let Ok(ns) = fs::read_dir(root.join("assets")) {
+            for e in ns.flatten() {
+                namespaces_list.push(e.file_name().to_string_lossy().into_owned());
+            }
+        } else if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+            namespaces_list = archive.namespaces();
+        }
+        if namespaces_list.is_empty() {
             return Self {
                 root: root.to_owned(),
                 ..Self::default()
             };
-        };
-        // Listed first, then read and parsed at once: a content pack has tens
-        // of thousands of models.
+        }
+
         let mut files = Vec::new();
-        for ns in namespaces.flatten() {
-            let namespace = ns.file_name().to_string_lossy().into_owned();
-            let base = ns.path().join("models");
+        for namespace in namespaces_list {
+            let base = root.join("assets").join(&namespace).join("models");
+            let mut found_on_disk = false;
             let mut stack = vec![base.clone()];
             while let Some(dir) = stack.pop() {
                 let Ok(entries) = fs::read_dir(&dir) else {
                     continue;
                 };
+                found_on_disk = true;
                 for e in entries.flatten() {
                     let path = e.path();
-                    // The entry's own type saves a stat per file; a link
-                    // (content roots link into the base) is followed.
                     let is_dir = match e.file_type() {
                         Ok(t) if !t.is_symlink() => t.is_dir(),
                         _ => path.is_dir(),
@@ -73,6 +79,18 @@ impl ParsedModels {
                     {
                         let rel = rel.with_extension("").to_string_lossy().replace('\\', "/");
                         files.push((format!("{namespace}:{rel}"), path));
+                    }
+                }
+            }
+            if !found_on_disk {
+                if let Some(archive) = horizon_core::asset_archive::open_cached(root) {
+                    let prefix = format!("assets/{namespace}/models/");
+                    for f in archive.list(&prefix) {
+                        if let Some(rel) = f.strip_prefix(&prefix) {
+                            if let Some(clean_rel) = rel.strip_suffix(".json") {
+                                files.push((format!("{namespace}:{clean_rel}"), root.join(&f)));
+                            }
+                        }
                     }
                 }
             }

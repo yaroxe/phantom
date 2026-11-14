@@ -13,6 +13,7 @@ const API: &str = "https://api.modrinth.com/v2";
 pub enum Kind {
     Shader,
     ResourcePack,
+    Datapack,
     Mod,
 }
 
@@ -21,6 +22,7 @@ impl Kind {
         match self {
             Kind::Shader => "shader",
             Kind::ResourcePack => "resourcepack",
+            Kind::Datapack => "datapack",
             Kind::Mod => "mod",
         }
     }
@@ -28,6 +30,7 @@ impl Kind {
         match self {
             Kind::Shader => "shaderpacks",
             Kind::ResourcePack => "resourcepacks",
+            Kind::Datapack => "datapacks",
             Kind::Mod => "mods",
         }
     }
@@ -35,6 +38,7 @@ impl Kind {
         match self {
             Kind::Shader => "Шейдеры",
             Kind::ResourcePack => "Ресурспаки",
+            Kind::Datapack => "Датапаки",
             Kind::Mod => "Моды",
         }
     }
@@ -97,7 +101,7 @@ pub fn search(
     if kind == Kind::Mod && !loader.is_empty() {
         facets.push(format!("[\"categories:{loader}\"]"));
     }
-    if !ver.is_empty() {
+    if kind == Kind::Mod && !ver.is_empty() {
         facets.push(format!("[\"versions:{ver}\"]"));
     }
     let facets = format!("[{}]", facets.join(","));
@@ -136,7 +140,7 @@ pub fn download(
     if kind == Kind::Mod && !loader.is_empty() {
         req = req.query("loaders", &format!("[\"{loader}\"]"));
     }
-    if !ver.is_empty() {
+    if kind == Kind::Mod && !ver.is_empty() {
         req = req.query("game_versions", &format!("[\"{ver}\"]"));
     }
     
@@ -146,12 +150,9 @@ pub fn download(
         .and_then(|r| r.into_json().ok())
         .unwrap_or_default();
 
-    // Fallback: if no versions matched strict filter, fetch the latest available version
+    // Fallback: if no versions matched strict filter, fetch the latest available version without filters
     if versions.is_empty() {
-        let mut fallback_req = agent().get(&url);
-        if kind == Kind::Mod && !loader.is_empty() {
-            fallback_req = fallback_req.query("loaders", &format!("[\"{loader}\"]"));
-        }
+        let fallback_req = agent().get(&url);
         versions = fallback_req
             .call()
             .map_err(|e| format!("Modrinth: {e}"))?

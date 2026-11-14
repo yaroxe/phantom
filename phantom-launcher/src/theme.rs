@@ -1,7 +1,7 @@
 //! Matte Graphite + Cyber Yellow. One flat plane, no gradients.
 use eframe::egui::{self, Color32, Rounding, Shadow, Stroke, Visuals};
 
-pub const BG: Color32 = Color32::from_rgb(0x0d, 0x0f, 0x12);
+pub const BG: Color32 = Color32::from_rgb(0x0b, 0x0c, 0x10);
 pub const SIDE: Color32 = Color32::from_rgb(0x08, 0x09, 0x0b);
 pub const CARD: Color32 = Color32::from_rgb(0x14, 0x17, 0x1c);
 pub const CARD_HI: Color32 = Color32::from_rgb(0x1a, 0x1e, 0x24);
@@ -64,4 +64,17 @@ pub fn apply(ctx: &egui::Context) {
     }
 
     ctx.set_visuals(v);
+    ctx.style_mut(|s| {
+        use egui::{FontFamily, FontId, TextStyle};
+        let f = |n: f32| FontId::new(n, FontFamily::Proportional);
+        s.text_styles.insert(TextStyle::Heading, f(30.));
+        s.text_styles.insert(TextStyle::Body, f(15.5));
+        s.text_styles.insert(TextStyle::Button, f(15.));
+        s.text_styles.insert(TextStyle::Small, f(13.));
+        s.text_styles
+            .insert(TextStyle::Monospace, FontId::new(14.5, FontFamily::Monospace));
+        s.spacing.item_spacing = egui::vec2(10., 10.);
+        s.spacing.button_padding = egui::vec2(16., 9.);
+        s.spacing.interact_size.y = 34.;
+    });
 }

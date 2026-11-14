@@ -1103,7 +1103,32 @@ impl Game<'_> {
     ) {
         // The stands' models posed on the GPU path (`mobs::skin`), when it runs this frame.
         let skinning = self.skinning();
+
+        let (cam_yaw, cam_pitch) = (self.yaw.to_radians(), self.pitch.to_radians());
+        let cam_forward = glam::DVec3::new(
+            f64::from(-cam_yaw.sin() * cam_pitch.cos()),
+            f64::from(-cam_pitch.sin()),
+            f64::from(cam_yaw.cos() * cam_pitch.cos()),
+        );
+
         for a in &self.armor_stands {
+            let pos = glam::DVec3::new(a.position.x, a.position.y, a.position.z);
+            let d = pos - camera;
+            let dist_sq = d.length_squared();
+
+            // Distance culling (> 64 blocks)
+            if dist_sq > 64.0 * 64.0 {
+                continue;
+            }
+
+            // Behind-camera culling (> 4 blocks and dot < -0.2)
+            if dist_sq > 4.0 {
+                let dir = d.normalize();
+                if dir.dot(cam_forward) < -0.2 {
+                    continue;
+                }
+            }
+
             // ArmorStand.shouldRenderAtSqrDistance: 256 times the box's mean
             // edge (4 for a marker's empty box), whatever the entity distance.
             // LivingEntityRenderer grows the culling box by 0.5 for a dragon head.

@@ -76,12 +76,40 @@ pub fn play(cfg: &Config) -> Result<String, String> {
 
 pub fn find_resources(home: &Path, cfg: &Config) -> PathBuf {
     let data_root = crate::config::data_root();
-    let mut candidates = vec![
-        PathBuf::from(&cfg.phantom_dir).join("resources"),
-        home.join("resources"),
-        home.join(".local").join("phantom-client").join("26.3"),
-        home.join(".local").join("horizon-client").join("26.3"),
-    ];
+    let mut candidates = Vec::new();
+
+    // 1. ПОРТАТИВНЫЙ АВТОЗАПУСК: проверяем локальные ресурсы прямо рядом с exe лаунчера
+    if let Ok(exe) = env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            candidates.push(exe_dir.join(".local").join("phantom-client").join("26.3"));
+            candidates.push(exe_dir.join(".local").join("horizon-client").join("26.3"));
+            candidates.push(exe_dir.join("resources"));
+            // Если лаунчер в target/release или bin
+            if let Some(parent) = exe_dir.parent() {
+                candidates.push(parent.join(".local").join("phantom-client").join("26.3"));
+                candidates.push(parent.join(".local").join("horizon-client").join("26.3"));
+                candidates.push(parent.join("resources"));
+                if let Some(p2) = parent.parent() {
+                    candidates.push(p2.join(".local").join("phantom-client").join("26.3"));
+                    candidates.push(p2.join(".local").join("horizon-client").join("26.3"));
+                    candidates.push(p2.join("resources"));
+                }
+            }
+        }
+    }
+
+    // 2. Текущая рабочая директория (до проверки AppData)
+    candidates.push(PathBuf::from(".local").join("phantom-client").join("26.3"));
+    candidates.push(PathBuf::from(".local").join("horizon-client").join("26.3"));
+    candidates.push(PathBuf::from("resources"));
+
+    // 3. Рабочая папка home (где лежит клиент)
+    candidates.push(home.join(".local").join("phantom-client").join("26.3"));
+    candidates.push(home.join(".local").join("horizon-client").join("26.3"));
+    candidates.push(home.join("resources"));
+
+    // 4. Папка phantom_dir и AppData
+    candidates.push(PathBuf::from(&cfg.phantom_dir).join("resources"));
 
     for base in [
         data_root.join("phantom-launcher").join("versions"),
@@ -99,8 +127,6 @@ pub fn find_resources(home: &Path, cfg: &Config) -> PathBuf {
             }
         }
     }
-    candidates.push(PathBuf::from(".local").join("phantom-client").join("26.3"));
-    candidates.push(PathBuf::from(".local").join("horizon-client").join("26.3"));
 
     for c in &candidates {
         if c.join("horizon-resources.json").is_file() {
@@ -150,7 +176,68 @@ pub fn find_client(cfg: &Config) -> Option<PathBuf> {
     c.into_iter().find(|p| p.is_file())
 }
 
+/// Unpacks `resources.tar` (next to the launcher or in the working directory) into the folder it lies
+/// in, once. `on_progress(done, total, current file)`; returns at once when it is already unpacked.
+pub fn unpack_resources_if_needed(on_progress: impl Fn(usize, usize, &str)) -> Result<(), String> {
+    let mut candidates = vec![PathBuf::from("resources.tar")];
+    if let Ok(exe) = env::current_exe() {
+        if let Some(exe_dir) = exe.parent() {
+            candidates.push(exe_dir.join("resources.tar"));
+        }
+    }
+    let Some(tar_path) = candidates.into_iter().find(|p| p.is_file()) else {
+        return Ok(());
+    };
+    let base = tar_path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let marker = base
+        .join(".local")
+        .join("phantom-client")
+        .join("26.3")
+        .join("gameplay-facts.json");
+    if marker.is_file() {
+        return Ok(());
+    }
+
+    let open = || {
+        fs::File::open(&tar_path)
+            .map_err(|e| format!("Не удалось открыть {}: {e}", tar_path.display()))
+    };
+    // The first pass only walks the headers: it gives the progress bar its total.
+    let total = tar::Archive::new(open()?)
+        .entries()
+        .map_err(|e| format!("Ошибка чтения архива {}: {e}", tar_path.display()))?
+        .count()
+        .max(1);
+
+    let mut archive = tar::Archive::new(open()?);
+    let entries = archive
+        .entries()
+        .map_err(|e| format!("Ошибка чтения архива {}: {e}", tar_path.display()))?;
+    let step = (total / 100).max(1);
+    for (i, entry) in entries.enumerate() {
+        let mut entry = entry.map_err(|e| format!("Ошибка распаковки: {e}"))?;
+        let path = entry
+            .path()
+            .map_err(|e| e.to_string())?
+            .to_string_lossy()
+            .to_string();
+        entry
+            .unpack_in(&base)
+            .map_err(|e| format!("Ошибка записи {path}: {e}"))?;
+        if i % step == 0 {
+            on_progress(i + 1, total, &path);
+        }
+    }
+    on_progress(total, total, "Готово");
+    Ok(())
+}
+
 fn phantom(cfg: &Config) -> Result<String, String> {
+    let _ = unpack_resources_if_needed(|_, _, _| {});
     let client = find_client(cfg).ok_or(
         "phantom-client не найден. Укажите путь в Настройках или соберите: cargo build --release",
     )?;

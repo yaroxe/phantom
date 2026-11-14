@@ -384,38 +384,8 @@ fn address_key(ip: &str) -> Option<(String, u16)> {
 /// again after the player deletes it, and not when the list has its address.
 /// When it moved (the marker names another address), the entries for its
 /// earlier addresses move to the new one, once (`move_official`).
-pub fn add_official_server(game_dir: &Path) -> std::io::Result<()> {
-    return Ok(());
-    #[allow(unreachable_code)]
-    let (name, address) = OFFICIAL_SERVER;
-    let marker = game_dir.join(OFFICIAL_MARKER);
-    // A marker that is there but can't be read: offered already, at an address not known.
-    let offered = match std::fs::read_to_string(&marker) {
-        Ok(text) => Some(text),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
-        Err(_) => Some(String::new()),
-    };
-    if offered
-        .as_deref()
-        .is_some_and(|a| address_key(a) == address_key(address))
-    {
-        return Ok(());
-    }
-    let file = game_dir.join("servers.dat");
-    let _guard = SAVING.lock();
-    let mut list = servers::load(&file);
-    let previous = horizon_telemetry::server_status::OFFICIAL_PREVIOUS;
-    if move_official(&mut list, address, previous) {
-        servers::save(&file, &list)?;
-    }
-    if offered.is_none()
-        && !list
-            .iter()
-            .any(|s| address_key(&s.ip) == address_key(address))
-    {
-        servers::prepend(&file, &ServerEntry::new(name, address))?;
-    }
-    std::fs::write(marker, format!("{address}\n"))
+pub fn add_official_server(_game_dir: &Path) -> std::io::Result<()> {
+    Ok(())
 }
 
 /// Servers Horizon partners with, offered once below the official server: a name (with the

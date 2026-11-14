@@ -311,7 +311,10 @@ impl World {
     /// section borders) for remeshing and the surrounding chunks for relighting.
     /// Neighbour updates, drops and block entities belong to the gameplay layer.
     pub fn set(&mut self, x: i32, y: i32, z: i32, state: BlockStateId) -> crate::Result<()> {
-        let Some(chunk) = self.chunks.get_mut(&(x >> 4, z >> 4)) else {
+        let cx = x >> 4;
+        let cz = z >> 4;
+        self.chunks.ring_remove(cx, cz);
+        let Some(chunk) = self.chunks.get_mut(&(cx, cz)) else {
             return Err("write outside resident chunks".into());
         };
         let (min_y, sections) = (chunk.min_y(), chunk.sections.len() as i32);
@@ -319,6 +322,8 @@ impl World {
             return Err("write outside world height".into());
         }
         let previous = Arc::make_mut(chunk).set(x & 15, y, z & 15, state.0);
+        let updated = Arc::clone(chunk);
+        self.chunks.ring_insert(cx, cz, updated);
         if previous != state.0 {
             self.block_entities
                 .state_changed((x, y, z), previous, state.0);
@@ -385,7 +390,7 @@ impl World {
     /// isn't loaded).
     pub fn world_surface(&self, x: i32, z: i32, air: impl Fn(BlockStateId) -> bool) -> i32 {
         let bottom = self.layout().min_y();
-        self.chunks.get(&(x >> 4, z >> 4)).map_or(bottom, |chunk| {
+        self.chunks.get_chunk(x >> 4, z >> 4).map_or(bottom, |chunk| {
             chunk.world_surface(x, z, |v| air(BlockStateId(v)))
         })
     }
@@ -394,14 +399,14 @@ impl World {
     /// or the column's minimum Y (also where the chunk isn't loaded).
     pub fn motion_blocking(&self, x: i32, z: i32, blocks: impl Fn(BlockStateId) -> bool) -> i32 {
         let bottom = self.layout().min_y();
-        self.chunks.get(&(x >> 4, z >> 4)).map_or(bottom, |chunk| {
+        self.chunks.get_chunk(x >> 4, z >> 4).map_or(bottom, |chunk| {
             chunk.motion_blocking(x & 15, z & 15, |v| blocks(BlockStateId(v)))
         })
     }
     #[inline]
     pub fn block(&self, x: i32, y: i32, z: i32) -> BlockStateId {
         self.chunks
-            .get(&(x >> 4, z >> 4))
+            .get_chunk(x >> 4, z >> 4)
             .map_or(self.air, |chunk| chunk.block(x & 15, y, z & 15))
     }
     /// Whether a block of the box `lo..=hi` may match, from the palettes of
@@ -423,7 +428,7 @@ impl World {
         let sections = (lo[1].max(bottom) - bottom) >> 4..=(hi[1].min(top) - bottom) >> 4;
         for cx in lo[0] >> 4..=hi[0] >> 4 {
             for cz in lo[2] >> 4..=hi[2] >> 4 {
-                let Some(chunk) = self.chunks.get(&(cx, cz)) else {
+                let Some(chunk) = self.chunks.get_chunk(cx, cz) else {
                     if matches(self.air) {
                         return true;
                     }
@@ -443,17 +448,18 @@ impl World {
     pub fn block_entity_tickers(
         &mut self,
     ) -> std::sync::Arc<Vec<(crate::block_entities::Pos, u32)>> {
-        let (chunks, air) = (&self.chunks, self.air);
+        let air = self.air;
+        let chunks = &self.chunks;
         self.block_entities.tickers(|(x, y, z)| {
             chunks
-                .get(&(x >> 4, z >> 4))
+                .get_chunk(x >> 4, z >> 4)
                 .map_or(air, |chunk| chunk.block(x & 15, y, z & 15))
                 .0
         })
     }
     pub fn light(&self, x: i32, y: i32, z: i32) -> u8 {
         self.chunks
-            .get(&(x >> 4, z >> 4))
+            .get_chunk(x >> 4, z >> 4)
             .map_or(0xF0, |chunk| chunk.light(x & 15, y, z & 15))
     }
     pub fn is_air(&self, state: BlockStateId) -> bool {

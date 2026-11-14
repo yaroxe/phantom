@@ -1,0 +1,1 @@
+{"rustc":222933465615791797,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[15847301954214791247,"build_script_build",false,5920131826488395602]],"local":[{"Precalculated":"13439131126.549717400s (src/server.rs)"}],"rustflags":["-C","target-cpu=x86-64-v2"],"config":0,"compile_kind":0}

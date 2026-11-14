@@ -1010,6 +1010,7 @@ fn accept_loop(listener: TcpListener, shared: Arc<Shared>, stop: &AtomicBool) {
     }
 }
 fn handle(stream: TcpStream, addr: SocketAddr, counted: Counted) {
+    let _ = stream.set_nodelay(true);
     let _ = stream.set_nonblocking(false);
     let shared = counted.0.clone();
     if let Err(e) = conn::serve(stream, addr, shared, counted)

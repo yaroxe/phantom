@@ -348,19 +348,32 @@ impl ResourceSource for Bundled {
 }
 impl ResourceSource for std::path::PathBuf {
     fn read(&self, path: &str) -> Option<Vec<u8>> {
-        std::fs::read(self.join(path)).ok()
+        if let Ok(bytes) = std::fs::read(self.join(path)) {
+            return Some(bytes);
+        }
+        horizon_core::asset_archive::read_asset(self, path)
     }
     fn exists(&self, path: &str) -> bool {
-        self.join(path).is_file()
+        self.join(path).is_file() || horizon_core::asset_archive::asset_exists(self, path)
     }
     fn namespaces(&self) -> Vec<String> {
-        std::fs::read_dir(self.join("assets"))
+        let mut list: Vec<String> = std::fs::read_dir(self.join("assets"))
             .into_iter()
             .flatten()
             .flatten()
             .filter(|e| e.path().is_dir())
             .filter_map(|e| e.file_name().to_str().map(str::to_owned))
-            .collect()
+            .collect();
+        if list.is_empty() {
+            if let Some(archive) = horizon_core::asset_archive::open_cached(self) {
+                list = archive.namespaces();
+            }
+        }
+        if list.is_empty() {
+            vec!["minecraft".into()]
+        } else {
+            list
+        }
     }
 }
 

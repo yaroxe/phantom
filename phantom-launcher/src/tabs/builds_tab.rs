@@ -21,7 +21,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
             .add(
                 egui::Button::new(
                     RichText::new("+ СОЗДАТЬ ПРОФИЛЬ")
-                        .size(13.)
+                        .size(14.)
                         .color(Color32::BLACK)
                         .strong(),
                 )
@@ -39,7 +39,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
             .add(
                 egui::Button::new(
                     RichText::new("+ ДОБАВИТЬ .JAR")
-                        .size(13.)
+                        .size(14.)
                         .color(theme::TEXT),
                 )
                 .fill(theme::CARD)
@@ -85,7 +85,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
 
                     ui.label(
                         RichText::new("ИМЯ ПРОФИЛЯ:")
-                            .size(11.)
+                            .size(13.)
                             .color(theme::YELLOW)
                             .strong(),
                     );
@@ -139,7 +139,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                             .add(
                                 egui::Button::new(
                                     RichText::new("ОТМЕНА")
-                                        .size(13.)
+                                        .size(14.)
                                         .color(theme::MUTED),
                                 )
                                 .fill(theme::CARD)
@@ -158,7 +158,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
     if let Some((ok, msg)) = &app.status {
         ui.add_space(4.);
         let col = if *ok { theme::OK } else { theme::DANGER };
-        ui.label(RichText::new(msg).size(12.).color(col));
+        ui.label(RichText::new(msg).size(13.).color(col));
     }
 
     ui.add_space(12.);
@@ -253,8 +253,13 @@ fn render_build_tile(
     let p = ui.painter().clone();
     let mut delete_clicked = false;
 
+    let k = ui
+        .ctx()
+        .animate_bool_with_time(resp.id.with("hov"), resp.hovered(), 0.18);
     if selected {
         fx::glow(&p, rect, fx::shimmer(t * 0.25), 0.5, 8.);
+    } else if k > 0. {
+        fx::halo(&p, rect, fx::shimmer(t * 0.25), k, 10. * k);
     }
     p.rect_filled(
         rect,
@@ -278,7 +283,7 @@ fn render_build_tile(
         rect.left_top() + vec2(16., 16.),
         Align2::LEFT_TOP,
         tag,
-        FontId::proportional(12.),
+        FontId::proportional(13.),
         theme::YELLOW,
     );
 
@@ -297,7 +302,7 @@ fn render_build_tile(
     );
 
     let sub = if is_native {
-        "Движок на Rust (чистый C/Rust, wgpu)"
+        "Нативный движок на Rust"
     } else if id.starts_with("java:") {
         "Изолированная Java-сборка"
     } else {
@@ -307,7 +312,7 @@ fn render_build_tile(
         rect.left_top() + vec2(16., 68.),
         Align2::LEFT_TOP,
         sub,
-        FontId::proportional(11.),
+        FontId::proportional(13.),
         theme::TEXT_SOFT,
     );
 
@@ -320,7 +325,7 @@ fn render_build_tile(
         rect.left_bottom() + vec2(16., -14.),
         Align2::LEFT_BOTTOM,
         status,
-        FontId::proportional(11.),
+        FontId::proportional(13.),
         if selected { theme::YELLOW } else { theme::MUTED },
     );
 
@@ -354,7 +359,7 @@ fn render_build_tile(
             del_rect.center(),
             Align2::CENTER_CENTER,
             "🗑",
-            FontId::proportional(13.),
+            FontId::proportional(14.),
             if del_hover { theme::DANGER } else { theme::MUTED },
         );
 

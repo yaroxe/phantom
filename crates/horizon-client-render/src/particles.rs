@@ -4830,7 +4830,25 @@ impl ParticleEngine {
                 _ => {}
             }
             let block = ParticleLevel::block_at(p.position);
-            let packed = light_cache.get(block, light_at);
+            let mut packed = light_cache.get(block, light_at);
+            if packed == 0 {
+                let above = light_at([block[0], block[1] + 1, block[2]]);
+                if above > 0 {
+                    packed = above;
+                } else {
+                    let max_adj = [
+                        [block[0] + 1, block[1], block[2]],
+                        [block[0] - 1, block[1], block[2]],
+                        [block[0], block[1], block[2] + 1],
+                        [block[0], block[1], block[2] - 1],
+                    ]
+                    .into_iter()
+                    .map(light_at)
+                    .max()
+                    .unwrap_or(0);
+                    packed = if max_adj > 0 { max_adj } else { 0xF0 };
+                }
+            }
             let (sky_light, block_light) = p.light_coords(
                 partial,
                 u32::from(packed >> 4) * 16,

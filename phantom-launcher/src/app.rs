@@ -10,6 +10,7 @@ use crate::{
 use eframe::egui::{
     self, pos2, vec2, Align, Align2, Button, Color32, CursorIcon, FontId, Frame, Layout, Margin,
     Painter, Pos2, Rect, RichText, Rounding, Sense, Shape, Stroke, TextEdit, TextureHandle,
+    text::{LayoutJob, TextFormat},
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -25,14 +26,17 @@ pub enum Tab {
     Home,
     Builds,
     Mods,
+    Servers,
     Settings,
 }
 
 pub enum Msg {
     Launch(Result<String, String>),
+    LaunchStatus(String),
     Search(Result<Vec<Hit>, String>),
     Download(String, Result<String, String>),
     Icon(String, Result<Vec<u8>, String>),
+    Unpack(usize, usize),
 }
 
 pub struct App {
@@ -60,6 +64,9 @@ pub struct App {
     pub loading_icons: HashSet<String>,
     pub creating_profile: bool,
     pub new_profile_name: String,
+    pub server_mgr: crate::server::ServerManager,
+    /// resources.tar unpacking: (files done, files total).
+    pub unpack: Option<(usize, usize)>,
 }
 
 impl App {
@@ -90,6 +97,8 @@ impl App {
             loading_icons: HashSet::new(),
             creating_profile: false,
             new_profile_name: String::new(),
+            server_mgr: crate::server::ServerManager::new(),
+            unpack: None,
         }
     }
 
@@ -125,6 +134,12 @@ impl App {
         self.status = None;
         let (cfg, tx, ctx) = (self.cfg.clone(), self.tx.clone(), ctx.clone());
         thread::spawn(move || {
+            let tx_prog = tx.clone();
+            let ctx_prog = ctx.clone();
+            let _ = launch::unpack_resources_if_needed(move |done, total, _| {
+                let _ = tx_prog.send(Msg::Unpack(done, total));
+                ctx_prog.request_repaint();
+            });
             let _ = tx.send(Msg::Launch(launch::play(&cfg)));
             ctx.request_repaint();
         });
@@ -187,8 +202,16 @@ impl App {
     pub fn poll(&mut self, ctx: &egui::Context) {
         while let Ok(msg) = self.rx.try_recv() {
             match msg {
+                Msg::LaunchStatus(s) => {
+                    self.status = Some((true, s));
+                }
+                Msg::Unpack(done, total) => {
+                    self.unpack = Some((done, total));
+                    self.status = Some((true, format!("Распаковка ресурсов: {done}/{total}")));
+                }
                 Msg::Launch(r) => {
                     self.launching = false;
+                    self.unpack = None;
                     self.status = Some(match r {
                         Ok(m) => (true, m),
                         Err(e) => (false, e),
@@ -312,7 +335,7 @@ impl App {
                         Layout::top_down(Align::Min),
                         |ui| {
                             let title: String = h.title.chars().take(24).collect();
-                            ui.label(RichText::new(title).size(14.).color(theme::TEXT).strong());
+                            ui.label(RichText::new(title).size(15.).color(theme::TEXT).strong());
                             ui.label(muted(&format!(
                                 "{} · {}",
                                 h.author,
@@ -327,7 +350,7 @@ impl App {
                         } else if is_installed {
                             let _ = ui.add_sized(
                                 [110., 32.],
-                                Button::new(RichText::new("УСТАНОВЛЕНО ✓").size(11.).color(Color32::BLACK).strong())
+                                Button::new(RichText::new("УСТАНОВЛЕНО ✓").size(13.).color(Color32::BLACK).strong())
                                     .fill(theme::OK),
                             );
                         } else if ui
@@ -345,14 +368,21 @@ impl App {
                 } else {
                     desc_raw
                 };
-                ui.label(RichText::new(desc).size(12.));
+                ui.label(RichText::new(desc).size(13.));
             });
 
-        if r.response.hovered() {
+        let k = ctx.animate_bool_with_time(
+            r.response.id.with("hov"),
+            r.response.contains_pointer(),
+            0.18,
+        );
+        if k > 0. {
+            let col = fx::shimmer(t * 0.3 + i as f32 * 0.1);
+            fx::halo(ui.painter(), r.response.rect, col, k, 10. * k);
             ui.painter().rect_stroke(
                 r.response.rect,
                 2.,
-                Stroke::new(1.5, fx::shimmer(t * 0.3 + i as f32 * 0.1)),
+                Stroke::new(1. + k, col.gamma_multiply(0.4 + 0.6 * k)),
             );
         }
 
@@ -383,28 +413,22 @@ impl App {
                     theme::TEXT,
                 );
 
+                let base = ui.cursor().top();
+                let left = ui.max_rect().left();
                 for (tab, label) in [
                     (Tab::Home, "ГЛАВНАЯ"),
                     (Tab::Builds, "СБОРКИ"),
                     (Tab::Mods, "МОДЫ"),
+                    (Tab::Servers, "СЕРВЕРЫ"),
                     (Tab::Settings, "НАСТРОЙКИ"),
                 ] {
-                    let (r, resp) = ui.allocate_exact_size(vec2(92., 80.), Sense::click());
+                    let (r, resp) = ui.allocate_exact_size(vec2(92., 74.), Sense::click());
                     let active = self.tab == tab;
                     let hot = resp.hovered();
                     let p = ui.painter();
                     if active || hot {
                         let a = if active { 1. } else { 0.6 };
                         p.rect_filled(r, 0., theme::CARD_HI.gamma_multiply(a));
-                    }
-                    if active {
-                        fx::gradient(
-                            p,
-                            Rect::from_min_size(r.left_top(), vec2(3., r.height())),
-                            t,
-                            true,
-                            1.,
-                        );
                     }
                     let col = if active {
                         fx::shimmer(t * 0.2)
@@ -418,7 +442,7 @@ impl App {
                         pos2(r.center().x, r.bottom() - 17.),
                         Align2::CENTER_CENTER,
                         label,
-                        FontId::proportional(10.5),
+                        FontId::proportional(13.),
                         col,
                     );
                     if resp.clicked() {
@@ -426,6 +450,23 @@ impl App {
                     }
                     resp.on_hover_cursor(CursorIcon::PointingHand);
                 }
+                // The indicator glides to the active tab instead of jumping.
+                let idx = [Tab::Home, Tab::Builds, Tab::Mods, Tab::Servers, Tab::Settings]
+                    .iter()
+                    .position(|x| *x == self.tab)
+                    .unwrap_or(0);
+                let y = ctx.animate_value_with_time(
+                    egui::Id::new("rail_indicator"),
+                    base + idx as f32 * 74.,
+                    0.25,
+                );
+                fx::gradient(
+                    ui.painter(),
+                    Rect::from_min_size(pos2(left, y + 10.), vec2(4., 54.)),
+                    t,
+                    true,
+                    1.,
+                );
             });
     }
 
@@ -452,7 +493,7 @@ impl App {
                         let r = ui.add(
                             TextEdit::singleline(&mut self.cfg.nickname)
                                 .desired_width(140.)
-                                .font(FontId::proportional(14.)),
+                                .font(FontId::proportional(15.)),
                         );
                         if r.lost_focus() {
                             self.cfg.save();
@@ -467,7 +508,7 @@ impl App {
                         let title = build_title(&self.cfg.selected);
                         ui.menu_button(
                             RichText::new(title)
-                                .size(14.)
+                                .size(15.)
                                 .color(theme::TEXT)
                                 .strong(),
                             |ui| {
@@ -488,19 +529,24 @@ impl App {
 
                     ui.add_space(16.);
 
-                    // Short status message without wrapping under button
+                    // Status or unpack progress; never wraps under the button.
                     ui.allocate_ui_with_layout(
-                        vec2(180., 40.),
+                        vec2(300., 44.),
                         Layout::left_to_right(Align::Center),
                         |ui| {
-                            if let Some((ok, msg)) = &self.status {
+                            if let Some((d, n)) = self.unpack {
+                                ui.vertical(|ui| {
+                                    ui.label(
+                                        RichText::new(format!("Распаковка ресурсов {d}/{n}"))
+                                            .size(14.)
+                                            .color(theme::YELLOW),
+                                    );
+                                    progress_bar(ui, t, d as f32 / n.max(1) as f32, vec2(280., 8.));
+                                });
+                            } else if let Some((ok, msg)) = &self.status {
                                 let col = if *ok { theme::TEXT_SOFT } else { theme::DANGER };
-                                let short_msg = if msg.len() > 24 {
-                                    format!("{}…", &msg[..22])
-                                } else {
-                                    msg.clone()
-                                };
-                                ui.label(RichText::new(short_msg).size(11.5).color(col));
+                                let short: String = msg.chars().take(40).collect();
+                                ui.label(RichText::new(short).size(14.).color(col));
                             }
                         },
                     );
@@ -549,61 +595,94 @@ impl App {
     }
 
     fn home(&mut self, ui: &mut egui::Ui, t: f32) {
-        heading(ui, t, "PHANTOM ENGINE", "Быстрый лаунчер для Minecraft 26.3 и Java");
-
-        let hero_h = 200.;
-        let (hero, _) = ui.allocate_exact_size(vec2(ui.available_width(), hero_h), Sense::hover());
-        let p = ui.painter();
+        let w = ui.available_width();
+        let (hero, _) = ui.allocate_exact_size(vec2(w, 240.), Sense::hover());
+        let p = ui.painter().clone();
         p.rect_filled(hero, 4., theme::CARD);
+        fx::grid(&p, hero, t);
+        fx::particles(&p, hero, t);
         p.rect_stroke(hero, 4., Stroke::new(1., theme::BORDER));
+        fx::brackets(&p, hero.shrink(10.), 20., fx::shimmer(t * 0.2));
+        fx::reactor(&p, pos2(hero.right() - 150., hero.center().y), 80., t);
 
-        let c = pos2(hero.left() + 110., hero.center().y);
-        fx::reactor(p, c, 52., t);
-
-        let text_left = hero.left() + 200.;
+        let left = hero.left() + 36.;
         p.text(
-            pos2(text_left, hero.top() + 45.),
+            pos2(left, hero.top() + 28.),
             Align2::LEFT_TOP,
-            "Phantom Engine 26.3",
-            FontId::proportional(24.),
-            theme::TEXT,
-        );
-        p.text(
-            pos2(text_left, hero.top() + 82.),
-            Align2::LEFT_TOP,
-            "Движок на Rust + wgpu (Vulkan) с поддержкой SIMD Frustum Culling и Fat LTO.",
-            FontId::proportional(13.),
-            theme::TEXT_SOFT,
-        );
-        p.text(
-            pos2(text_left, hero.top() + 104.),
-            Align2::LEFT_TOP,
-            "Нативная загрузка шейдеров, физика взрывов через Rayon и стабильный тик.",
+            "PHANTOM ENGINE  ·  RUST  ·  WGPU / VULKAN",
             FontId::proportional(13.),
             theme::MUTED,
         );
+        let mut job = LayoutJob::default();
+        for (i, ch) in "PHANTOM".chars().enumerate() {
+            job.append(
+                &ch.to_string(),
+                0.,
+                TextFormat {
+                    font_id: FontId::proportional(72.),
+                    extra_letter_spacing: 3.,
+                    color: fx::shimmer(t * 0.15 + i as f32 * 0.06),
+                    ..Default::default()
+                },
+            );
+        }
+        let galley = p.fonts(|f| f.layout_job(job));
+        p.galley(pos2(left, hero.top() + 52.), galley, Color32::WHITE);
+        p.text(
+            pos2(left, hero.top() + 150.),
+            Align2::LEFT_TOP,
+            "Нативный движок Rust 26.3 · wgpu / Vulkan",
+            FontId::proportional(15.),
+            theme::TEXT_SOFT,
+        );
+        p.text(
+            pos2(left, hero.top() + 176.),
+            Align2::LEFT_TOP,
+            "Без аккаунтов. Без ожиданий. Просто играть.",
+            FontId::proportional(15.),
+            theme::MUTED,
+        );
+        fx::gradient(
+            &p,
+            Rect::from_min_size(pos2(hero.left(), hero.bottom() - 3.), vec2(w, 3.)),
+            t,
+            false,
+            1.,
+        );
 
-        ui.add_space(20.);
+        ui.add_space(18.);
+        if let Some((d, n)) = self.unpack {
+            card(ui, |ui| {
+                ui.label(
+                    RichText::new(format!("Распаковка ресурсов: {d} из {n}"))
+                        .size(15.)
+                        .color(theme::YELLOW)
+                        .strong(),
+                );
+                progress_bar(ui, t, d as f32 / n.max(1) as f32, vec2(ui.available_width(), 12.));
+            });
+            ui.add_space(10.);
+        }
 
         ui.columns(3, |cols| {
             cols[0].vertical(|ui| {
                 card(ui, |ui| {
                     ui.label(muted("СБОРКА ДВИЖКА"));
-                    ui.label(RichText::new("Phantom Multi-Core").size(15.).color(theme::YELLOW).strong());
-                    ui.label(muted("26.3 · Vulkan/Rayon"));
+                    ui.label(RichText::new("Phantom Multi-Core").size(18.).color(theme::YELLOW).strong());
+                    ui.label(muted("26.3 · Vulkan / Rayon"));
                 });
             });
             cols[1].vertical(|ui| {
                 card(ui, |ui| {
                     ui.label(muted("АКТИВНЫЙ ИГРОК"));
-                    ui.label(RichText::new(&self.cfg.nickname).size(15.).color(theme::TEXT).strong());
+                    ui.label(RichText::new(&self.cfg.nickname).size(18.).color(theme::TEXT).strong());
                     ui.label(muted("Offline UUID"));
                 });
             });
             cols[2].vertical(|ui| {
                 card(ui, |ui| {
                     ui.label(muted("ВЫДЕЛЕНИЕ RAM"));
-                    ui.label(RichText::new(format!("{} GB", self.cfg.ram_gb)).size(15.).color(theme::TEXT).strong());
+                    ui.label(RichText::new(format!("{} GB", self.cfg.ram_gb)).size(18.).color(theme::TEXT).strong());
                     ui.label(muted("Для Java версий"));
                 });
             });
@@ -625,9 +704,10 @@ impl App {
             .auto_shrink([false; 2])
             .show(ui, |ui| {
                 card(ui, |ui| {
-                    ui.label(muted("ОПЕРАТИВНАЯ ПАМЯТЬ (RAM) ДЛЯ JAVA"));
+                    let max_ram = crate::config::total_ram_gb();
+                    ui.label(muted(&format!("ОПЕРАТИВНАЯ ПАМЯТЬ (RAM) ДЛЯ JAVA (ВСЕГО В ПК: {max_ram} GB)")));
                     changed |= ui
-                        .add(egui::Slider::new(&mut self.cfg.ram_gb, 2..=16).suffix(" GB"))
+                        .add(egui::Slider::new(&mut self.cfg.ram_gb, 2..=max_ram).suffix(" GB"))
                         .changed();
                 });
                 card(ui, |ui| {
@@ -694,6 +774,7 @@ impl eframe::App for App {
                 Tab::Home => self.home(ui, t),
                 Tab::Builds => self.builds(ui, t),
                 Tab::Mods => self.mods(ui, t),
+                Tab::Servers => crate::server::render_server_tab(&mut self.server_mgr, &self.cfg, ui, t),
                 Tab::Settings => self.settings(ui, t),
             }
         });
@@ -703,11 +784,11 @@ impl eframe::App for App {
 // ---------------------------------------------------------------- helpers & widgets
 
 pub fn muted(s: &str) -> RichText {
-    RichText::new(s).size(12.).color(theme::MUTED)
+    RichText::new(s).size(13.).color(theme::MUTED)
 }
 
 pub fn heading(ui: &mut egui::Ui, t: f32, title: &str, sub: &str) {
-    ui.label(RichText::new(title).size(26.).color(theme::TEXT).strong());
+    ui.label(RichText::new(title).size(30.).color(theme::TEXT).strong());
     ui.label(muted(sub));
     let (r, _) = ui.allocate_exact_size(vec2(120., 3.), Sense::hover());
     fx::gradient(ui.painter(), r, t, false, 1.);
@@ -727,13 +808,13 @@ pub fn card(ui: &mut egui::Ui, add: impl FnOnce(&mut egui::Ui)) {
 }
 
 pub fn primary_button(text: &str) -> Button<'static> {
-    Button::new(RichText::new(text).size(13.).color(Color32::BLACK).strong())
+    Button::new(RichText::new(text).size(14.).color(Color32::BLACK).strong())
         .fill(theme::YELLOW)
         .stroke(Stroke::new(1., theme::YELLOW))
 }
 
 pub fn outline_button(text: &str) -> Button<'static> {
-    Button::new(RichText::new(text).size(13.).color(theme::YELLOW))
+    Button::new(RichText::new(text).size(14.).color(theme::YELLOW))
         .fill(Color32::TRANSPARENT)
         .stroke(Stroke::new(1., theme::YELLOW))
 }
@@ -803,6 +884,13 @@ fn tab_icon(p: &Painter, tab: Tab, c: Pos2, col: Color32) {
                 );
             }
         }
+        Tab::Servers => {
+            for dy in [-5.0f32, 1.0f32, 7.0f32] {
+                let rect = Rect::from_center_size(pos2(c.x, c.y + dy), vec2(15., 4.5));
+                p.rect_stroke(rect, 0.5, s);
+                p.circle_filled(pos2(c.x + 4.5, c.y + dy), 1.0, col);
+            }
+        }
         Tab::Settings => {
             p.circle_stroke(c, 8., s);
             p.circle_filled(c, 3., col);
@@ -850,6 +938,18 @@ pub fn add_tile(ui: &mut egui::Ui) -> egui::Response {
     let hot = resp.hovered();
     let stroke = if hot { Stroke::new(1., theme::YELLOW) } else { Stroke::new(1., theme::BORDER) };
     p.rect_stroke(r, 2., stroke);
-    p.text(r.center(), Align2::CENTER_CENTER, "+ Добавить .jar", FontId::proportional(12.), if hot { theme::YELLOW } else { theme::MUTED });
+    p.text(r.center(), Align2::CENTER_CENTER, "+ Добавить .jar", FontId::proportional(13.), if hot { theme::YELLOW } else { theme::MUTED });
     resp.on_hover_cursor(CursorIcon::PointingHand)
+}
+
+/// A flat progress bar filled with the flowing shimmer.
+pub fn progress_bar(ui: &mut egui::Ui, t: f32, frac: f32, size: egui::Vec2) {
+    let (r, _) = ui.allocate_exact_size(size, Sense::hover());
+    let p = ui.painter();
+    p.rect_filled(r, 2., theme::SIDE);
+    p.rect_stroke(r, 2., Stroke::new(1., theme::BORDER));
+    let f = frac.clamp(0., 1.);
+    if f > 0. {
+        fx::gradient(p, Rect::from_min_size(r.min, vec2(r.width() * f, r.height())), t, false, 1.);
+    }
 }

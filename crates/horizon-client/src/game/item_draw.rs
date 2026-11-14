@@ -629,17 +629,45 @@ impl Game<'_> {
             // the cell it is drawn in.
             let packed = if entity {
                 let probe = item.light_probe(alpha);
-                item.render_light(self.world.light(
-                    probe[0].floor() as i32,
-                    probe[1].floor() as i32,
-                    probe[2].floor() as i32,
-                ))
+                let px = probe[0].floor() as i32;
+                let py = probe[1].floor() as i32;
+                let pz = probe[2].floor() as i32;
+                let mut l = self.world.light(px, py, pz);
+                if l == 0 {
+                    let above = self.world.light(px, py + 1, pz);
+                    if above > 0 {
+                        l = above;
+                    } else {
+                        let adj = self.world.light(px + 1, py, pz)
+                            .max(self.world.light(px - 1, py, pz))
+                            .max(self.world.light(px, py, pz + 1))
+                            .max(self.world.light(px, py, pz - 1));
+                        if adj > 0 {
+                            l = adj;
+                        }
+                    }
+                }
+                item.render_light(l)
             } else {
-                vertex_light(self.world.light(
-                    q.x.floor() as i32,
-                    (q.y + 0.1).floor() as i32,
-                    q.z.floor() as i32,
-                ))
+                let qx = q.x.floor() as i32;
+                let qy = (q.y + 0.1).floor() as i32;
+                let qz = q.z.floor() as i32;
+                let mut l = self.world.light(qx, qy, qz);
+                if l == 0 {
+                    let above = self.world.light(qx, qy + 1, qz);
+                    if above > 0 {
+                        l = above;
+                    } else {
+                        let adj = self.world.light(qx + 1, qy, qz)
+                            .max(self.world.light(qx - 1, qy, qz))
+                            .max(self.world.light(qx, qy, qz + 1))
+                            .max(self.world.light(qx, qy, qz - 1));
+                        if adj > 0 {
+                            l = adj;
+                        }
+                    }
+                }
+                vertex_light(l)
             };
             let seed = i64::from(self.pack.item_renderer.item_id(&item.stack.item))
                 + i64::from(item.stack.damage);

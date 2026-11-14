@@ -128,3 +128,61 @@ pub fn reactor(p: &Painter, c: Pos2, radius: f32, t: f32) {
     }
     p.circle_filled(c, 7., core);
 }
+
+/// Only the outer rings of a glow, so it can be drawn over a finished card without tinting it.
+pub fn halo(p: &Painter, rect: Rect, color: Color32, strength: f32, radius: f32) {
+    for i in 1..=8 {
+        let e = i as f32 * radius / 8.;
+        let a = strength * (1. - i as f32 / 9.) * 0.3;
+        p.rect_stroke(
+            rect.expand(e),
+            Rounding::same(2. + e),
+            Stroke::new(radius / 8. + 0.6, color.gamma_multiply(a)),
+        );
+    }
+}
+
+/// A faint grid that drifts slowly sideways and down.
+pub fn grid(p: &Painter, rect: Rect, t: f32) {
+    let step = 36.;
+    let off = (t * 6.) % step;
+    let col = Color32::from_white_alpha(7);
+    let mut x = rect.left() + step - off;
+    while x < rect.right() {
+        if x > rect.left() {
+            p.line_segment([pos2(x, rect.top()), pos2(x, rect.bottom())], Stroke::new(1., col));
+        }
+        x += step;
+    }
+    let mut y = rect.top() + step - off;
+    while y < rect.bottom() {
+        if y > rect.top() {
+            p.line_segment([pos2(rect.left(), y), pos2(rect.right(), y)], Stroke::new(1., col));
+        }
+        y += step;
+    }
+}
+
+/// Sparks rising through `rect`, deterministic per index, fading in and out.
+pub fn particles(p: &Painter, rect: Rect, t: f32) {
+    for i in 0..48u32 {
+        let h = |k: u32| {
+            let mut v = i.wrapping_mul(2654435761).wrapping_add(k.wrapping_mul(40503));
+            v ^= v >> 13;
+            v = v.wrapping_mul(0x5bd1e995);
+            v ^= v >> 15;
+            (v & 0xffff) as f32 / 65535.
+        };
+        let (sx, sy, sp, ph) = (h(1), h(2), 0.015 + h(3) * 0.05, h(4));
+        let y = 1. - ((t * sp + sy) % 1.);
+        let x = sx + 0.02 * (t * 0.6 + ph * 6.28).sin();
+        let a = (y * (1. - y) * 4.).clamp(0., 1.) * 0.8;
+        let pos = pos2(rect.left() + x * rect.width(), rect.top() + y * rect.height());
+        let sz = 1.5 + h(5) * 2.;
+        p.rect_filled(
+            Rect::from_center_size(pos, vec2(sz, sz)),
+            0.,
+            shimmer(t * 0.1 + h(6)).gamma_multiply(a),
+        );
+    }
+}

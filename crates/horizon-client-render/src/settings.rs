@@ -228,10 +228,10 @@ impl Default for Settings {
             gui_scale: 0,
             view_bobbing: true,
             gamma: 0.5,
-            // Vanilla's default, as for an options.txt without the key: a
-            // capped frame rate leaves the cores idle when VSync is off.
-            max_fps: 120,
-            vsync: true,
+            // Default settings optimized for maximum FPS out of the box:
+            // vsync off and unlimited frame rate (maxFps = 260)
+            max_fps: 260,
+            vsync: false,
             fullscreen: false,
             smooth_lighting: true,
             clouds: "true".into(),
@@ -1151,7 +1151,7 @@ mod tests {
     #[test]
     fn no_options_txt_paces_frames_like_an_empty_one() {
         let (fresh, empty) = (Settings::default(), Settings::parse(""));
-        assert_eq!(fresh.max_fps, 120);
+        assert_eq!(fresh.max_fps, 260);
         assert_eq!(fresh.max_fps, empty.max_fps);
         assert_eq!(fresh.vsync, empty.vsync);
         assert_eq!(fresh.inactivity_fps_limit, empty.inactivity_fps_limit);

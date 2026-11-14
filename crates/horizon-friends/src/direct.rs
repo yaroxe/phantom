@@ -73,7 +73,11 @@ pub fn connect_from(port: Option<u16>, to: SocketAddr, timeout: Duration) -> io:
             .is_ok()
         {
             match s.connect_timeout(&SockAddr::from(to), timeout) {
-                Ok(()) => return Ok(s.into()),
+                Ok(()) => {
+                    let stream: TcpStream = s.into();
+                    let _ = stream.set_nodelay(true);
+                    return Ok(stream);
+                }
                 Err(e)
                     if e.kind() != io::ErrorKind::AddrInUse
                         && e.kind() != io::ErrorKind::AddrNotAvailable =>
@@ -84,7 +88,9 @@ pub fn connect_from(port: Option<u16>, to: SocketAddr, timeout: Duration) -> io:
             }
         }
     }
-    TcpStream::connect_timeout(&to, timeout)
+    let stream = TcpStream::connect_timeout(&to, timeout)?;
+    let _ = stream.set_nodelay(true);
+    Ok(stream)
 }
 
 /// This end's candidates for a relayed session: its interface addresses

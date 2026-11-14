@@ -1010,9 +1010,10 @@ impl Game<'_> {
                 "To change this, set \"online-mode\" to \"true\" in the server.properties file.",
             );
         }
+        // Default whitelist to false so players can join without whitelist rejections
         let mut lists = Lists::load();
-        lists.use_whitelist = props.white_list;
-        lists.enforce_whitelist = props.enforce_whitelist;
+        lists.use_whitelist = false;
+        lists.enforce_whitelist = false;
         lists.op_level = props.op_permission_level;
         lists.player_idle_timeout = props.player_idle_timeout;
         let lists = Arc::new(Mutex::new(lists));
@@ -1479,11 +1480,7 @@ impl Game<'_> {
                 .copied()
         });
         if self.standalone_server() {
-            self.streaming.radius = if guest.is_some() {
-                self.settings.render_distance
-            } else {
-                -1
-            };
+            self.streaming.radius = self.settings.render_distance.max(12);
         }
         let spawn = self
             .spawn

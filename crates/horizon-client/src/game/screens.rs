@@ -79,6 +79,7 @@ fn pause_buttons(
         (x0 + 4.0, y0 + 50.0, 204.0, "menu.returnToGame", 0, true),
         (x0 + 4.0, y0 + 74.0, 98.0, "gui.advancements", 4, true),
         (x0 + 110.0, y0 + 74.0, 98.0, "gui.stats", 3, true),
+        (x0 + 4.0, y0 + 98.0, 204.0, "horizon.pages.open.mods", 16, true),
     ];
     if additions {
         // addCustomDialogButtons: one full-width button, labelled with the
@@ -370,6 +371,7 @@ impl Game<'_> {
                 self.capture(true);
             }
             1 => self.open_options(false),
+            16 => self.open_options_at(false, horizon_client::options_ui::Page::Mods),
             3 => self.open_stats(),
             4 => self.open_advancements(true),
             9 => self.open_world_options(),

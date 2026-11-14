@@ -437,7 +437,7 @@ impl<'w> BlockCollisionWorld for SceneCollisions<'w, '_> {
     /// The resident column, looked up once per chunk the scan enters.
     type Chunk = &'w crate::chunk::Chunk;
     fn collision_chunk(&mut self, p: ChunkPos) -> io::Result<Option<Self::Chunk>> {
-        Ok(self.world.chunks.get(&(p.x, p.z)).map(|chunk| &**chunk))
+        Ok(self.world.chunks.get_chunk(p.x, p.z).map(|chunk| &**chunk))
     }
     fn collision_block(&mut self, chunk: Self::Chunk, p: BlockPos) -> io::Result<CollisionBlock> {
         self.binding.collision_block(chunk.block(p.x, p.y, p.z))

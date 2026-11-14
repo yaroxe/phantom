@@ -147,7 +147,10 @@ fn join_direct(invite: &Invite) -> Result<Option<Tunnel>, JoinError> {
             .name("horizon-friends-dial".into())
             .spawn(move || {
                 if let Ok(mut s) = TcpStream::connect_timeout(&endpoint, Duration::from_secs(4))
-                    && direct::code_hello(&mut s, session).is_ok()
+                    && {
+                        let _ = s.set_nodelay(true);
+                        direct::code_hello(&mut s, session).is_ok()
+                    }
                 {
                     let _ = tx.send(s);
                 }

@@ -35,6 +35,70 @@ pub enum ChunkMembershipDelta {
     Reset,
 }
 
+const RING_BITS: usize = 6;
+const RING_SIZE: usize = 1 << (RING_BITS * 2); // 4096 (64x64)
+const RING_MASK: usize = (1 << RING_BITS) - 1; // 63
+
+#[inline(always)]
+pub fn ring_index(cx: i32, cz: i32) -> usize {
+    (((cz as usize) & RING_MASK) << RING_BITS) | ((cx as usize) & RING_MASK)
+}
+
+/// 64x64 fast ring buffer grid cache for O(1) chunk lookups.
+pub struct ChunkRingGrid {
+    slots: Box<[Option<Arc<Chunk>>]>,
+}
+
+impl Default for ChunkRingGrid {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ChunkRingGrid {
+    pub fn new() -> Self {
+        let mut v = Vec::with_capacity(RING_SIZE);
+        v.resize_with(RING_SIZE, || None);
+        Self {
+            slots: v.into_boxed_slice(),
+        }
+    }
+
+    #[inline(always)]
+    pub fn get(&self, cx: i32, cz: i32) -> Option<&Arc<Chunk>> {
+        let idx = ring_index(cx, cz);
+        if let Some(ref c) = self.slots[idx] {
+            if c.x == cx && c.z == cz {
+                return Some(c);
+            }
+        }
+        None
+    }
+
+    #[inline(always)]
+    pub fn insert(&mut self, cx: i32, cz: i32, chunk: Arc<Chunk>) {
+        let idx = ring_index(cx, cz);
+        self.slots[idx] = Some(chunk);
+    }
+
+    #[inline(always)]
+    pub fn remove(&mut self, cx: i32, cz: i32) {
+        let idx = ring_index(cx, cz);
+        if let Some(ref c) = self.slots[idx] {
+            if c.x == cx && c.z == cz {
+                self.slots[idx] = None;
+            }
+        }
+    }
+
+    #[inline(always)]
+    pub fn clear(&mut self) {
+        for slot in self.slots.iter_mut() {
+            *slot = None;
+        }
+    }
+}
+
 /// Read access behaves like a map. Structural writes are explicit so edits to
 /// blocks or light don't invalidate consumers of the loaded chunk key set.
 /// Tokens are process-wide: replacing the entire map also invalidates caches.
@@ -52,6 +116,7 @@ pub struct ChunkMap {
     recent_deltas: VecDeque<(u64, ChunkMembershipDelta)>,
     /// The resident chunks generation has not placed its animals in yet.
     fresh: FxHashSet<Key>,
+    ring: ChunkRingGrid,
 }
 impl Default for ChunkMap {
     fn default() -> Self {
@@ -62,6 +127,7 @@ impl Default for ChunkMap {
             min_valid_revision: revision,
             recent_deltas: VecDeque::new(),
             fresh: FxHashSet::default(),
+            ring: ChunkRingGrid::new(),
         }
     }
 }
@@ -122,6 +188,7 @@ impl ChunkMap {
         } else {
             self.fresh.remove(&key);
         }
+        self.ring.insert(key.0, key.1, chunk.clone());
         let previous = self.columns.insert(key, chunk);
         if previous.is_none() {
             self.revision = next_revision();
@@ -130,6 +197,7 @@ impl ChunkMap {
         previous
     }
     pub fn remove(&mut self, key: &Key) -> Option<Arc<Chunk>> {
+        self.ring.remove(key.0, key.1);
         self.fresh.remove(key);
         let previous = self.columns.remove(key);
         if previous.is_some() {
@@ -139,6 +207,7 @@ impl ChunkMap {
         previous
     }
     pub fn clear(&mut self) {
+        self.ring.clear();
         if !self.columns.is_empty() {
             self.columns.clear();
             self.fresh.clear();
@@ -148,6 +217,13 @@ impl ChunkMap {
                 .push_back((self.revision, ChunkMembershipDelta::Reset));
             self.min_valid_revision = self.revision;
         }
+    }
+    #[inline(always)]
+    pub fn get_chunk(&self, cx: i32, cz: i32) -> Option<&Arc<Chunk>> {
+        if let Some(chunk) = self.ring.get(cx, cz) {
+            return Some(chunk);
+        }
+        self.columns.get(&(cx, cz))
     }
     pub fn has_fresh(&self) -> bool {
         !self.fresh.is_empty()
@@ -169,6 +245,14 @@ impl ChunkMap {
     }
     pub fn remove_fresh(&mut self, key: &Key) {
         self.fresh.remove(key);
+    }
+    #[inline(always)]
+    pub fn ring_remove(&mut self, cx: i32, cz: i32) {
+        self.ring.remove(cx, cz);
+    }
+    #[inline(always)]
+    pub fn ring_insert(&mut self, cx: i32, cz: i32, chunk: Arc<Chunk>) {
+        self.ring.insert(cx, cz, chunk);
     }
     pub fn get_mut(&mut self, key: &Key) -> Option<&mut Arc<Chunk>> {
         self.columns.get_mut(key)

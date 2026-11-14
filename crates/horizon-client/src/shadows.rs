@@ -93,12 +93,13 @@ pub fn mob_shadow_radius(m: &Mob) -> f32 {
 /// `EntityRenderer.extractShadow` skips an entity whose
 /// `EntityRenderState.isInvisible` is set (`Entity.isInvisible`).
 pub fn mob_casters(mobs: &[Mob], alpha: f64) -> impl Iterator<Item = (DVec3, f32, f32)> {
+    let a = alpha.clamp(0.0, 1.0);
     mobs.iter().filter(|m| !m.is_invisible()).map(move |m| {
         let (p, q) = (m.previous, m.position);
         let pos = DVec3::new(
-            p.x + (q.x - p.x) * alpha,
-            p.y + (q.y - p.y) * alpha,
-            p.z + (q.z - p.z) * alpha,
+            p.x + (q.x - p.x) * a,
+            p.y + (q.y - p.y) * a,
+            p.z + (q.z - p.z) * a,
         );
         (pos, mob_shadow_radius(m), shadow_params(&m.kind.id).1)
     })
@@ -204,11 +205,31 @@ pub fn shadow(
                 let Some(bounds) = collision_bounds(state) else {
                     continue;
                 };
-                let top = f64::from(y - 1) + bounds.max_position().y;
+                let block_top = bounds.max_position().y;
+                // Only full-height or solid top surface blocks receive shadow
+                if block_top < 0.99 {
+                    continue;
+                }
+                // Offset shadow slightly (1/64 = 0.015625) above block top to eliminate z-fighting
+                let top = f64::from(y - 1) + block_top + 0.015625;
                 if top > pos.y + 1e-6 {
                     continue;
                 }
-                let packed = world.light(x, y, z);
+                let mut packed = world.light(x, y, z);
+                if packed == 0 {
+                    let above = world.light(x, y + 1, z);
+                    if above > 0 {
+                        packed = above;
+                    } else {
+                        let adj = world.light(x + 1, y, z)
+                            .max(world.light(x - 1, y, z))
+                            .max(world.light(x, y, z + 1))
+                            .max(world.light(x, y, z - 1));
+                        if adj > 0 {
+                            packed = adj;
+                        }
+                    }
+                }
                 let raw = (i32::from(packed >> 4) - sky_darken).max(i32::from(packed & 15));
                 if raw <= 3 {
                     continue;

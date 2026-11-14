@@ -5595,6 +5595,10 @@ impl Game<'_> {
     }
     /// Side effects reported by the behaviour library, in vanilla order.
     fn process_level_events(&mut self) -> Result<()> {
+        if self.level_events.len() > 4096 {
+            let excess = self.level_events.len() - 4096;
+            self.level_events.drain(..excess);
+        }
         let events = std::mem::take(&mut self.level_events);
         self.lan_record_events(&events);
         dispense_fixture::record_events(&events);
@@ -6809,6 +6813,10 @@ impl Game<'_> {
                 return Ok(Some(hand));
             }
             if self.with_hand(hand, |game| game.use_hand(block_hit.as_ref()))? {
+                return Ok(Some(hand));
+            }
+            // If the main hand consumed the action, immediately return and do not process off hand!
+            if hand == Hand::Main && !self.use_failed {
                 return Ok(Some(hand));
             }
         }
@@ -11856,7 +11864,7 @@ impl Game<'_> {
                 Dim::Overworld => 0.0,
             };
             let darken = self.sky_darken();
-            let a = alpha;
+            let a = alpha.clamp(0.0, 1.0);
             let lerp = |p: Vec3, q: Vec3| {
                 glam::DVec3::new(
                     p.x + (q.x - p.x) * a,
@@ -11866,6 +11874,12 @@ impl Game<'_> {
             };
             let mut casters: Vec<(glam::DVec3, f32, f32)> =
                 horizon_client::shadows::mob_casters(&self.mobs, a).collect();
+            let tnt_params = horizon_client::shadows::shadow_params("minecraft:tnt");
+            casters.extend(
+                self.tnts
+                    .iter()
+                    .map(|t| (lerp(t.previous, t.position), tnt_params.0, tnt_params.1)),
+            );
             let item = horizon_client::shadows::shadow_params("minecraft:item");
             casters.extend(
                 self.dropped
@@ -12296,6 +12310,27 @@ impl Game<'_> {
         // Particles (ParticleEngine.extract): camera-facing quads.
         self.mark_stage(out.len(), "PARTICLES");
         let world = &self.world;
+        let light_query = |b: [i32; 3]| {
+            let l = world.light(b[0], b[1], b[2]);
+            if l == 0 {
+                let above = world.light(b[0], b[1] + 1, b[2]);
+                if above > 0 {
+                    above
+                } else {
+                    let adj = world.light(b[0] + 1, b[1], b[2])
+                        .max(world.light(b[0] - 1, b[1], b[2]))
+                        .max(world.light(b[0], b[1], b[2] + 1))
+                        .max(world.light(b[0], b[1], b[2] - 1));
+                    if adj > 0 {
+                        adj
+                    } else {
+                        0xF0
+                    }
+                }
+            } else {
+                l
+            }
+        };
         let particle_mode = self.settings.horizon.particle_culling;
         if particle_mode == horizon_client::graphics::ParticleCullingMode::Off {
             self.particles.render(
@@ -12303,7 +12338,7 @@ impl Game<'_> {
                 self.yaw,
                 self.pitch,
                 alpha as f32,
-                &|b| world.light(b[0], b[1], b[2]),
+                &light_query,
                 &mut out,
             );
         } else {
@@ -12327,7 +12362,7 @@ impl Game<'_> {
                     true,
                     frustum.as_ref(),
                     &mut |min, max| particle_culling.hidden(min, max),
-                    &|b| world.light(b[0], b[1], b[2]),
+                    &light_query,
                     &mut out,
                 );
             }
@@ -13121,6 +13156,7 @@ impl Game<'_> {
             Action::Quit if self.options.split_guest => {}
             Action::Quit => event_loop.exit(),
             Action::Options => self.open_options(true),
+            Action::Mods => self.open_options_at(true, horizon_client::options_ui::Page::Mods),
             Action::Accessibility => {
                 self.open_options_at(true, horizon_client::options_ui::Page::Accessibility)
             }
@@ -14612,6 +14648,7 @@ impl Game<'_> {
                 } else {
                     self.damage_held(1);
                 }
+                self.swing_arm();
                 return Ok(UseResult::Success { swing: true });
             }
             let target = [
@@ -14648,6 +14685,7 @@ impl Game<'_> {
                 } else {
                     self.damage_held(1);
                 }
+                self.swing_arm();
                 return Ok(UseResult::Success { swing: true });
             }
             return Ok(UseResult::Fail);
@@ -18447,8 +18485,10 @@ impl Game<'_> {
         if let Some(renderer) = self.renderer.as_mut() {
             let g = &self.settings.horizon;
             let budgeted = g.chunk_updates > 0 || g.upload_budget_kib > 0;
+            let is_sprinting = self.player.as_ref().is_some_and(|p| p.sprinting);
+            let max_auto_uploads = if is_sprinting { 3 } else { AUTO_UPLOADS_AT_ONCE };
             // The meshes, once copied, are freed by a worker (`Streaming::free`).
-            if !budgeted && self.pending_uploads.is_empty() && uploads.len() <= AUTO_UPLOADS_AT_ONCE
+            if !budgeted && self.pending_uploads.is_empty() && uploads.len() <= max_auto_uploads
             {
                 horizon_client::spans::time("upload", || {
                     for (key, mesh) in &uploads {
@@ -18479,11 +18519,15 @@ impl Game<'_> {
                 let centre = self.streaming.center;
                 let far = |k: &(i32, i32, i32)| (k.0 - centre.0).pow(2) + (k.2 - centre.1).pow(2);
                 pending.sort_unstable_by_key(|(k, _)| std::cmp::Reverse(far(k)));
+                let is_sprinting = self.player.as_ref().is_some_and(|p| p.sprinting);
                 let (limit, budget) = if budgeted {
                     (
                         g.chunk_updates as usize,
                         u64::from(g.upload_budget_kib) * 1024,
                     )
+                } else if is_sprinting {
+                    // Frame pacing: smooth out chunk uploads when sprinting to avoid frame drops
+                    (3, 0)
                 } else {
                     (0, 0)
                 };
@@ -18494,12 +18538,17 @@ impl Game<'_> {
                 let auto = !budgeted;
                 let auto_time = if arriving {
                     AUTO_UPLOAD_TIME_ARRIVING
+                } else if is_sprinting {
+                    std::time::Duration::from_millis(2)
                 } else {
                     AUTO_UPLOAD_TIME
                 };
                 let started = Instant::now();
                 while let Some((_, mesh)) = pending.last() {
                     if auto && count > 0 && started.elapsed() >= auto_time {
+                        break;
+                    }
+                    if auto && is_sprinting && count >= 3 {
                         break;
                     }
                     let size = ((mesh.solid.len() + mesh.translucent.len())
