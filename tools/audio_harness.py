@@ -25,16 +25,16 @@ COMMON_SOURCES = [
     lab.ROOT / 'tools/lab.py',
     lab.ROOT / 'Cargo.toml',
     lab.ROOT / 'Cargo.lock',
-    lab.ROOT / 'crates/horizon-client/Cargo.toml',
-    lab.ROOT / 'crates/horizon-client-render/Cargo.toml',
-    lab.ROOT / 'crates/horizon-client-render/src/sound_events.rs',
-    lab.ROOT / 'crates/horizon-client-render/src/sound_engine.rs',
+    lab.ROOT / 'crates/phantom-client/Cargo.toml',
+    lab.ROOT / 'crates/phantom-client-render/Cargo.toml',
+    lab.ROOT / 'crates/phantom-client-render/src/sound_events.rs',
+    lab.ROOT / 'crates/phantom-client-render/src/sound_engine.rs',
 ]
 
 
 def require_sounds():
     if not (RESOURCES / 'assets/minecraft/sounds.json').is_file():
-        raise SystemExit('Sound assets missing: run cargo run -p horizon-prepare -- sounds first')
+        raise SystemExit('Sound assets missing: run cargo run -p phantom-prepare -- sounds first')
 
 
 def run_harness(name, oracle, example, inputs_text, extra_sources=(), java_args=(), rust_args=(), scope='', timeout=1800):
@@ -47,7 +47,7 @@ def run_harness(name, oracle, example, inputs_text, extra_sources=(), java_args=
     report = build / 'report.json'
     report.unlink(missing_ok=True)
     oracle_path = lab.ROOT / f'mods/horizon/src/test/java/dev/horizonlab/parity/{oracle}.java'
-    example_path = lab.ROOT / f'crates/horizon-client/examples/probe/{example}.rs'
+    example_path = lab.ROOT / f'crates/phantom-client/examples/probe/{example}.rs'
     sources = [*COMMON_SOURCES, oracle_path, example_path, *[Path(s) for s in extra_sources]]
     tested = base.source_hashes(sources)
     inputs = build / 'inputs.txt'
@@ -66,7 +66,7 @@ def run_harness(name, oracle, example, inputs_text, extra_sources=(), java_args=
     dependencies = os.pathsep.join(map(str, [jars['client'], *libraries]))
     run(['javac', '--release', lock['minecraft']['java_major'], '-proc:none', '-sourcepath', lab.ROOT / 'mods/horizon/src/test/java',
          '-cp', dependencies, '-d', classes, oracle_path], 'compile-java')
-    run(['cargo', 'build', '--locked', '-p', 'horizon-client-lib', '--example', 'client_probe'], 'compile-rust')
+    run(['cargo', 'build', '--locked', '-p', 'phantom-client-lib', '--example', 'client_probe'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--no-deps', '--format-version', '1'], cwd=lab.ROOT))
     binary = Path(metadata['target_directory']) / 'debug/examples' / ('client_probe.exe' if os.name == 'nt' else 'client_probe')
     run([binary, example, *rust_args, inputs, build / 'rust.txt'], 'rust')

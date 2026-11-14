@@ -1,11 +1,11 @@
-//! The launcher's view of Horizon's design tokens (`crates/horizon-theme`, described in
-//! `docs/design-system.md`): the night look (`horizon_theme::night`, a night sky or a dawn with
+//! The launcher's view of Horizon's design tokens (`crates/phantom-theme`, described in
+//! `docs/design-system.md`): the night look (`phantom_theme::night`, a night sky or a dawn with
 //! Horizon's violet) in Bricolage Grotesque, with Geist Mono for paths and codes (all bundled, SIL
 //! Open Font License). Screens not rebuilt yet draw the Blocks parts in the night's colours.
 use gpui::{rgb, Hsla, WindowAppearance};
 use horizon_launcher::backend::{Appearance, Settings};
 use horizon_launcher::themes::{self, Accent};
-use horizon_theme as tokens;
+use phantom_theme as tokens;
 use std::time::Duration;
 
 pub use tokens::night::{self, Night};
@@ -58,7 +58,7 @@ pub struct Theme {
     pub danger: Hsla,
     pub success: Hsla,
     pub warn: Hsla,
-    /// The blocky parts (`horizon_theme::Blocks`).
+    /// The blocky parts (`phantom_theme::Blocks`).
     pub side: Hsla,
     pub panel: Hsla,
     pub raised: Hsla,
@@ -164,14 +164,14 @@ impl Theme {
     /// pages not rebuilt for it yet draw with these tokens comes out as the mockup's parts do,
     /// white text and fills at a few opacities, no borders, no bevels.
     fn glass(self, accent: Accent) -> Self {
-        use horizon_theme::glass::{fill, ink, Glass, BLUR, DANGER, LIVE, TINT, WARN};
+        use phantom_theme::glass::{fill, ink, Glass, BLUR, DANGER, LIVE, TINT, WARN};
         let dark = self.dark;
         // Light: the ink where dark has white, as `glass_ui::white` does.
         let white = |a: f32| {
             if dark {
                 gpui::white().opacity(a)
             } else {
-                c(horizon_theme::glass::ON_LIGHT).opacity(a)
+                c(phantom_theme::glass::ON_LIGHT).opacity(a)
             }
         };
         let none = gpui::transparent_black();
@@ -283,7 +283,7 @@ mod tests {
         channel(16) | channel(8) | channel(0)
     }
 
-    /// What the Servers page draws besides text (whose colours horizon-theme's own test holds to
+    /// What the Servers page draws besides text (whose colours phantom-theme's own test holds to
     /// WCAG AA on every background): the keyboard focus ring, the borders of a focused or refused
     /// field (WCAG 1.4.11 asks 3:1 for those), and text over a selected suggestion.
     #[test]

@@ -78,8 +78,8 @@ def main():
     lock,jars,libraries=base.verify_artifacts()
     oracle=lab.ROOT/"mods/horizon/src/test/java/dev/horizonlab/parity/VanillaFeaturePlacementOracle.java"
     helper=oracle.with_name("VanillaPlacementOracle.java")
-    sources=[oracle,helper,Path(__file__),lab.ROOT/"tools/test_worldgen_parity.py",lab.ROOT/"tools/test_rust_parity.py",lab.ROOT/"tools/lab.py",lab.ROOT/"Cargo.toml",lab.ROOT/"Cargo.lock",lab.ROOT/"crates/horizon-core/Cargo.toml",lab.ROOT/"crates/horizon-world/Cargo.toml",
-             *sorted((lab.ROOT/"crates/horizon-core/src").rglob("*.rs")),*sorted((lab.ROOT/"crates/horizon-world/src").rglob("*.rs")),lab.ROOT/"crates/horizon-world/examples/probe/feature_placement_fixture.rs",lab.ROOT/"crates/horizon-world/examples/probe/support/placement_queries.rs"]
+    sources=[oracle,helper,Path(__file__),lab.ROOT/"tools/test_worldgen_parity.py",lab.ROOT/"tools/test_rust_parity.py",lab.ROOT/"tools/lab.py",lab.ROOT/"Cargo.toml",lab.ROOT/"Cargo.lock",lab.ROOT/"crates/phantom-core/Cargo.toml",lab.ROOT/"crates/phantom-world/Cargo.toml",
+             *sorted((lab.ROOT/"crates/phantom-core/src").rglob("*.rs")),*sorted((lab.ROOT/"crates/phantom-world/src").rglob("*.rs")),lab.ROOT/"crates/phantom-world/examples/probe/feature_placement_fixture.rs",lab.ROOT/"crates/phantom-world/examples/probe/support/placement_queries.rs"]
     tested_sources=base.source_hashes(sources)
     fixtures=list(corpus());inputs=build/"inputs.txt";inputs.write_text("".join(json.dumps(f,separators=(",",":"))+"\n" for f in fixtures),encoding="utf-8")
     fixture_paths=[inputs];tested_fixtures=base.source_hashes(fixture_paths);classes=build/"classes";classes.mkdir(exist_ok=True)
@@ -87,7 +87,7 @@ def main():
         with (build/(name+".log")).open("w",encoding="utf-8") as log:base.run(list(map(str,command)),stdout=log,stderr=subprocess.STDOUT)
     dependency_path=os.pathsep.join(map(str,libraries))
     run(["javac","--release",lock["minecraft"]["java_major"],"-proc:none","-cp",str(jars["server"])+os.pathsep+dependency_path,"-d",classes,oracle,helper],"compile-java")
-    run(["cargo","build","--release","-p","horizon-world","--example","world_probe"],"compile-rust")
+    run(["cargo","build","--release","-p","phantom-world","--example","world_probe"],"compile-rust")
     metadata=json.loads(subprocess.check_output(["cargo","metadata","--no-deps","--format-version","1"],cwd=lab.ROOT,text=True))
     binary=Path(metadata["target_directory"])/"release/examples"/("world_probe.exe" if os.name=="nt" else "world_probe")
     run([binary,"feature_placement_fixture",build],"rust")

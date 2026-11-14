@@ -92,8 +92,8 @@ def main():
     if args.prepare: lab.prepare()
     lock, jars, libraries = base.verify_artifacts()
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaGenerationTickOracle.java'
-    sources = [oracle, Path(__file__), lab.ROOT / 'tools/test_rust_parity.py', lab.ROOT / 'tools/lab.py', lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock', lab.ROOT / 'crates/horizon-core/Cargo.toml',
-               *sorted((lab.ROOT / 'crates/horizon-core/src').rglob('*.rs')), lab.ROOT / 'crates/horizon-core/examples/generation_tick_fixture.rs']
+    sources = [oracle, Path(__file__), lab.ROOT / 'tools/test_rust_parity.py', lab.ROOT / 'tools/lab.py', lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock', lab.ROOT / 'crates/phantom-core/Cargo.toml',
+               *sorted((lab.ROOT / 'crates/phantom-core/src').rglob('*.rs')), lab.ROOT / 'crates/phantom-core/examples/generation_tick_fixture.rs']
     tested_sources = base.source_hashes(sources)
     commands = list(corpus()); inputs = build / 'inputs.txt'; inputs.write_text('\n'.join(commands) + '\n')
     tested_fixtures = base.source_hashes([inputs]); classes = build / 'classes'; classes.mkdir(exist_ok=True)
@@ -102,7 +102,7 @@ def main():
         with (build / (name + '.log')).open('w') as log:
             subprocess.run(list(map(str, command)), cwd=lab.ROOT, check=True, timeout=3600, stderr=log, **({'stdout': log} | kwargs))
     run(['javac', '--release', lock['minecraft']['java_major'], '-proc:none','-sourcepath',str(lab.ROOT/'mods/horizon/src/test/java'), '-cp', str(jars['server']) + os.pathsep + dependencies, '-d', classes, oracle], 'compile-java')
-    run(['cargo', 'build', '--release', '-p', 'horizon-core', '--example', 'generation_tick_fixture'], 'compile-rust')
+    run(['cargo', 'build', '--release', '-p', 'phantom-core', '--example', 'generation_tick_fixture'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
     binary = Path(metadata['target_directory']) / 'release/examples' / ('generation_tick_fixture.exe' if os.name == 'nt' else 'generation_tick_fixture')
     with inputs.open('rb') as source, (build / 'rust.txt').open('wb') as output: run([binary], 'rust', stdin=source, stdout=output)

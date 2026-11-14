@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""The dedicated server's anticheat (docs/anticheat.md), end to end: a real `horizon-client --dedicated`
-and horizon-bots, legit bots beside cheating ones.
+"""The dedicated server's anticheat (docs/anticheat.md), end to end: a real `phantom-client --dedicated`
+and phantom-bots, legit bots beside cheating ones.
 
     python3 tools/anticheat_e2e.py --bin-dir target/fast            # every check
     python3 tools/anticheat_e2e.py --bin-dir target/fast --check timer
@@ -34,8 +34,8 @@ Checks:
 
 Each server runs in a fresh folder with fresh HORIZON_HOME and XDG folders (lab.game_env), on a free port,
 in a flat world (creative unless the check says otherwise: the bots fly). Build first:
-    cargo build --profile fast -p horizon-client -p horizon-client-lib --bin horizon-client --bin horizon-ctl
-    cargo build --profile fast -p horizon-bots
+    cargo build --profile fast -p phantom-client -p phantom-client-lib --bin phantom-client --bin phantom-ctl
+    cargo build --profile fast -p phantom-bots
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -96,16 +96,16 @@ def start(bins, folder, anticheat, out, name, **extra):
     (folder / 'eula.txt').write_text('eula=true\n')
     if anticheat is not None:
         (folder / 'server.toml').write_text(anticheat)
-    command = [bins / f'horizon-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
+    command = [bins / f'phantom-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
     server = Server(command, folder, out / f'{name}-server.log')
     server.wait_for(DONE, 300)
     return server, port
 
 
 def bots(bins, port, out, name, count, behaviour, seconds, *extra):
-    """horizon-bots, run to the end; its report."""
+    """phantom-bots, run to the end; its report."""
     report = out / f'{name}.json'
-    subprocess.run([bins / f'horizon-bots{EXE}', '--server', f'127.0.0.1:{port}', '--bots', str(count),
+    subprocess.run([bins / f'phantom-bots{EXE}', '--server', f'127.0.0.1:{port}', '--bots', str(count),
                     '--behaviour', behaviour, '--seconds', str(seconds), '--join-every', '0.2',
                     '--name', name, '--report', report, *extra],
                    check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=seconds + 180)
@@ -440,7 +440,7 @@ def check_prediction(bins, scratch, out, seconds, name='prediction', play=None):
             '[anticheat.prediction]\nsetback = 5\nalert = 15\nkick = 60\n')
     server, port = start(bins, folder, toml, out, name, gamemode='survival', difficulty='peaceful')
     from lan_e2e import Game  # noqa: E402 (only this check drives a client)
-    game = Game('client', bins / f'horizon-ctl{EXE}', lab.RESOURCES.resolve())
+    game = Game('client', bins / f'phantom-ctl{EXE}', lab.RESOURCES.resolve())
     for key in ('XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'HORIZON_LAUNCHER_HOME'):
         game.d.env[key] = str(game.work / key.lower())
     game.d.env['HORIZON_LAUNCHER_NO_SELF_UPDATE'] = '1'

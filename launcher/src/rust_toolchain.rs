@@ -1485,9 +1485,9 @@ mod tests {
                 "--profile",
                 "fast",
                 "-p",
-                "horizon-client",
+                "phantom-client",
                 "--bin",
-                "horizon-client",
+                "phantom-client",
             ])
             .env("CARGO_TARGET_DIR", &target_dir)
             .env(

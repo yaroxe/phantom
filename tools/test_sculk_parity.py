@@ -351,7 +351,7 @@ def main():
     inputs = build / 'scenarios.txt'
     write_scenarios(inputs, chosen)
     lock, jars, _ = base.verify_artifacts()
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     if not args.rust_only:
         classes, dependencies, _ = oracle_harness.compile_oracle(build, 'VanillaSculkOracle', jars, baking.client_libraries(),
                                                                 lock['minecraft']['java_major'])
@@ -359,9 +359,9 @@ def main():
                                    'dev.horizonlab.parity.VanillaSculkOracle', inputs, build / 'vanilla.txt'],
                                   build, 'vanilla', timeout=3600)
     if not args.java_only:
-        oracle_harness.run_logged(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'],
+        oracle_harness.run_logged(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'],
                                   build, 'compile-rust')
-        oracle_harness.run_logged([lab.cargo_target() / 'fast/horizon-client', '--resources', resources], build, 'horizon',
+        oracle_harness.run_logged([lab.cargo_target() / 'fast/phantom-client', '--resources', resources], build, 'horizon',
                                   env=lab.game_env(HORIZON_SCULK_FIXTURE=f'{inputs},{build / "horizon.txt"}'))
     if args.java_only:
         return

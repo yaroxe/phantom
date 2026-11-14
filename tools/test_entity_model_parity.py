@@ -10,7 +10,7 @@ pose and on the baked polygon count and vertex sums.
 
 Both sides then draw the posed model under LivingEntityRenderer's root transform
 (vanilla: ModelPart.render's PoseStack walk and Cube.compile into a capturing
-VertexConsumer; Horizon: `mobs::render::draw`) and compare every vertex's normal
+VertexConsumer; Phantom: `mobs::render::draw`) and compare every vertex's normal
 as the signed bytes each puts in its vertex buffer: vanilla's BufferBuilder.setNormal
 truncates clamp(c) * 127 toward zero (normalIntValue) for the entity format's byte
 normal, Horizon packs its RGBA8_SNORM `Vertex.normal` the same way. A one-step
@@ -381,7 +381,7 @@ def main():
     run(['javac', '--release', lock['minecraft']['java_major'], '-proc:none', '-cp', dependencies, '-d', classes, oracle], 'compile-java')
     run(['java', '-Xmx1G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaEntityAnimOracle',
          inputs, build / 'vanilla.jsonl', jars['client']], 'vanilla')
-    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe', '--',
+    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe', '--',
          'entity_anim_fixture', resources, build / 'vanilla.jsonl', build / 'rust.jsonl'], 'rust')
     vanilla = [json.loads(l) for l in (build / 'vanilla.jsonl').read_text().splitlines()]
     rust = [json.loads(l) for l in (build / 'rust.jsonl').read_text().splitlines()]

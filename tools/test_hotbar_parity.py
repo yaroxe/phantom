@@ -9,7 +9,7 @@ id), rows of the wrong size or type and garbage. The Java oracle
 (VanillaHotbarOracle) writes the file and loads it with the client's real
 HotbarManager and DataFixers (DataFixTypes.HOTBAR, so EmptyItemInHotbarFix
 and every item stack fixer), then Hotbar.load on each row;
-examples/probe/hotbar_fixture runs horizon_client::hotbar on the same tag. The nine
+examples/probe/hotbar_fixture runs phantom_client::hotbar on the same tag. The nine
 rows' stacks are compared.
 """
 import argparse
@@ -153,7 +153,7 @@ def main():
     if run.returncode:
         print(run.stderr[-4000:])
         sys.exit('oracle failed')
-    lib.cargo_example('horizon-client', 'hotbar_fixture', lib.RESOURCES, work / 'cases.jsonl', work / 'rust.txt')
+    lib.cargo_example('phantom-client', 'hotbar_fixture', lib.RESOURCES, work / 'cases.jsonl', work / 'rust.txt')
     bad = lib.compare(cases, work / 'native.txt', work / 'rust.txt', lambda c, line: 'hotbar' if not line.startswith('error') else 'oracle error',
                       describe=lambda c: c['snbt'][:300] if c['snbt'] else 'missing file', limit=args.limit)
     raise SystemExit(1 if bad else 0)

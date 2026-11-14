@@ -5,7 +5,7 @@ Java (VanillaNaturalSpawnOracle) runs vanilla's NaturalSpawner on a stand-in
 ServerLevel built from each case: boxes of blocks, light and biomes, structure
 starts with their pieces, existing mobs, players, the world spawn point and
 unloaded chunks. Rust (natural_spawn_fixture) runs
-horizon_client::mobs::spawn_selection on the same world. Three modes:
+phantom_client::mobs::spawn_selection on the same world. Three modes:
 
 - chunk: createState over the case's mobs (category counts, spawn potential
   charges, local caps), getFilteredSpawningCategories under the global caps,
@@ -550,10 +550,10 @@ def main():
     lock, jars, libraries = base.verify_artifacts()
     resources = lab.RESOURCES
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaNaturalSpawnOracle.java'
-    sources = [oracle, Path(__file__), lab.ROOT / 'crates/horizon-client/examples/probe/natural_spawn_fixture.rs',
-               lab.ROOT / 'crates/horizon-client/src/mobs/spawn_selection.rs',
-               lab.ROOT / 'crates/horizon-client-render/src/biome.rs',
-               lab.ROOT / 'crates/horizon-client/src/mobs/spawn_rules.rs']
+    sources = [oracle, Path(__file__), lab.ROOT / 'crates/phantom-client/examples/probe/natural_spawn_fixture.rs',
+               lab.ROOT / 'crates/phantom-client/src/mobs/spawn_selection.rs',
+               lab.ROOT / 'crates/phantom-client-render/src/biome.rs',
+               lab.ROOT / 'crates/phantom-client/src/mobs/spawn_rules.rs']
     tested = base.source_hashes(sources)
     inputs = build / 'inputs.txt'
     cases = corpus()
@@ -569,7 +569,7 @@ def main():
          '-cp', str(jars['server']) + os.pathsep + deps, '-d', classes, oracle], 'compile-java')
     run(['java', '-Xmx3G', '-cp', os.pathsep.join([str(classes), str(jars['server']), deps]),
          'dev.horizonlab.parity.VanillaNaturalSpawnOracle', inputs, build / 'server.txt'], 'server')
-    run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe'], 'compile-rust')
+    run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
     binary = Path(metadata['target_directory']) / 'fast/examples/client_probe'
     run([binary, 'natural_spawn_fixture', resources, inputs, build / 'rust.txt'], 'rust')

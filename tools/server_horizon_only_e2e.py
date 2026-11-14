@@ -9,10 +9,10 @@
   client whose `minecraft:brand` is "horizon" joins. (Any client can send that brand: the gate keeps out
   players who didn't install Horizon, not cheaters.)
 
-horizon-bots stand in for the clients (`--brand`). Each server runs in a fresh folder with fresh HORIZON_HOME
+phantom-bots stand in for the clients (`--brand`). Each server runs in a fresh folder with fresh HORIZON_HOME
 and XDG folders (lab.game_env), on a free port. Build first:
-    cargo build --profile fast -p horizon-client --bin horizon-client
-    cargo build --profile fast -p horizon-bots
+    cargo build --profile fast -p phantom-client --bin phantom-client
+    cargo build --profile fast -p phantom-bots
 """
 import argparse
 import json
@@ -48,7 +48,7 @@ class Failed(Exception):
 def bot(bins, port, out, name, *extra):
     """One bot for a few seconds: its report's entry."""
     report = out / f'{name}.json'
-    subprocess.run([bins / f'horizon-bots{EXE}', '--server', f'127.0.0.1:{port}', '--bots', '1',
+    subprocess.run([bins / f'phantom-bots{EXE}', '--server', f'127.0.0.1:{port}', '--bots', '1',
                     '--behaviour', 'idle', '--seconds', '3', '--name', name, '--report', report, *extra],
                    check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=180)
     return json.loads(report.read_text())['per_bot'][0]
@@ -60,7 +60,7 @@ def server(bins, folder, out, name, extra):
     props = dict(PROPERTIES, **extra, **{'server-port': str(port)})
     (folder / 'server.properties').write_text(''.join(f'{k}={v}\n' for k, v in props.items()))
     (folder / 'eula.txt').write_text('eula=true\n')
-    command = [bins / f'horizon-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
+    command = [bins / f'phantom-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
     s = Server(command, folder, out / f'{name}.log')
     s.wait_for(DONE, 300)
     return s, port

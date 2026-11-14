@@ -4,7 +4,7 @@
 Java (VanillaFinalizeSpawnOracle) creates each case's mobs on a stand-in
 ServerLevel and runs vanilla's finalizeSpawn with a seeded level random (what
 finalizeSpawn reads through level.getRandom()) and seeded entity randoms; Rust
-(finalize_spawn_fixture) runs horizon_client::mobs::finalize on the same case.
+(finalize_spawn_fixture) runs phantom_client::mobs::finalize on the same case.
 Cases cover every mob type, every spawn reason, peaceful to hard, game times,
 inhabited times and moon phases (the local difficulty and its special
 multiplier), packs sharing group data, biomes (variants, villager types,
@@ -118,8 +118,8 @@ def main():
     lock, jars, libraries = base.verify_artifacts()
     resources = lab.RESOURCES
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaFinalizeSpawnOracle.java'
-    sources = [oracle, Path(__file__), lab.ROOT / 'crates/horizon-client/examples/probe/finalize_spawn_fixture.rs',
-               lab.ROOT / 'crates/horizon-client/src/mobs/finalize.rs']
+    sources = [oracle, Path(__file__), lab.ROOT / 'crates/phantom-client/examples/probe/finalize_spawn_fixture.rs',
+               lab.ROOT / 'crates/phantom-client/src/mobs/finalize.rs']
     tested = base.source_hashes([s for s in sources if s.exists()])
     inputs = build / 'inputs.txt'
     cases = corpus()
@@ -148,7 +148,7 @@ def main():
         print(f'{len(vanilla)} oracle lines')
         return
     halloween = vanilla[0].split()[1]
-    run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe'], 'compile-rust')
+    run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
     binary = Path(metadata['target_directory']) / 'fast/examples/client_probe'
     run([binary, 'finalize_spawn_fixture', resources, inputs, build / 'rust.txt', halloween], 'rust')

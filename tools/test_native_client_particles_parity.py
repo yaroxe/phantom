@@ -21,10 +21,10 @@ except ImportError:
     from integration_env import run_game
 
 SOURCES = [
-    'crates/horizon-client/src/game.rs',
-    'crates/horizon-client/src/game/native_client_particles.rs',
-    'crates/horizon-client/src/game/native_client_particles_fixture.rs',
-    'crates/horizon-client-render/src/particles.rs',
+    'crates/phantom-client/src/game.rs',
+    'crates/phantom-client/src/game/native_client_particles.rs',
+    'crates/phantom-client/src/game/native_client_particles_fixture.rs',
+    'crates/phantom-client-render/src/particles.rs',
     'tools/native-hook-fragments/client_particles.json',
     'tools/test_native_client_particles_parity.py',
 ]
@@ -43,9 +43,9 @@ def main():
     binary = args.binary
     if binary is None:
         with (work / 'build.log').open('w', encoding='utf-8') as log:
-            subprocess.run(['cargo', 'build', '-p', 'horizon-client', '--bin', 'horizon-client'],
+            subprocess.run(['cargo', 'build', '-p', 'phantom-client', '--bin', 'phantom-client'],
                            cwd=lab.ROOT, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=1800)
-        binary = lab.cargo_target() / 'debug' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+        binary = lab.cargo_target() / 'debug' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     with tempfile.TemporaryDirectory(prefix='hz-native-particles-') as scratch:
         with (work / 'client.log').open('w', encoding='utf-8') as log:
             run_game([str(binary.resolve()), '--headless', '--resources', str(args.resources.resolve()),

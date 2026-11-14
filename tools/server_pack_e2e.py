@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Server resource packs end to end: a real Horizon client joins a real dedicated server (vanilla 26.3's, or
-Horizon's with --horizon-server BIN) that offers a test pack from a local HTTP server, through tools/net_capture.py,
+Horizon's with --phantom-server BIN) that offers a test pack from a local HTTP server, through tools/net_capture.py,
 which records the statuses the client sends back.
 
 The pack is built here: dirt recoloured blue, and three lang strings (dirt's name, the pause menu's "Back to Game",
 the server list's "Join Server"). Each scenario sets the server list entry's Server Resource Packs setting in
-servers.dat, joins, answers the prompt the way a player would (horizon-ctl clicks its buttons), and checks the
+servers.dat, joins, answers the prompt the way a player would (phantom-ctl clicks its buttons), and checks the
 statuses against what vanilla's client sends (ServerPackManager):
 
 - required, Prompt, Disconnect: no status, the disconnected screen says "This server requires a custom resource
@@ -21,11 +21,11 @@ statuses against what vanilla's client sends (ServerPackManager):
 - optional on a dead URL: ACCEPTED, FAILED_DOWNLOAD, joins.
 
   python3 tools/server_pack_e2e.py                                   # vanilla's server
-  python3 tools/server_pack_e2e.py --horizon-server target/release/horizon-client
+  python3 tools/server_pack_e2e.py --phantom-server target/release/phantom-client
 
 Every game and server here runs in fresh temporary folders (HORIZON_HOME, HORIZON_LAUNCHER_HOME, XDG_*), with no
-audio and no self-update. Needs .local (the vanilla jars and prepared resources) and a built horizon-client and
-horizon-ctl (--bin DIR, default target/fast).
+audio and no self-update. Needs .local (the vanilla jars and prepared resources) and a built phantom-client and
+phantom-ctl (--bin DIR, default target/fast).
 """
 import argparse
 import hashlib
@@ -208,9 +208,9 @@ class Game:
             (work / d).mkdir(parents=True)
         self.env = lab.game_env(HORIZON_HOME=self.home, HORIZON_LAUNCHER_HOME=work / 'launcher',
                                 XDG_DATA_HOME=work / 'data', XDG_CONFIG_HOME=work / 'config', HORIZON_TELEMETRY_URL='off')
-        self.base = [str(bins / 'horizon-ctl'), '--socket', str(work / 'c.sock')]
+        self.base = [str(bins / 'phantom-ctl'), '--socket', str(work / 'c.sock')]
         self.log = work / 'c.log'
-        reply = self('launch', '--game', bins / 'horizon-client', '--offscreen', '--resources', resources)
+        reply = self('launch', '--game', bins / 'phantom-client', '--offscreen', '--resources', resources)
         self.pid = reply.get('pid')
 
     def __call__(self, *words, ok=True, timeout=300):
@@ -264,7 +264,7 @@ class Run:
         lock, jars, libraries = base.verify_artifacts()
         deps = os.pathsep.join(map(str, [jars['server'], *libraries]))
         self.vanilla = ['java', '-Xmx2g', '-cp', deps, 'net.minecraft.server.Main', 'nogui']
-        self.resources = lab.LOCAL / 'horizon-client' / lab.VERSION
+        self.resources = lab.LOCAL / 'phantom-client' / lab.VERSION
         self.files = {}
         self.http = Files(self.files)
         self.sha1 = build_pack(out / 'test-pack.zip')
@@ -290,8 +290,8 @@ class Run:
         (directory / 'server.properties').write_text(''.join(f'{k}={v}\n' for k, v in props.items()),
                                                      encoding='iso-8859-1')
         (directory / 'eula.txt').write_text('eula=true\n')
-        if self.args.horizon_server:
-            command = [self.args.horizon_server, '--resources', self.resources, '--dedicated', '--nogui']
+        if self.args.phantom_server:
+            command = [self.args.phantom_server, '--resources', self.resources, '--dedicated', '--nogui']
         else:
             command = self.vanilla
         server = Server(command, directory, f'server-{kind}')
@@ -494,16 +494,16 @@ class Run:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin', default=str(lab.cargo_target() / 'fast'), help='horizon-client and horizon-ctl')
-    parser.add_argument('--horizon-server', help='a horizon-client binary to run as the dedicated server')
+    parser.add_argument('--bin', default=str(lab.cargo_target() / 'fast'), help='phantom-client and phantom-ctl')
+    parser.add_argument('--phantom-server', help='a phantom-client binary to run as the dedicated server')
     parser.add_argument('--out', default=str(lab.LOCAL / 'server-pack-e2e'))
     args = parser.parse_args()
-    out = Path(args.out) / ('horizon' if args.horizon_server else 'vanilla')
+    out = Path(args.out) / ('horizon' if args.phantom_server else 'vanilla')
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
     run = Run(args, out)
     work = run.run()
-    print(f'\nserver: {"horizon" if args.horizon_server else "vanilla 26.3"}; evidence in {out}')
+    print(f'\nserver: {"horizon" if args.phantom_server else "vanilla 26.3"}; evidence in {out}')
     for name, result, detail in run.results:
         print(f'  {result:4}  {name}' + (f': {detail}' if detail else ''))
     shutil.rmtree(work, ignore_errors=True)

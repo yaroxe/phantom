@@ -68,7 +68,7 @@ fn fake_program() -> Vec<u8> {
         b"ELF"
     };
     let mut bytes = magic.to_vec();
-    bytes.extend_from_slice(&horizon_mods::api_level::MARK);
+    bytes.extend_from_slice(&phantom_mods::api_level::MARK);
     bytes
 }
 
@@ -139,20 +139,20 @@ fn says_what_a_dropped_file_is() {
         // being read, so `build_import` is the one to say why a file is not a
         // game for this computer.
         {
-            let p = dir.join("horizon-client.exe");
+            let p = dir.join("phantom-client.exe");
             put(&p, b"not read");
             (p, Ok(Dropped::Build))
         },
         // A browser's second copy keeps the extension, so it is a build too.
         {
-            let p = dir.join("horizon-client (1).exe");
+            let p = dir.join("phantom-client (1).exe");
             put(&p, b"not read");
             (p, Ok(Dropped::Build))
         },
         // A build for Linux or macOS has no extension: read, and recognised
         // by its magic and the mod API mark.
         {
-            let p = dir.join("horizon-client");
+            let p = dir.join("phantom-client");
             put(&p, &fake_program());
             (p, Ok(Dropped::Build))
         },
@@ -161,13 +161,13 @@ fn says_what_a_dropped_file_is() {
         {
             let p = dir.join("artifact.zip");
             // Named as the game is on this platform: from_zip looks for that
-            // entry, which is horizon-client.exe on Windows.
+            // entry, which is phantom-client.exe on Windows.
             zip_file(&p, &[(crate::backend::CLIENT, fake_program().as_slice())]);
             (p, Ok(Dropped::Build))
         },
         // Named as the game but holding nothing like it: not a build.
         {
-            let p = dir.join("horizon-client-notes");
+            let p = dir.join("phantom-client-notes");
             put(&p, b"just notes");
             (p, Err(()))
         },
@@ -201,7 +201,7 @@ fn an_export_comes_back_as_an_instance_and_nothing_escapes_its_folder() {
     put(&home.join("options.txt"), b"lang:fr_ch\n");
     put(&home.join("resourcepacks/Glass.zip"), b"glass");
     put(
-        &home.join("horizon-mods/coords/horizon-mod.toml"),
+        &home.join("phantom-mods/coords/horizon-mod.toml"),
         b"id = \"coords\"\n",
     );
     put(&home.join("saves/Base/region/r.0.0.mca"), b"region");
@@ -214,7 +214,7 @@ fn an_export_comes_back_as_an_instance_and_nothing_escapes_its_folder() {
         for f in [
             "options.txt",
             "resourcepacks/Glass.zip",
-            "horizon-mods/coords/horizon-mod.toml",
+            "phantom-mods/coords/horizon-mod.toml",
             "saves/Base/region/r.0.0.mca",
         ] {
             assert_eq!(

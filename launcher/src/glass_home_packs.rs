@@ -7,7 +7,7 @@ use crate::glass_ui::{self as ui, white};
 use glass_home_lists::{danger_button, danger_line, picture};
 use gpui::ExternalPaths;
 use horizon_launcher::packs::{self, Kind as PackKind, Pack};
-use horizon_theme::glass::{fill, ink, radius};
+use phantom_theme::glass::{fill, ink, radius};
 
 impl Launcher {
     /// Home's Packs tab: the selected instance's resource packs, then its shader packs.

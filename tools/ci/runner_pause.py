@@ -157,7 +157,7 @@ def game_process():
             continue
         # A Horizon game counts when he started it (its parent is his launcher), not when a harness or agent did.
         if GAME.search(command) or (" --offscreen" not in command and "/horizon-launcher/" in command
-                                    and "horizon-client" in command.split(" ")[0]):
+                                    and "phantom-client" in command.split(" ")[0]):
             if not ci_process(int(entry.name)):
                 return f"process {entry.name}: {command[:120]}"
     return None

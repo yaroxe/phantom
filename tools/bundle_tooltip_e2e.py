@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render regression: bundle component tooltips in anvil and brewing screens.
 
-Requires prepared 26.3 resources, a built horizon-client/horizon-ctl and Pillow.
+Requires prepared 26.3 resources, a built phantom-client/phantom-ctl and Pillow.
 Runs an isolated offscreen game; never opens existing player data. A name-only
 bundle tooltip is narrower than the component's 96 GUI-pixel minimum, so its
 purple frame cannot pass the image assertion. Screenshots are kept as evidence.
@@ -38,9 +38,9 @@ def longest_tooltip_border(image):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--game", type=Path, default=ROOT / "target/fast/horizon-client")
-    parser.add_argument("--ctl", type=Path, default=ROOT / "target/fast/horizon-ctl")
-    parser.add_argument("--resources", type=Path, default=ROOT / ".local/horizon-client/26.3")
+    parser.add_argument("--game", type=Path, default=ROOT / "target/fast/phantom-client")
+    parser.add_argument("--ctl", type=Path, default=ROOT / "target/fast/phantom-ctl")
+    parser.add_argument("--resources", type=Path, default=ROOT / ".local/phantom-client/26.3")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     output = args.output or Path(tempfile.mkdtemp(prefix="bundle-tooltip-"))

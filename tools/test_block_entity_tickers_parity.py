@@ -7,7 +7,7 @@ entities, give jukeboxes a record and take it, and unload chunks, with ticks
 in between. `VanillaBlockEntityTickerOracle` runs them on real `LevelChunk`s
 of a server level and prints, after each tick, the positions of the live
 tickers in list order; `examples/probe/block_entity_tickers_fixture` runs the same
-on `horizon_client::block_entities::BlockEntities`. The block entities are
+on `phantom_client::block_entities::BlockEntities`. The block entities are
 the kinds the game ticks in that list (hoppers, furnaces, beacons, spawners,
 trial spawners, vaults, hives, crafters, brewing stands, jukebox), with chests and barrels,
 which have no ticker, among them.
@@ -119,7 +119,7 @@ def main():
         'compile-java')
     run(['java', '-Xmx1G', '-cp', str(classes) + os.pathsep + dependencies,
          'dev.horizonlab.parity.VanillaBlockEntityTickerOracle', inputs, build / 'vanilla.txt'], 'vanilla')
-    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'horizon-client-lib', '--example',
+    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'phantom-client-lib', '--example',
          'client_probe', '--', 'block_entity_tickers_fixture', inputs, build / 'rust.txt'], 'rust')
     matched = base.compare(build / 'vanilla.txt', build / 'rust.txt')
     ticks = sum(1 for line in lines if line == 'tick')

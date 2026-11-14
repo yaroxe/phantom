@@ -63,9 +63,9 @@ def main():
     oracle_dir=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity'
     oracles=[oracle_dir/(name+'.java') for name in ['VanillaBlockCollisionScanOracle','VanillaGroundStateOracle','VanillaFaceSupportOracle']]
     sources=[*oracles,Path(__file__),lab.ROOT/'tools/test_block_collision_scan_parity.py',lab.ROOT/'tools/test_rust_parity.py',lab.ROOT/'tools/lab.py',lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock']
-    for crate in ['horizon-core','horizon-world']:sources += [lab.ROOT/'crates'/crate/'Cargo.toml',*sorted((lab.ROOT/'crates'/crate/'src').rglob('*.rs'))]
+    for crate in ['phantom-core','phantom-world']:sources += [lab.ROOT/'crates'/crate/'Cargo.toml',*sorted((lab.ROOT/'crates'/crate/'src').rglob('*.rs'))]
     names=['block_collision_scan_fixture','ground_state_fixture']
-    sources += [lab.ROOT/'crates/horizon-world/examples/probe'/(name+'.rs') for name in names]
+    sources += [lab.ROOT/'crates/phantom-world/examples/probe'/(name+'.rs') for name in names]
     tested=base.source_hashes(sources)
     classes=build/'classes';classes.mkdir(exist_ok=True);dependencies=os.pathsep.join(map(str,libraries))
     def run(command,name):
@@ -78,7 +78,7 @@ def main():
             for f in corpus():output.write(json.dumps(f,separators=(',',':'))+'\n');count+=1
         counts[name]=count;fixture_paths.append(path)
     fixtures=base.source_hashes(fixture_paths)
-    run(['cargo','build','--locked','--release','-p','horizon-world','--example','world_probe'],'compile-rust')
+    run(['cargo','build','--locked','--release','-p','phantom-world','--example','world_probe'],'compile-rust')
     metadata=json.loads(subprocess.check_output(['cargo','metadata','--locked','--no-deps','--format-version','1'],cwd=lab.ROOT))
     for group,name in zip(['selection','state'],names):
         binary=Path(metadata['target_directory'])/'release/examples'/('world_probe.exe' if os.name=='nt' else 'world_probe');run([binary,name,build/group],'rust-'+group)

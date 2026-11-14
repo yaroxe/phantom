@@ -3,7 +3,7 @@
 
 The pinned server JAR first generates a world (offline mode, a fixed seed,
 respawn_radius 0) and stops; a vanilla dedicated server and Horizon's
-(`horizon-client --dedicated --nogui`) then serve copies of it with the same
+(`phantom-client --dedicated --nogui`) then serve copies of it with the same
 server.properties, server-icon.png and lists. VanillaProtocolClient, a
 headless client made of vanilla's own codecs (any byte vanilla would not
 read is an error), pings each server, joins it in offline mode through
@@ -370,20 +370,20 @@ def horizon_client_joins(vanilla_server, binary, world, build, reference):
     """Horizon's client joins a vanilla dedicated server headless: it must
     land where the vanilla client did, receive as many chunks, see its chat
     and /list reply, and leave as a vanilla client does (the server's log)."""
-    label = 'vanilla-for-horizon-client'
+    label = 'vanilla-for-phantom-client'
     PROPERTIES_PORTS[label] = port = free_port()
     directory = build / label
     write_server_dir(directory, port, world)
-    client_dir = build / 'horizon-client'
+    client_dir = build / 'phantom-client'
     shutil.rmtree(client_dir, ignore_errors=True)
     client_dir.mkdir()
-    report = build / 'horizon-client-report.json'
+    report = build / 'phantom-client-report.json'
     report.unlink(missing_ok=True)
     server = Server(vanilla_server, directory, label)
     try:
         server.wait_for(r'Done \(')
         env = lab.game_env(HORIZON_NET_REPORT=report)
-        with (build / 'horizon-client-run.log').open('w') as log:
+        with (build / 'phantom-client-run.log').open('w') as log:
             run_game([str(c) for c in [binary, '--resources', lab.RESOURCES, '--render-distance', 2,
                                              '--server', f'127.0.0.1:{port}', '--name', PLAYER]],
                            cwd=client_dir, env=env, stdout=log, stderr=subprocess.STDOUT, timeout=300, check=True)
@@ -412,7 +412,7 @@ def horizon_client_joins(vanilla_server, binary, world, build, reference):
         '/list reply shown': any('There are 1 of a max of 5 players online: Tester' in c for c in got['chat']),
         'server log': [k for k in expected['server log'] if k in log],
     }
-    return [f'horizon-client {k}: {"ok" if actual[k] == v else f"expected {v!r}, got {actual[k]!r}"}'
+    return [f'phantom-client {k}: {"ok" if actual[k] == v else f"expected {v!r}, got {actual[k]!r}"}'
             for k, v in expected.items()]
 
 
@@ -430,13 +430,13 @@ def main():
     oh.run_logged(['javac', '--release', lock['minecraft']['java_major'], '-proc:none', '-nowarn', '-sourcepath',
                    lab.ROOT / 'mods/horizon/src/test/java', '-cp', dependencies, '-d', classes, oracle],
                   build, 'compile-java')
-    oh.run_logged(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], build,
+    oh.run_logged(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], build,
                   'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'],
                                                   cwd=lab.ROOT, text=True))
-    binary = Path(metadata['target_directory']) / 'fast' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+    binary = Path(metadata['target_directory']) / 'fast' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     vanilla_server = ['java', '-Xmx2g', '-Duser.timezone=UTC', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [binary, '--resources', lab.RESOURCES, '--dedicated', '--nogui']
+    phantom_server = [binary, '--resources', lab.RESOURCES, '--dedicated', '--nogui']
 
     # The world, generated once by vanilla.
     generate = build / 'generate'
@@ -475,7 +475,7 @@ def main():
             raise AssertionError(f'{out.stem}: {error}:\n' + '\n'.join(log[-30:])) from None
 
     results = {}
-    for label, command in [('vanilla', vanilla_server), ('horizon', horizon_server)]:
+    for label, command in [('vanilla', vanilla_server), ('horizon', phantom_server)]:
         PROPERTIES_PORTS[label] = free_port()
         directory = build / label
         write_server_dir(directory, PROPERTIES_PORTS[label], world)
@@ -503,7 +503,7 @@ def main():
         if a != b:
             differences.append(f'chunk {key}: vanilla {a} horizon {b}')
     if differences or errors:
-        notes = [line for name in ('vanilla', 'vanilla-client', 'horizon', 'horizon-client')
+        notes = [line for name in ('vanilla', 'vanilla-client', 'horizon', 'phantom-client')
                  for line in notable_lines(build / f'{name}.log')]
         raise AssertionError(f'{len([d for d in differences if d[:1] in "+-" and d[:3] not in ("+++", "---")])} differing lines '
                              f'(see {build}/vanilla.txt and horizon.txt):\n' + '\n'.join(differences[:80] + notes))

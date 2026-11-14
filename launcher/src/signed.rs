@@ -1,11 +1,11 @@
 //! Signed downloads (docs/security.md): a game or launcher archive is installed only when its
 //! SHA-256 matches the release's SHA256SUMS and that list is signed by one of the keys built in
-//! from crates/horizon-release-sign/release-keys.txt. A release from before signing installs only
+//! from crates/phantom-release-sign/release-keys.txt. A release from before signing installs only
 //! with the SHA-256 pinned for it in legacy-releases.txt (a rollback). Anything else is refused
 //! with a message saying why.
 
 use crate::backend::REPO;
-use horizon_release_sign::{PublicKey, SIGNATURE, SIGNATURE_V2, SUMS};
+use phantom_release_sign::{PublicKey, SIGNATURE, SIGNATURE_V2, SUMS};
 
 /// Where a release's attached file downloads from (GitHub's fixed address for it).
 pub fn asset_url(tag: &str, name: &str) -> String {
@@ -21,18 +21,18 @@ pub fn digest(
     keys: &[PublicKey],
     fetch: impl Fn(&str) -> Result<Option<Vec<u8>>, String>,
 ) -> Result<String, String> {
-    if let Some(hex) = horizon_release_sign::legacy_digest(tag, asset) {
+    if let Some(hex) = phantom_release_sign::legacy_digest(tag, asset) {
         return Ok(hex.to_owned());
     }
     let sums = fetch(&asset_url(tag, SUMS))?;
     let signature = fetch(&asset_url(tag, SIGNATURE))?
         .map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
-    horizon_release_sign::signed_digest(tag, asset, sums.as_deref(), signature.as_deref(), keys)
+    phantom_release_sign::signed_digest(tag, asset, sums.as_deref(), signature.as_deref(), keys)
 }
 
 /// The signed SHA-256 of `asset` in the Nightly published under `tag` (`nightly`, or a dated
 /// `nightly-<date>`) that installs as `version` (`nightly-<date>-<commit>`, parsed strictly from its
-/// title by `horizon_release_sign::nightly_title_version`): its SHA256SUMS.v2.sig must sign the
+/// title by `phantom_release_sign::nightly_title_version`): its SHA256SUMS.v2.sig must sign the
 /// checksums for exactly that version, so an older Nightly can't be served as a newer one. The
 /// channel's SHA256SUMS.sig is for launchers from before and is not read.
 pub fn nightly_digest(
@@ -45,7 +45,7 @@ pub fn nightly_digest(
     let sums = fetch(&asset_url(tag, SUMS))?;
     let signature = fetch(&asset_url(tag, SIGNATURE_V2))?
         .map(|bytes| String::from_utf8_lossy(&bytes).into_owned());
-    horizon_release_sign::nightly_digest(
+    phantom_release_sign::nightly_digest(
         version,
         asset,
         sums.as_deref(),
@@ -57,15 +57,15 @@ pub fn nightly_digest(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use horizon_release_sign::{sha256_hex, sums_file, SigningKey};
+    use phantom_release_sign::{sha256_hex, sums_file, SigningKey};
 
     #[test]
     fn the_launcher_ships_with_a_release_key() {
         // With no key in release-keys.txt every release after the pinned ones would be refused:
         // this fails until the release environment's public key is listed (docs/security.md).
         assert!(
-            !horizon_release_sign::trusted_keys().is_empty(),
-            "crates/horizon-release-sign/release-keys.txt lists no key"
+            !phantom_release_sign::trusted_keys().is_empty(),
+            "crates/phantom-release-sign/release-keys.txt lists no key"
         );
     }
 
@@ -74,7 +74,7 @@ mod tests {
         let tampered =
             |_: &str| -> Result<Option<Vec<u8>>, String> { Ok(Some(b"anything".to_vec())) };
         let pinned =
-            horizon_release_sign::legacy_digest("v2026.10.12", "horizon-linux-x86_64.tar.gz")
+            phantom_release_sign::legacy_digest("v2026.10.12", "horizon-linux-x86_64.tar.gz")
                 .expect("v2026.10.12 is from before signing");
         assert_eq!(
             digest("v2026.10.12", "horizon-linux-x86_64.tar.gz", &[], tampered),
@@ -147,7 +147,7 @@ mod tests {
                 ))
             }
         };
-        let nightly = serving(horizon_release_sign::NIGHTLY, VERSION);
+        let nightly = serving(phantom_release_sign::NIGHTLY, VERSION);
         assert_eq!(
             nightly_digest("nightly", VERSION, "horizon.zip", &keys, &nightly),
             Ok(sha256_hex(b"game"))

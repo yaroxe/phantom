@@ -14,21 +14,21 @@ class RustChangesTests(unittest.TestCase):
             "docs/setup.md", "docs/media/banner.webp", "README.md",
         ]))
         for path in [
-            "crates/horizon-client/src/game.rs", "xtask/src/main.rs", "Cargo.lock",
+            "crates/phantom-client/src/game.rs", "xtask/src/main.rs", "Cargo.lock",
             ".cargo/config.toml", ".github/workflows/ci.yml", "tools/ci/rust_changes.py",
-            "research-lock.json", "crates/horizon-theme/tokens.css", "unknown-file",
+            "research-lock.json", "crates/phantom-theme/tokens.css", "unknown-file",
         ]:
             with self.subTest(path=path):
                 self.assertTrue(needs_rust(["README.md", path]))
 
     def test_launcher_checks_follow_the_crates_it_builds(self):
-        for path in ["crates/horizon-client/src/game.rs", "launcher/links.json", "launcher/docs/a.md",
+        for path in ["crates/phantom-client/src/game.rs", "launcher/links.json", "launcher/docs/a.md",
                      "launcher/README.md", "website/src/index.html", "tools/pr_ready.py"]:
             with self.subTest(path=path):
                 self.assertFalse(needs_launcher([path]))
-        for path in ["launcher/src/main.rs", "launcher/Cargo.lock", "crates/horizon-port-pack/src/net.rs",
-                     "crates/horizon-mcp/src/lib.rs", "crates/horizon-mod-api-gen/src/injection.rs",
-                     "crates/horizon-theme/src/lib.rs", "Cargo.toml", "Cargo.lock",
+        for path in ["launcher/src/main.rs", "launcher/Cargo.lock", "crates/phantom-port-pack/src/net.rs",
+                     "crates/phantom-mcp/src/lib.rs", "crates/phantom-mod-api-gen/src/injection.rs",
+                     "crates/phantom-theme/src/lib.rs", "Cargo.toml", "Cargo.lock",
                      ".github/workflows/ci.yml"]:
             with self.subTest(path=path):
                 self.assertTrue(needs_launcher(["README.md", path]))

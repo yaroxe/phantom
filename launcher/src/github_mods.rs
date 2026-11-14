@@ -4,7 +4,7 @@
 //! GitHub's public API to an exact **release asset** (a `.hnmod`, kept by its SHA-256) or an exact
 //! **commit** (the archive of that commit, whose mod folder is packed into a `.hnmod`), never to a
 //! branch that moves. The result passes the checks the registry's `.hnmod`s pass
-//! (`horizon_mods::index::native::Bundle::read`) before anything is installed, and the origin is
+//! (`phantom_mods::index::native::Bundle::read`) before anything is installed, and the origin is
 //! kept beside the file (`horizon-native-mods/<id>.origin.json`) for "check for updates".
 //!
 //! Nothing here runs the mod's code, and nothing here trusts it: the registry has not reviewed it.
@@ -12,7 +12,7 @@
 use crate::backend;
 use crate::browser::java;
 use crate::native_mods::{self, Bundle, INSTALLED};
-use horizon_mods::index::native as format;
+use phantom_mods::index::native as format;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;

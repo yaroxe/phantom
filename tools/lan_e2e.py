@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """LAN multiplayer end to end: a host opens its world to LAN and a guest joins, both real games.
 
-The host's world runs on its integrated server thread. Two Horizon clients run under horizon-ctl in scratch folders. The host
+The host's world runs on its integrated server thread. Two Horizon clients run under phantom-ctl in scratch folders. The host
 creates a survival world and opens it to LAN with commands allowed; the guest connects to it by
 address. The script then checks, from both sides, what a guest's game used to get wrong (#366):
 
@@ -355,7 +355,7 @@ both sides go to --out (host-*.png, guest-*.png).
     python3 tools/lan_e2e.py --check chest --check tab
     python3 tools/lan_e2e.py --check portals
 
-Needs the prepared resources in .local/horizon-client. On Linux the games run on vscreen (the
+Needs the prepared resources in .local/phantom-client. On Linux the games run on vscreen (the
 desktop), or headless (offscreen, no pause) where there is none; on macOS both games render offscreen. Games started here have no audio (HORIZON_NO_AUDIO=1).
 """
 import argparse
@@ -399,8 +399,8 @@ class Game:
     def __init__(self, name, ctl, resources):
         self.name = name
         self.work = Path(tempfile.mkdtemp(prefix=f'hzlan-{name}-'))
-        (self.work / '.local/horizon-client').mkdir(parents=True)
-        lab.link_dir(resources, self.work / '.local/horizon-client' / lab.VERSION)
+        (self.work / '.local/phantom-client').mkdir(parents=True)
+        lab.link_dir(resources, self.work / '.local/phantom-client' / lab.VERSION)
         self.socket = self.work / 'c.sock'
         env = game_env(os.environ.get('VSCREEN', 'lan-e2e'), home=self.work / 'home')
         env = game_environment(env, self.work)
@@ -411,7 +411,7 @@ class Game:
         return self.d(tool, **args)
 
     def raw(self, *words):
-        """A game command horizon-ctl has no table entry for (lan, connect): the words as typed."""
+        """A game command phantom-ctl has no table entry for (lan, connect): the words as typed."""
         result = subprocess.run(self.d.base + [str(w) for w in words], cwd=self.work, env=self.d.env,
                                 capture_output=True, text=True, timeout=600)
         lines = result.stdout.strip().splitlines()
@@ -7285,7 +7285,7 @@ def run(ctl, out, resources, checks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin-dir', help='prebuilt horizon-client and horizon-ctl (default: build with the fast profile)')
+    parser.add_argument('--bin-dir', help='prebuilt phantom-client and phantom-ctl (default: build with the fast profile)')
     parser.add_argument('--check', action='append', choices=CHECKS, help='run only these checks (repeatable)')
     parser.add_argument('--out', default=str(ROOT / '.local/lan-e2e'), help='screenshots and game logs go here')
     # The host's world always runs on its server thread; the flag stays for existing callers.
@@ -7294,8 +7294,8 @@ def main():
     if args.bin_dir:
         bins = Path(args.bin_dir).resolve()
     else:
-        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib',
-                        '--bin', 'horizon-client', '--bin', 'horizon-ctl'],
+        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib',
+                        '--bin', 'phantom-client', '--bin', 'phantom-ctl'],
                        cwd=ROOT, check=True)
         meta = json.loads(subprocess.run(['cargo', 'metadata', '--format-version', '1', '--no-deps'], cwd=ROOT,
                                          capture_output=True, text=True, check=True).stdout)
@@ -7311,7 +7311,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     # Recipes is an opt-in native mod; this check requires a game built with it.
     checks = args.check or [name for name in CHECKS if name != 'recipes-hmod']
-    results = run(bins / 'horizon-ctl', out, resources, checks)
+    results = run(bins / 'phantom-ctl', out, resources, checks)
     (out / 'results.json').write_text(json.dumps({'checks': results}, indent=2) + '\n')
     print(json.dumps(results, indent=1))
     sys.exit(0 if results and all(r['pass'] for r in results.values()) else 1)
@@ -13205,10 +13205,10 @@ def prepare_recipes_hmod(*games):
             if path.is_file():
                 archive.write(path, path.relative_to(fixture).as_posix())
     for game in games:
-        mods = game.work / 'horizon-mods'
+        mods = game.work / 'phantom-mods'
         mods.mkdir()
         (mods / 'recipe_pilot.hmod').write_bytes(package.getvalue())
-        (game.work / 'horizon-mods.txt').write_text('mod.recipe_pilot:true\nmod.recipes:true\n')
+        (game.work / 'phantom-mods.txt').write_text('mod.recipe_pilot:true\nmod.recipes:true\n')
         (game.work / 'options.txt').write_text('lang:en_us\n')
         settings = mods / '.horizon-mod-data/recipes'
         settings.mkdir(parents=True)
@@ -13746,7 +13746,7 @@ def set_legacy_rules(game, on):
 
 
 def check_legacy_pvp(host, guest, out):
-    """The host's legacy combat rules (crates/horizon-client/src/legacy_combat.rs) on a guest's diamond axe hits:
+    """The host's legacy combat rules (crates/phantom-client/src/legacy_combat.rs) on a guest's diamond axe hits:
     one at full charge, and one right after a hotbar swap and back, which empties the charge on the server
     (Player.tick resets attackStrengthTicker when the main hand's item changes). The stick is held a few ticks:
     the client sends a slot change from its next tick (MultiPlayerGameMode.tick), so a swap and back within one

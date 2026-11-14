@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Port a new Minecraft release to Horizon: detect it, prepare it, diff it against the pinned one
+"""Port a new Minecraft release to Phantom: detect it, prepare it, diff it against the pinned one
 (docs/version-ports.md).
 
     version_port.py detect [--snapshots]          what Mojang released that Horizon doesn't pin
@@ -10,7 +10,7 @@
                                                   code each changed class concerns: diff-OLD-NEW/diff.json
     version_port.py regen NEW [--base REF]        a port/NEW worktree pinned to NEW with every generated table
                                                   regenerated (tools/port_regen.py): diff-OLD-NEW/regen.json
-    version_port.py harnesses NEW [--baseline S]  horizon-prepare and every harness in the candidate, each pass,
+    version_port.py harnesses NEW [--baseline S]  phantom-prepare and every harness in the candidate, each pass,
                                                   oracle (no longer compiles) or fail, and newly failing against
                                                   a run on the pinned version (tools/port_harness.py)
     version_port.py report OLD NEW [--results S]  the ranked port report: diff-OLD-NEW/report.md and .json
@@ -196,7 +196,7 @@ def prepare_pinned(version, directory):
     }
     missing = [str(p) for p in found.values() if not p.exists()]
     if missing:
-        raise SystemExit("The pinned version is not prepared in .local (tools/lab.py prepare, horizon-prepare): "
+        raise SystemExit("The pinned version is not prepared in .local (tools/lab.py prepare, phantom-prepare): "
                          + ", ".join(missing))
     return {key: path.resolve() for key, path in found.items()}
 
@@ -583,7 +583,7 @@ def harnesses(args):
     lab.write_json(directory / "harnesses.json", result)
     port_harness.keep_logs(result, directory / "harness-logs")
     counts = result["summary"]
-    print(f"horizon-prepare: {result['prepare']['status']}")
+    print(f"phantom-prepare: {result['prepare']['status']}")
     print(f"harnesses: {counts['pass']} pass, {counts['oracle']} oracle no longer compiles, {counts['fail']} fail; "
           f"{counts['new']} newly failing, {counts['known']} failing on the baseline too")
     print(f"{directory / 'harnesses.json'}")
@@ -708,7 +708,7 @@ def main():
     command.add_argument("--base", default="origin/main", help="what port/NEW starts from (default origin/main)")
     command.add_argument("--worktree", help="where (default: $HORIZON_PORTS/NEW)")
     command.add_argument("--only", nargs="*", help="these generators only (names in tools/port_regen.py)")
-    command = commands.add_parser("harnesses", help="horizon-prepare and every harness in the candidate")
+    command = commands.add_parser("harnesses", help="phantom-prepare and every harness in the candidate")
     command.add_argument("new")
     command.add_argument("names", nargs="*", help="these harnesses only (default: all)")
     command.add_argument("--old", help="the version the port starts from (default: the pinned one)")

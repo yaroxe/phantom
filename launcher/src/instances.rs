@@ -260,7 +260,7 @@ impl Instance {
         match &self.java {
             None => Ok(()),
             Some(java) => Err(format!(
-                "{} plays Minecraft {} (Java Edition), not Horizon: Play starts it, without a \
+                "{} plays Minecraft {} (Java Edition), not Phantom: Play starts it, without a \
                  Horizon version.",
                 self.name, java.minecraft
             )),
@@ -316,7 +316,7 @@ fn list_in(game_home: &Path, data: &Path) -> Vec<Instance> {
             .retain(|id, _| id == DEFAULT || id.contains(':') || own.contains(id));
         if store.instances.len() != before {
             if let Err(e) = store.save(data) {
-                eprintln!("Horizon: instances.json is not saved: {e}");
+                eprintln!("Phantom: instances.json is not saved: {e}");
             }
         }
     }
@@ -698,22 +698,22 @@ fn follow_player(game_home: &Path, home: &Path) {
             let _ = fs::copy(game_home.join(f), home.join(f));
         }
     }
-    let consent = horizon_telemetry::consent::Consent::path(game_home);
+    let consent = phantom_telemetry::consent::Consent::path(game_home);
     if consent.is_file() {
-        let to = horizon_telemetry::consent::Consent::path(home);
+        let to = phantom_telemetry::consent::Consent::path(home);
         let _ = fs::create_dir_all(to.parent().unwrap());
         let _ = fs::copy(consent, to);
     }
-    let no_ai = horizon_core::no_ai::is_on(game_home);
-    if horizon_core::no_ai::is_on(home) != no_ai {
-        let _ = horizon_core::no_ai::set(home, no_ai);
+    let no_ai = phantom_core::no_ai::is_on(game_home);
+    if phantom_core::no_ai::is_on(home) != no_ai {
+        let _ = phantom_core::no_ai::set(home, no_ai);
     }
 }
 
 /// A fresh made-up name everywhere the game keeps one: `horizon-player.txt` is per game
 /// folder (`PLAYER_FILES`), so the same new name goes to the default home and every
 /// instance's — the player stays one player in its worlds. The file's `name:` line and the
-/// `Player` + five digits scheme are horizon-client's (`offline_name.rs`).
+/// `Player` + five digits scheme are phantom-client's (`offline_name.rs`).
 pub fn new_player_name() -> Result<String, String> {
     new_player_name_in(&backend::game_home(), &backend::data_dir())
 }

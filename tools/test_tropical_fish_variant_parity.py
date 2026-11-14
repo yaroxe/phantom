@@ -126,12 +126,12 @@ def main():
     if args.binary:
         binary = args.binary.resolve(strict=True)
     else:
-        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client',
-                        '--bin', 'horizon-client'], cwd=lab.ROOT, check=True)
+        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client',
+                        '--bin', 'phantom-client'], cwd=lab.ROOT, check=True)
         metadata = json.loads(subprocess.check_output(
             ['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
         binary = Path(metadata['target_directory']) / 'fast' / (
-            'horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+            'phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     cp = os.pathsep.join(map(str, [jars['server'], *libraries]))

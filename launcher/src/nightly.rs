@@ -8,7 +8,7 @@
 //! that instance, and its worlds, stay, and keep following the Nightly.
 use crate::backend::{self, Release};
 use crate::instances;
-use horizon_release_sign::NIGHTLY;
+use phantom_release_sign::NIGHTLY;
 
 /// The id of the instance (its folder in `instances/`) the opt-in Nightly played in.
 pub const INSTANCE: &str = "nightly";
@@ -130,7 +130,7 @@ mod tests {
         assert_eq!(date_of(&version_of(&r)), Some("2026-10-28"));
         assert_eq!(date_of("v0.2.95"), None);
         assert_eq!(date_of("nightly"), None);
-        assert!(horizon_release_sign::is_nightly(&version_of(&r)));
+        assert!(phantom_release_sign::is_nightly(&version_of(&r)));
     }
 
     #[test]

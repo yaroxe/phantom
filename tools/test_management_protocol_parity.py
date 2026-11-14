@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Vanilla's server management protocol (JSON-RPC over a WebSocket), Horizon's against vanilla's.
 
-The pinned vanilla server (`net.minecraft.server.Main nogui`) and Horizon's (`horizon-server run`, which
+The pinned vanilla server (`net.minecraft.server.Main nogui`) and Horizon's (`phantom-server run`, which
 serves the protocol beside the game it supervises) start in folders with the same lists (ops.json,
 whitelist.json, banned-players.json, banned-ips.json) and the same `management-server-*` settings (a fixed
 secret, one allowed origin, and TLS, vanilla's default, with a PKCS12 keystore `keytool` makes). Each is then
@@ -33,7 +33,7 @@ sent the same things over TLS, and every answer is compared exactly:
   it took is recorded);
 - the TLS version each server agrees on.
 
-A parse error's `data` is Gson's message in vanilla and serde's in Horizon: left out. The notifications the
+A parse error's `data` is Gson's message in vanilla and serde's in Phantom: left out. The notifications the
 servers send meanwhile (`server/stopping`...) are set aside, and their names are kept in each side's report
 (`notifications`); Horizon sends `server/started` and `server/stopping` so far, not yet the rest.
 """
@@ -543,8 +543,8 @@ def main():
     build = lab.LOCAL / NAME
     shutil.rmtree(build, ignore_errors=True)
     build.mkdir(parents=True)
-    oh.run_logged(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client',
-                   '-p', 'horizon-server', '--bin', 'horizon-server'], build, 'compile-rust')
+    oh.run_logged(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client',
+                   '-p', 'phantom-server', '--bin', 'phantom-server'], build, 'compile-rust')
     target = lab.cargo_target() / 'fast'
     work = Path(tempfile.mkdtemp(prefix='hz-management-'))
     os.environ['HORIZON_API_DISCOVERY'] = NO_SERVICES
@@ -572,10 +572,10 @@ def main():
                 (folder / 'server.toml').write_text(
                     f'[server]\nport = {port}\nonline_mode = false\nview_distance = 3\nsimulation_distance = 3\n\n'
                     f'[properties]\n{toml}\n'
-                    f'[engine]\npath = {json.dumps(str(target / f"horizon-client{EXE}"))}\n'
+                    f'[engine]\npath = {json.dumps(str(target / f"phantom-client{EXE}"))}\n'
                     f'resources = {json.dumps(str(lab.RESOURCES.resolve()))}\nrestart_on_crash = false\n\n'
                     '[backups]\nevery = "0"\n\n[panel]\nbind = ""\n')
-                command = [target / f'horizon-server{EXE}', '--dir', folder, 'run']
+                command = [target / f'phantom-server{EXE}', '--dir', folder, 'run']
             server = Server(command, folder, build / f'{side}.log')
             try:
                 server.wait_for(DONE, 600)

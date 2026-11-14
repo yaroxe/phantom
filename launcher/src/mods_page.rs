@@ -14,7 +14,7 @@ use horizon_launcher::browser::{
 };
 use horizon_launcher::modpacks;
 use horizon_launcher::native_status;
-use horizon_port_pack::check::Check;
+use phantom_port_pack::check::Check;
 use java_instance::Target;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -886,7 +886,7 @@ impl Launcher {
                     }
                     if p.source == SourceId::Horizon && p.kind == PackKind::Mod {
                         return Ok(trf(
-                            "Installed {mods} into horizon-mods and turned it on, checksum \
+                            "Installed {mods} into phantom-mods and turned it on, checksum \
                              checked (Options > Mods in the game).",
                             &[("mods", &mods)],
                         ));
@@ -894,7 +894,7 @@ impl Launcher {
                     if p.kind == PackKind::Mod {
                         let skipped = done.last().map_or(0, |e| e.skipped.len());
                         let ported = trf(
-                            "Ported {mods} into horizon-mods and turned on (Options > Mods in \
+                            "Ported {mods} into phantom-mods and turned on (Options > Mods in \
                              the game).",
                             &[("mods", &mods)],
                         );
@@ -978,7 +978,7 @@ impl Launcher {
                 .border_0()
                 .rounded(px(12.))
                 .bg(crate::glass_ui::white(if focused { 0.11 } else { 0.07 }))
-                .font_family(horizon_theme::glass::FONT)
+                .font_family(phantom_theme::glass::FONT)
                 .text_size(px(14.))
         } else {
             field
@@ -1142,7 +1142,7 @@ impl Launcher {
         let java = self.mods.java_for(self.mods.kind).is_some();
         let source_note = (switches(self.mods.kind) && !java)
             .then(|| div().flex().child(self.mods_source_switch(cx)));
-        // The registry lists only what was made for Horizon: no "everything", and of the filters
+        // The registry lists only what was made for Phantom: no "everything", and of the filters
         // only its categories.
         let registry = self.mods.source == SourceId::Horizon && !java;
         let filters = self.mods_filters(cx);

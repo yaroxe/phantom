@@ -8,7 +8,7 @@
 
 use super::*;
 use crate::glass_ui::{self as ui, Tone};
-use horizon_theme::glass::{ink, radius};
+use phantom_theme::glass::{ink, radius};
 
 /// A release's day as the mockup writes it ("Nov 1"), with its time in UTC when known.
 pub(super) fn published(date: &str, time: &str) -> String {

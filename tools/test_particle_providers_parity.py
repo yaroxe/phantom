@@ -131,7 +131,7 @@ def decode(token):
 
 # Particles whose tick calls Math.cos/sin/pow. On x86-64 HotSpot's intrinsics
 # (Intel's libm) round a fraction of a percent of arguments a unit apart from
-# the platform libm horizon_core::jmath uses, so their motion is compared to
+# the platform libm phantom_core::jmath uses, so their motion is compared to
 # 1e-12 relative error; everything else about them, and every other type, exactly.
 LIBM = {'cherry_leaves', 'pale_oak_leaves', 'tinted_leaves', 'red_poplar_leaves', 'orange_poplar_leaves',
         'yellow_poplar_leaves'}
@@ -215,8 +215,8 @@ def main():
     sources = [lab.ROOT / p for p in [
         'tools/test_particle_providers_parity.py', 'tools/oracle_harness.py', 'tools/test_rust_parity.py', 'tools/lab.py',
         f'mods/horizon/src/test/java/dev/horizonlab/parity/{oracle}.java', 'Cargo.toml', 'Cargo.lock',
-        'crates/horizon-client/Cargo.toml', 'crates/horizon-client-render/src/particles.rs',
-        f'crates/horizon-client/examples/probe/{probe}.rs', 'crates/horizon-core/src/random.rs']]
+        'crates/phantom-client/Cargo.toml', 'crates/phantom-client-render/src/particles.rs',
+        f'crates/phantom-client/examples/probe/{probe}.rs', 'crates/phantom-core/src/random.rs']]
     tested = base.source_hashes(sources)
     cases_path, units = make_cases(build)
     classes, dependencies, _ = harness.compile_oracle(build, oracle, jars, libraries, lock['minecraft']['java_major'])

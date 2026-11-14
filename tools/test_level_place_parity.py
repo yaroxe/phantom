@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare horizon-world's placement port (BlockItem placement state) with pinned vanilla.
+"""Compare phantom-world's placement port (BlockItem placement state) with pinned vanilla.
 
 Generates random neighbourhoods and use-item-on-block actions for random block
 items, resolves the placed position and state with the native oracle
@@ -90,7 +90,7 @@ def main():
     parser.add_argument('--seed', type=int, default=1)
     args = parser.parse_args()
     lock, jars, libraries = base.verify_artifacts()
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     work = lab.LOCAL / 'level-place-parity'
     work.mkdir(parents=True, exist_ok=True)
     cases = list(obstruction_cases(resources)) + generate(resources, args.count, args.seed)
@@ -105,7 +105,7 @@ def main():
     subprocess.run(['java', '-Xmx2G', '-cp', str(classes) + os.pathsep + dependencies,
                     'dev.horizonlab.parity.VanillaBlockPlacementOracle', str(resources), str(work / 'cases.jsonl'),
                     str(work / 'native.txt')], check=True)
-    subprocess.run(['cargo', 'run', '-q', '-j2', '--release', '-p', 'horizon-world', '--example', 'world_probe', '--',
+    subprocess.run(['cargo', 'run', '-q', '-j2', '--release', '-p', 'phantom-world', '--example', 'world_probe', '--',
                     'level_place_fixture', str(resources), str(work / 'cases.jsonl'), str(work / 'rust.txt')], check=True, cwd=lab.ROOT)
     native = (work / 'native.txt').read_text().splitlines()
     rust = (work / 'rust.txt').read_text().splitlines()

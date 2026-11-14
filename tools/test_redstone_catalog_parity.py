@@ -6,7 +6,7 @@ positions and what it was checked against. The archive's schematics have no lice
 they are downloaded into `.local/lra-catalog/` and checked against the digest pinned here.
 
 Each contraption is built from its schematic in `VanillaRedstoneCatalogOracle` (a real flat-world server)
-and in `redstone_catalog_fixture` (horizon-world). Switches start off (except those the catalogue held on),
+and in `redstone_catalog_fixture` (phantom-world). Switches start off (except those the catalogue held on),
 every block gets a neighbour update, and the level runs until quiet. Then each step sets the input levers
 and presses buttons as a player's click would, and runs whole level ticks until quiet. Both sides print the
 outputs that changed after every tick, the tick the step ended on, and a hash of every block in the box.
@@ -194,7 +194,7 @@ def main():
     parser.add_argument('--only', help='comma separated codes')
     args = parser.parse_args()
     lock, jars, libraries = base.verify_artifacts()
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     shard, shards = map(int, os.environ.get('PARITY_SHARD', '1/1').split('/'))
     work = lab.LOCAL / 'redstone-catalog-parity' / (f'shard-{shard}' if shards > 1 else 'all')
     work.mkdir(parents=True, exist_ok=True)
@@ -228,7 +228,7 @@ def main():
         case['time'] = next((int(n[5:]) for n in notes if n.startswith('time ')), 0)
         case['analog'] = [[*map(int, a.split(' ')[0].split(',')), int(a.split(' ')[1])] for a in vanilla.get(case['code'], ([], [], []))[1]]
     (work / 'rust-cases.jsonl').write_text(''.join(json.dumps(c, separators=(',', ':')) + '\n' for c in cases))
-    run(['cargo', 'build', '--release', '-p', 'horizon-world', '--example', 'world_probe'], args.full)
+    run(['cargo', 'build', '--release', '-p', 'phantom-world', '--example', 'world_probe'], args.full)
     probe = lab.cargo_target() / 'release/examples' / ('world_probe.exe' if os.name == 'nt' else 'world_probe')
     run([str(probe), 'redstone_catalog_fixture', str(resources), str(work / 'rust-cases.jsonl'), str(work / 'rust.txt')], args.full)
     rust = split((work / 'rust.txt').read_text())

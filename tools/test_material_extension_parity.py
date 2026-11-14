@@ -60,14 +60,14 @@ def main():
     if not biomes or biomes!=biome.biome_resources(jars['client']):raise ValueError('reference biome resources differ')
     for name,data in [('noises',noises),('biomes',biomes)]:(build/(name+'.json')).write_text(json.dumps(data,separators=(',',':')),encoding='utf-8')
     folder=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity';oracles=[folder/(name+'.java') for name in ['VanillaMaterialExtensionOracle','VanillaBiomeTemperatureOracle']]
-    sources=[*oracles,Path(__file__),*[lab.ROOT/'tools'/name for name in ['test_biome_temperature_parity.py','test_worldgen_parity.py','test_rust_parity.py','lab.py']],lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',lab.ROOT/'crates/horizon-core/Cargo.toml',lab.ROOT/'crates/horizon-world/Cargo.toml',*sorted((lab.ROOT/'crates/horizon-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/horizon-world/src').rglob('*.rs')),lab.ROOT/'crates/horizon-world/examples/probe/material_extension_fixture.rs']
+    sources=[*oracles,Path(__file__),*[lab.ROOT/'tools'/name for name in ['test_biome_temperature_parity.py','test_worldgen_parity.py','test_rust_parity.py','lab.py']],lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',lab.ROOT/'crates/phantom-core/Cargo.toml',lab.ROOT/'crates/phantom-world/Cargo.toml',*sorted((lab.ROOT/'crates/phantom-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/phantom-world/src').rglob('*.rs')),lab.ROOT/'crates/phantom-world/examples/probe/material_extension_fixture.rs']
     tested_sources=base.source_hashes(sources);fixtures=list(corpus(biomes));inputs=build/'inputs.txt';inputs.write_text(''.join(json.dumps(f,separators=(',',':'))+'\n' for f in fixtures),encoding='utf-8')
     fixture_paths=[inputs,build/'noises.json',build/'biomes.json'];tested_fixtures=base.source_hashes(fixture_paths);classes=build/'classes';classes.mkdir(exist_ok=True)
     def run(command,name):
         with (build/(name+'.log')).open('w',encoding='utf-8') as log:base.run(list(map(str,command)),stdout=log,stderr=subprocess.STDOUT)
     dependencies=os.pathsep.join(map(str,libraries))
     run(['javac','--release',lock['minecraft']['java_major'],'-proc:none','-sourcepath',str(lab.ROOT/'mods/horizon/src/test/java'),'-cp',str(jars['server'])+os.pathsep+dependencies,'-d',classes,*oracles],'compile-java')
-    run(['cargo','build','--release','-p','horizon-world','--example','world_probe'],'compile-rust')
+    run(['cargo','build','--release','-p','phantom-world','--example','world_probe'],'compile-rust')
     metadata=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1'],cwd=lab.ROOT,text=True));binary=Path(metadata['target_directory'])/'release/examples'/('world_probe.exe' if os.name=='nt' else 'world_probe');run([binary,'material_extension_fixture',build],'rust');references=[]
     for side,jar in jars.items():
         run(['java','-Xmx512M','-cp',os.pathsep.join([str(classes),str(jar),dependencies]),'dev.horizonlab.parity.VanillaMaterialExtensionOracle',side,build],side)

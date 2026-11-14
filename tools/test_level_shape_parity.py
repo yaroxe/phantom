@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare horizon-world's level updateShape/canSurvive port with pinned vanilla.
+"""Compare phantom-world's level updateShape/canSurvive port with pinned vanilla.
 
 Generates random 5x5x5 neighbourhoods around a random block state, evaluates
 BlockState.updateShape towards one neighbour and canSurvive with the native
@@ -65,7 +65,7 @@ def main():
     parser.add_argument('--seed', type=int, default=1)
     args = parser.parse_args()
     lock, jars, libraries = base.verify_artifacts()
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     work = lab.LOCAL / 'level-shape-parity'
     work.mkdir(parents=True, exist_ok=True)
     cases = generate(resources, args.count, args.seed)
@@ -80,7 +80,7 @@ def main():
     subprocess.run(['java', '-Xmx2G', '-cp', str(classes) + os.pathsep + dependencies,
                     'dev.horizonlab.parity.VanillaLevelShapeOracle', str(resources), str(work / 'cases.jsonl'),
                     str(work / 'native.txt')], check=True)
-    subprocess.run(['cargo', 'run', '-q', '-j2', '--release', '-p', 'horizon-world', '--example', 'world_probe', '--',
+    subprocess.run(['cargo', 'run', '-q', '-j2', '--release', '-p', 'phantom-world', '--example', 'world_probe', '--',
                     'level_shape_fixture', str(resources), str(work / 'cases.jsonl'), str(work / 'rust.txt')], check=True, cwd=lab.ROOT)
     native = (work / 'native.txt').read_text().splitlines()
     rust = (work / 'rust.txt').read_text().splitlines()

@@ -1,5 +1,5 @@
 use super::*;
-use horizon_theme::night::{DAWN, NIGHT};
+use phantom_theme::night::{DAWN, NIGHT};
 
 fn blend(top: u32, under: u32, alpha: f32) -> u32 {
     let channel = |shift: u32| {
@@ -68,7 +68,7 @@ fn colours_go_to_hsl_and_back() {
 
 #[test]
 fn nord_text_reads_over_its_sky() {
-    use horizon_theme::night::{over, UNCARDED_STOPS};
+    use phantom_theme::night::{over, UNCARDED_STOPS};
 
     for p in [NORD_DARK, NORD_LIGHT] {
         let look = if p.dark { "dark" } else { "light" };

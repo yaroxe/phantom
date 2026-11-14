@@ -82,16 +82,16 @@ pub fn find_resources(home: &Path, cfg: &Config) -> PathBuf {
     if let Ok(exe) = env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
             candidates.push(exe_dir.join(".local").join("phantom-client").join("26.3"));
-            candidates.push(exe_dir.join(".local").join("horizon-client").join("26.3"));
+            candidates.push(exe_dir.join(".local").join("phantom-client").join("26.3"));
             candidates.push(exe_dir.join("resources"));
             // Если лаунчер в target/release или bin
             if let Some(parent) = exe_dir.parent() {
                 candidates.push(parent.join(".local").join("phantom-client").join("26.3"));
-                candidates.push(parent.join(".local").join("horizon-client").join("26.3"));
+                candidates.push(parent.join(".local").join("phantom-client").join("26.3"));
                 candidates.push(parent.join("resources"));
                 if let Some(p2) = parent.parent() {
                     candidates.push(p2.join(".local").join("phantom-client").join("26.3"));
-                    candidates.push(p2.join(".local").join("horizon-client").join("26.3"));
+                    candidates.push(p2.join(".local").join("phantom-client").join("26.3"));
                     candidates.push(p2.join("resources"));
                 }
             }
@@ -100,12 +100,12 @@ pub fn find_resources(home: &Path, cfg: &Config) -> PathBuf {
 
     // 2. Текущая рабочая директория (до проверки AppData)
     candidates.push(PathBuf::from(".local").join("phantom-client").join("26.3"));
-    candidates.push(PathBuf::from(".local").join("horizon-client").join("26.3"));
+    candidates.push(PathBuf::from(".local").join("phantom-client").join("26.3"));
     candidates.push(PathBuf::from("resources"));
 
     // 3. Рабочая папка home (где лежит клиент)
     candidates.push(home.join(".local").join("phantom-client").join("26.3"));
-    candidates.push(home.join(".local").join("horizon-client").join("26.3"));
+    candidates.push(home.join(".local").join("phantom-client").join("26.3"));
     candidates.push(home.join("resources"));
 
     // 4. Папка phantom_dir и AppData
@@ -122,7 +122,7 @@ pub fn find_resources(home: &Path, cfg: &Config) -> PathBuf {
             vers.reverse();
             for v in vers {
                 candidates.push(v.join(".local").join("phantom-client").join("26.3"));
-                candidates.push(v.join(".local").join("horizon-client").join("26.3"));
+                candidates.push(v.join(".local").join("phantom-client").join("26.3"));
                 candidates.push(v.join("resources"));
             }
         }

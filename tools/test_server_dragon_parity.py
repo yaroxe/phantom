@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The dragon fight on a dedicated server, against vanilla's, seen by a vanilla client.
 
-A vanilla dedicated server and Horizon's (`horizon-client --dedicated --nogui`) each serve a copy of one flat
+A vanilla dedicated server and Horizon's (`phantom-client --dedicated --nogui`) each serve a copy of one flat
 world vanilla generated first, with the same server.properties. A vanilla-codec client (VanillaProtocolClient in
 its entity mode) joins, and once its chunks are in, the console sends it to the End, over the exit portal. Nobody
 else is in the End: the fight must start from that player alone (`EnderDragonFight.tick` finds it among the
@@ -101,14 +101,14 @@ def main():
     # SERVER_DRAGON_SIDES=vanilla (or horizon) runs one side and reads the other's last transcript.
     sides = [s for s in os.environ.get('SERVER_DRAGON_SIDES', 'vanilla,horizon').split(',') if s]
     if 'horizon' in sides:
-        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], cwd=lab.ROOT,
+        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], cwd=lab.ROOT,
                        check=True, capture_output=True)
     import json
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'],
                                                   cwd=lab.ROOT, text=True))
-    binary = Path(metadata['target_directory']) / 'fast' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+    binary = Path(metadata['target_directory']) / 'fast' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     vanilla_server = ['java', '-Xmx2g', '-Duser.timezone=UTC', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [binary, '--resources', lab.LOCAL / 'horizon-client/26.3', '--dedicated', '--nogui']
+    phantom_server = [binary, '--resources', lab.LOCAL / 'phantom-client/26.3', '--dedicated', '--nogui']
     client = ['java', '-Xmx1g', '-Duser.timezone=UTC', '-cp', str(classes) + os.pathsep + dependencies,
               'dev.horizonlab.parity.VanillaProtocolClient']
 
@@ -116,7 +116,7 @@ def main():
     if not world.exists() or set(sides) == {'vanilla', 'horizon'}:
         world = generate_world(vanilla_server, build)
     results = {}
-    for label, command in [('vanilla', vanilla_server), ('horizon', horizon_server)]:
+    for label, command in [('vanilla', vanilla_server), ('horizon', phantom_server)]:
         if label in sides:
             results[label] = run_side(label, command, client, build, world)
         else:

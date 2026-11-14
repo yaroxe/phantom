@@ -7,7 +7,7 @@ default component value of every vanilla item, the SNBT fixtures below
 (direct holders, tags and lists, optional fields, every consume effect,
 block predicates with component matchers, the mob variants) and patches
 built in Java (components without a persistent codec, removals). The Rust
-probe decodes each with horizon_protocol::item::Slot and must consume every
+probe decodes each with phantom_protocol::item::Slot and must consume every
 byte and find the same component ids in the same order; a stack whose
 components Horizon only reads past must also encode back to the same bytes.
 Every id in DataComponents must be covered."""
@@ -158,7 +158,7 @@ def main():
     vanilla_path, rust_path = build / 'vanilla.jsonl', build / 'rust.jsonl'
     run(['java', '-Xmx1G', '-cp', os.pathsep.join([str(classes), str(jars['server']), dependency_path]),
          'dev.horizonlab.parity.VanillaItemWireOracle', fixtures, vanilla_path], 'oracle')
-    run(['cargo', 'build', '--release', '-p', 'horizon-protocol', '--example', 'item_wire_probe'], 'compile-rust')
+    run(['cargo', 'build', '--release', '-p', 'phantom-protocol', '--example', 'item_wire_probe'], 'compile-rust')
     binary = lab.cargo_target() / 'release/examples' / ('item_wire_probe.exe' if os.name == 'nt' else 'item_wire_probe')
     run([binary, vanilla_path, rust_path], 'rust')
     read = lambda path: [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]

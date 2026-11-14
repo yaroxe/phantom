@@ -7,7 +7,7 @@ use super::*;
 use crate::glass_ui::{self as ui, white};
 use crate::picture_cache::Look;
 use gpui::RenderImage;
-use horizon_theme::glass::{fill, radius};
+use phantom_theme::glass::{fill, radius};
 use std::path::Path;
 use std::sync::Arc;
 

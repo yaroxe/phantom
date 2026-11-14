@@ -8,7 +8,7 @@ entries take on a click or key press: select (an incompatible pack only when
 its confirmation is accepted), unselect, move up, move down. The Java oracle
 (VanillaPackSelectionOracle) runs vanilla's PackRepository and
 PackSelectionModel; examples/probe/pack_selection_fixture runs
-horizon_client::packs::SelectionModel, which the game's pack screen uses.
+phantom_client::packs::SelectionModel, which the game's pack screen uses.
 After every action both lists, in order, with each entry's canSelect,
 canUnselect, canMoveUp and canMoveDown, and the selection committed at the
 end must agree.
@@ -71,7 +71,7 @@ def main():
          *(PARITY / f'{n}.java' for n in ('ParityData', 'VanillaPackSelectionOracle'))], 'compile-java')
     run(['java', '-Xmx1G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaPackSelectionOracle',
          inputs, build / 'vanilla.jsonl'], 'vanilla')
-    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe', '--',
+    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe', '--',
          'pack_selection_fixture', inputs, build / 'rust.jsonl'], 'rust')
     vanilla = [json.loads(l) for l in (build / 'vanilla.jsonl').read_text().splitlines()]
     rust = [json.loads(l) for l in (build / 'rust.jsonl').read_text().splitlines()]

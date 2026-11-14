@@ -19,7 +19,7 @@ A ported mod pack against the same mods on their own loader (docs/modpacks.md, "
     python3 tools/perf_bench.py --game neoforge --mod-jars JARS --deps DEPS --label pack-neoforge
 
 Games:
-  horizon       target/release/horizon-client, driven over its control socket
+  horizon       target/release/phantom-client, driven over its control socket
   vanilla       your own 26.3 client.jar + Fabric Loader + a dev-only driver
                 mod (mods/horizon/src/bench), built here; nothing of the game
                 is redistributed
@@ -35,7 +35,7 @@ containers, signs, banners, particles), built by the same vanilla commands in ev
 
     python3 tools/perf_bench.py --game horizon --scenes stress --distances 16 --label stress-horizon
 
---port-work loads the mods a horizon-port-pack work folder carried over into
+--port-work loads the mods a phantom-port-pack work folder carried over into
 Horizon as dev mods.
 
 Results: benchmarks/perf/<label>-rd<N>.json, one benchmark report per render
@@ -132,7 +132,7 @@ PERF_MODS = ["sodium", "lithium", "ferrite-core", "immediatelyfast"]
 NEOFORGE_DATA_VERSION = "3955"
 
 
-# The benchmark report format, version 1 (docs/benchmark-report.md). crates/horizon-bench is the
+# The benchmark report format, version 1 (docs/benchmark-report.md). crates/phantom-bench is the
 # reference: these functions compute the same figures, with the same rounding, for every game.
 REPORT_FORMAT, REPORT_VERSION = "horizon-benchmark-report", 1
 HISTOGRAM_EDGES_MS = [0, 1, 2, 3, 4.17, 5, 6, 7, 8.33, 10, 12, 14, 16.67, 20, 25, 33.33, 40,
@@ -149,7 +149,7 @@ def rnd(v):
 
 
 def frames(phase, repeat, frame_ms, cpu_ms=(), gpu_ms=()):
-    """Every figure of a flight, from its frame times in milliseconds (horizon_bench::Frames::of).
+    """Every figure of a flight, from its frame times in milliseconds (phantom_bench::Frames::of).
 
     The x% low is the average frame time of the slowest x% of frames, as
     frames per second (so a single 2-second freeze shows in the 0.1% low of a
@@ -182,7 +182,7 @@ def frames(phase, repeat, frame_ms, cpu_ms=(), gpu_ms=()):
 
 
 def summary(values):
-    """A measurement over repeats (horizon_bench::Summary::of); None for no values."""
+    """A measurement over repeats (phantom_bench::Summary::of); None for no values."""
     values = [v for v in values if v is not None]
     n = len(values)
     if n == 0:
@@ -232,7 +232,7 @@ def windows_working_set(pid):
 
 
 def load_average():
-    """The one-minute load average; None on Windows, which has none (horizon_bench::hardware::load_average)."""
+    """The one-minute load average; None on Windows, which has none (phantom_bench::hardware::load_average)."""
     return os.getloadavg()[0] if hasattr(os, "getloadavg") else None
 
 
@@ -365,11 +365,11 @@ def yaw(start, end):
 # Horizon -------------------------------------------------------------------
 
 def control_path():
-    """Where the game opens its control endpoint (crates/horizon-client/src/control.rs): a Unix socket, or,
+    """Where the game opens its control endpoint (crates/phantom-client/src/control.rs): a Unix socket, or,
     where Python has none (Windows), a JSON file in which the game names a localhost TCP port and a token."""
     if hasattr(socket, "AF_UNIX"):
-        return Path("/tmp") / f"horizon-bench-{os.getpid()}.sock"
-    return Path(tempfile.gettempdir()) / f"horizon-bench-{os.getpid()}.json"
+        return Path("/tmp") / f"phantom-bench-{os.getpid()}.sock"
+    return Path(tempfile.gettempdir()) / f"phantom-bench-{os.getpid()}.json"
 
 
 def read_line(s):
@@ -525,7 +525,7 @@ class LocalServer:
         (self.dir / "ops.json").write_text(json.dumps(
             [{"uuid": str(offline), "name": BENCH_PLAYER, "level": 4, "bypassesPlayerLimit": False}]))
         if self.kind == "horizon":
-            binary = Path(args.server_build).resolve() / ("horizon-client.exe" if sys.platform == "win32" else "horizon-client")
+            binary = Path(args.server_build).resolve() / ("phantom-client.exe" if sys.platform == "win32" else "phantom-client")
             self.command = [str(binary), "--resources", str(Path(args.resources).resolve()), "--dedicated", "--nogui"]
         else:
             java = Path(os.environ["JAVA_HOME"]) / "bin/java" if os.environ.get("JAVA_HOME") else "java"
@@ -550,9 +550,9 @@ class LocalServer:
         return self
 
     def crowd(self, args):
-        """--server-bots: horizon-bots walking around the spawn for the whole run (they need a few seconds to join
+        """--server-bots: phantom-bots walking around the spawn for the whole run (they need a few seconds to join
         and settle), and the scene that flies over them: (name, from, to, pitch)."""
-        binary = Path(args.bots_build or args.build).resolve() / ("horizon-bots.exe" if sys.platform == "win32" else "horizon-bots")
+        binary = Path(args.bots_build or args.build).resolve() / ("phantom-bots.exe" if sys.platform == "win32" else "phantom-bots")
         self.bots = subprocess.Popen([str(binary), "--server", self.address, "--bots", str(args.server_bots),
                                       "--behaviour", "walk", "--view-distance", "10", "--join-every", "0.1",
                                       "--seconds", "100000", "--seed", str(SEED)],
@@ -563,12 +563,12 @@ class LocalServer:
                 sx, sy, sz = json.loads(line)["spawn"]
                 break
             if time.time() > deadline:
-                raise RuntimeError("horizon-bots: no spawn position")
+                raise RuntimeError("phantom-bots: no spawn position")
         else:
-            raise RuntimeError("horizon-bots ended before a bot spawned")
+            raise RuntimeError("phantom-bots ended before a bot spawned")
         threading.Thread(target=self.bots.stdout.read, daemon=True).start()
         time.sleep(args.server_bots * 0.1 + 10)
-        # Bots fly 24 blocks above the spawn, 8 to 48 blocks out (horizon-bots' walk).
+        # Bots fly 24 blocks above the spawn, 8 to 48 blocks out (phantom-bots' walk).
         return ("crowd", (sx - 32.0, sy + 40.0, sz), (sx + 32.0, sy + 40.0, sz), 50.0)
 
     def __exit__(self, *_):
@@ -600,7 +600,7 @@ def run_horizon(args, distance):
     options = write_options(game_dir, distance)
     sock = control_path()
     sock.unlink(missing_ok=True)
-    client = Path(args.build).resolve() / ("horizon-client.exe" if sys.platform == "win32" else "horizon-client")
+    client = Path(args.build).resolve() / ("phantom-client.exe" if sys.platform == "win32" else "phantom-client")
     command = [str(client), "--resources", str(Path(args.resources).resolve()),
                "--control-socket", str(sock), "--no-pause", "--weather", "clear", "--time", "6000"]
     if (args.width, args.height) != SIZES[0]:
@@ -712,7 +712,7 @@ def release_version(log):
 
 
 def dev_mods(args):
-    """The carried-over mods of a horizon-port-pack work folder (docs/modpacks.md), loaded as dev mods."""
+    """The carried-over mods of a phantom-port-pack work folder (docs/modpacks.md), loaded as dev mods."""
     if not args.port_work:
         return []
     return sorted(p for p in (Path(args.port_work) / "mods").glob("*/carry") if (p / "horizon-mod.toml").exists())
@@ -765,7 +765,7 @@ def build_bench_mod(jars):
     javac = Path(os.environ["JAVA_HOME"]) / "bin/javac" if os.environ.get("JAVA_HOME") else "javac"
     subprocess.run([str(javac), "--release", "25", "-proc:none", "-encoding", "UTF-8", "-d", str(classes),
                     "-classpath", os.pathsep.join(map(str, jars)), *sources], check=True)
-    output = build / "horizon-bench.jar"
+    output = build / "phantom-bench.jar"
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for path in sorted(classes.rglob("*.class")):
             archive.write(path, path.relative_to(classes).as_posix())
@@ -807,7 +807,7 @@ def run_vanilla(args, distance):
     mods = game_dir / "mods"
     mods.mkdir()
     shutil.copy(mod, mods)
-    loaded_mods = ["horizon-bench"]
+    loaded_mods = ["phantom-bench"]
     if args.game == "vanilla-mods":
         for jar in perf_mod_jars():
             shutil.copy(jar, mods)
@@ -927,7 +927,7 @@ def run_neoforge(args, distance):
     mods = game_dir / "mods"
     mods.mkdir()
     shutil.copy(mod, mods)
-    loaded_mods = ["horizon-bench"]
+    loaded_mods = ["phantom-bench"]
     for folder in filter(None, (args.mod_jars, args.deps)):
         for jar in sorted(Path(folder).glob("*.jar")):
             shutil.copy(jar, mods)
@@ -984,7 +984,7 @@ def print_scene(game, distance, name, scene):
 # Report --------------------------------------------------------------------
 
 def hardware():
-    """horizon_bench::Hardware::detect: the machine, without its name."""
+    """phantom_bench::Hardware::detect: the machine, without its name."""
     info = {"os": {"darwin": "macos", "win32": "windows"}.get(sys.platform, sys.platform),
             "arch": {"arm64": "aarch64", "AMD64": "x86_64"}.get(platform.machine(), platform.machine()),
             "cpu_threads": os.cpu_count()}
@@ -1006,7 +1006,7 @@ def hardware():
 
 
 def windows_version():
-    """"Microsoft Windows [Version 10.0.26200.8037]", as horizon_bench reports it (`ver`)."""
+    """"Microsoft Windows [Version 10.0.26200.8037]", as phantom_bench reports it (`ver`)."""
     # `cmd` answers in the console's OEM code page, not UTF-8: a reader thread that decodes the
     # other way fails and leaves `stdout` None, which is what `pr_ready` (it sets PYTHONUTF8=1
     # for the tests) used to get.
@@ -1179,7 +1179,7 @@ def main():
     p.add_argument("--resources", default=str(lab.RESOURCES))
     p.add_argument("--build", default=str(ROOT / "target/release"))
     p.add_argument("--repeats", type=int, default=3, help="games per render distance; the report gives means and 95%% CIs")
-    p.add_argument("--port-work", help="horizon: also load the mods carried over in this horizon-port-pack work folder")
+    p.add_argument("--port-work", help="horizon: also load the mods carried over in this phantom-port-pack work folder")
     p.add_argument("--warm", action="store_true",
                    help="horizon: measure a later start, after one start to the title screen built the caches")
     p.add_argument("--mod-jars", help="neoforge: the mod jars to load (the user's own; never committed)")
@@ -1189,8 +1189,8 @@ def main():
                         "a world: startup.join_ms is connect to loaded")
     p.add_argument("--server-build", help="--server horizon: the server's binary folder (default --build)")
     p.add_argument("--server-bots", type=int, default=0,
-                   help="--server: this many horizon-bots walk around the spawn, and a 'crowd' scene flies over them")
-    p.add_argument("--bots-build", help="--server-bots: horizon-bots' folder (default --build)")
+                   help="--server: this many phantom-bots walk around the spawn, and a 'crowd' scene flies over them")
+    p.add_argument("--bots-build", help="--server-bots: phantom-bots' folder (default --build)")
     p.add_argument("--table", nargs="+", metavar="LABEL", help="compare saved runs with matching recorded conditions, and exit")
     args = p.parse_args()
     if args.table:
@@ -1231,13 +1231,13 @@ def app(args):
     if args.game == "horizon":
         commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
                                 capture_output=True, text=True).stdout.strip() or None
-        manifest = (ROOT / "crates/horizon-client/Cargo.toml").read_text()
+        manifest = (ROOT / "crates/phantom-client/Cargo.toml").read_text()
         version = next(l.split('"')[1] for l in manifest.splitlines() if l.startswith("version"))
         mods = [{"name": p.parent.name, "version": "carried"} for p in dev_mods(args)]
         if getattr(args, "release", None):
             # A release binary (--build of an installed version) is not this checkout: report its own version.
             version, commit = args.release, None
-        return {"name": "horizon-client", "version": version, "commit": commit, **({"mods": mods} if mods else {})}
+        return {"name": "phantom-client", "version": version, "commit": commit, **({"mods": mods} if mods else {})}
     if args.game == "neoforge":
         import neoforge_oracle
         jars = [j.name for f in filter(None, (args.mod_jars, args.deps)) for j in sorted(Path(f).glob("*.jar"))]

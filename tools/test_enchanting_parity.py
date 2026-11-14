@@ -2,7 +2,7 @@
 """Compare enchanting-table offers (costs, clues, applied enchantments) with vanilla.
 
 Java loads the vanilla data pack's enchantment registry and runs
-EnchantmentHelper as EnchantmentMenu does; Rust runs horizon_client::stations
+EnchantmentHelper as EnchantmentMenu does; Rust runs phantom_client::stations
 on the prepared resources. Every enchantable item and the book are tested
 across seeds and bookshelf counts.
 """
@@ -56,9 +56,9 @@ def main():
     items = sorted((k, v.get('minecraft:max_damage', 0)) for k, v in catalog.items()
                    if 'minecraft:enchantable' in v)
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaEnchantingOracle.java'
-    sources = [oracle, Path(__file__), lab.ROOT / 'crates/horizon-client/examples/probe/enchanting_fixture.rs',
-               *sorted((lab.ROOT / 'crates/horizon-client/src').glob('*.rs')),
-               *sorted((lab.ROOT / 'crates/horizon-client-render/src').glob('*.rs'))]
+    sources = [oracle, Path(__file__), lab.ROOT / 'crates/phantom-client/examples/probe/enchanting_fixture.rs',
+               *sorted((lab.ROOT / 'crates/phantom-client/src').glob('*.rs')),
+               *sorted((lab.ROOT / 'crates/phantom-client-render/src').glob('*.rs'))]
     tested = base.source_hashes(sources)
     inputs = build / 'inputs.txt'
     fixtures = list(corpus(items, not args.no_components))
@@ -71,7 +71,7 @@ def main():
         with (build / (name + '.log')).open('w', encoding='utf-8') as log:
             base.run(list(map(str, command)), stdout=log, stderr=subprocess.STDOUT)
     run(['javac', '--release', lock['minecraft']['java_major'], '-proc:none','-sourcepath',str(lab.ROOT/'mods/horizon/src/test/java'), '-cp', str(jars['server']) + os.pathsep + deps, '-d', classes, oracle], 'compile-java')
-    run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe'], 'compile-rust')
+    run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
     binary = Path(metadata['target_directory']) / 'fast/examples' / ('client_probe.exe' if os.name=='nt' else 'client_probe')
     run([binary, 'enchanting_fixture',resources, inputs, build / 'rust.txt'], 'rust')

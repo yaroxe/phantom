@@ -52,11 +52,11 @@ EXE = '.exe' if os.name == 'nt' else ''
 SIZE = (854, 480)
 SEED = '7'
 # 🤖 Agent: changes under these, and Markdown outside crates/, build no game binary, so the base can reuse the
-# change's. Not all of docs/: horizon-port-pack embeds docs/modpacks/atm10-mods.csv. Not all of tools/ either:
-# horizon-mod-api-gen generates Rust from tools/native-hook-fragments/ (BUILT_FROM_TOOLS).
+# change's. Not all of docs/: phantom-port-pack embeds docs/modpacks/atm10-mods.csv. Not all of tools/ either:
+# phantom-mod-api-gen generates Rust from tools/native-hook-fragments/ (BUILT_FROM_TOOLS).
 NO_BINARY = ('tools/', 'tests/', '.github/')
 BUILT_FROM_TOOLS = ('tools/native-hook-fragments/',)
-BUILD = ['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib', '--bins']
+BUILD = ['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib', '--bins']
 # 🤖 Agent: Where the overworld scenes are built, high above seed 7's spawn, so terrain below hardly shows.
 X, Y, Z = 8, 160, 8
 
@@ -207,11 +207,11 @@ def compare(base_path, head_path, diff_path):
 # 🤖 Agent: the game.
 
 class Game:
-    """One build's game, started offscreen in its own game folder and driven through horizon-ctl."""
+    """One build's game, started offscreen in its own game folder and driven through phantom-ctl."""
 
     def __init__(self, bin_dir, folder, env, args):
-        self.ctl_path = bin_dir / f'horizon-ctl{EXE}'
-        self.client = bin_dir / f'horizon-client{EXE}'
+        self.ctl_path = bin_dir / f'phantom-ctl{EXE}'
+        self.client = bin_dir / f'phantom-client{EXE}'
         self.folder = folder
         self.env = env
         # 🤖 Agent: Sockets need short paths.
@@ -223,7 +223,7 @@ class Game:
                                  *map(str, words)], cwd=self.folder, env=self.env, capture_output=True, text=True,
                                 encoding='utf-8', errors='replace')
         if check and result.returncode:
-            raise RuntimeError(f'horizon-ctl {" ".join(map(str, words))}: {result.stdout}{result.stderr}'[:2000])
+            raise RuntimeError(f'phantom-ctl {" ".join(map(str, words))}: {result.stdout}{result.stderr}'[:2000])
         text = result.stdout.strip()
         return json.loads(text) if text.startswith('{') else text
 
@@ -358,7 +358,7 @@ def run_session(name, label, bin_dir, out, env_base, args):
     # 🤖 Agent: No chat, no tutorial toasts, no pause when the offscreen window has no focus.
     (folder / 'options.txt').write_text('chatVisibility:2\ntutorialStep:none\npauseOnLostFocus:false\n')
     if 'HORIZON_SHADER_PACK' in extra:
-        shutil.copytree(ROOT / 'crates/horizon-shader-api/packs/golden_hour', folder / 'shaderpacks/golden_hour')
+        shutil.copytree(ROOT / 'crates/phantom-shader-api/packs/golden_hour', folder / 'shaderpacks/golden_hour')
     env = lab.game_env(env_base, HORIZON_STILL='1', **extra)
     out.mkdir(parents=True, exist_ok=True)
     game = Game(bin_dir, folder, env, args)
@@ -415,7 +415,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--base', help='the revision to compare with (default: BASE_SHA, else the merge-base with origin/main)')
     parser.add_argument('--build-base', action='store_true', help='build the base even where it could reuse the change\'s binaries')
-    parser.add_argument('--bin-dir', help='the change\'s prebuilt horizon-client and horizon-ctl (default: build them)')
+    parser.add_argument('--bin-dir', help='the change\'s prebuilt phantom-client and phantom-ctl (default: build them)')
     parser.add_argument('--base-bin-dir', help='the base\'s prebuilt binaries (default: build them, or reuse the change\'s)')
     parser.add_argument('--sessions', default=','.join(SESSIONS), help=f'which of {", ".join(SESSIONS)}')
     parser.add_argument('--resources', default=str(lab.RESOURCES), help='the prepared resources both builds read')

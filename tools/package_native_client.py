@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Package a built horizon-client with its prepared resources into a private
+"""Package a built phantom-client with its prepared resources into a private
 tarball for one of your own Linux or macOS machines. The resources are Mojang
 assets: keep the archive in ignored .local/ and never publish or commit it.
 
-    cargo build --release -p horizon-client -p horizon-client-lib --bins
+    cargo build --release -p phantom-client -p phantom-client-lib --bins
     python3 tools/package_native_client.py
 """
 import argparse
@@ -48,7 +48,7 @@ fi
 home="${HORIZON_HOME:-${XDG_DATA_HOME:-$HOME/.local/share}/horizon}"
 mkdir -p "$home"
 cd "$home" || exit 1
-exec "$here/horizon-client" "$@"
+exec "$here/phantom-client" "$@"
 '''
 
 README = '''Horizon {version} ({commit}) for {platform}
@@ -77,7 +77,7 @@ def add_bytes(tar, name, data, mode=0o644):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--binary', type=Path, help='built horizon-client (default: cargo release target)')
+    parser.add_argument('--binary', type=Path, help='built phantom-client (default: cargo release target)')
     parser.add_argument('--resources', type=Path, default=lab.RESOURCES)
     parser.add_argument('--out', type=Path, default=LOCAL / 'dist')
     args = parser.parse_args()
@@ -86,13 +86,13 @@ def main():
         metadata = json.loads(subprocess.run(
             ['cargo', 'metadata', '--format-version', '1', '--no-deps'],
             cwd=ROOT, check=True, capture_output=True, text=True).stdout)
-        args.binary = Path(metadata['target_directory']) / 'release/horizon-client'
+        args.binary = Path(metadata['target_directory']) / 'release/phantom-client'
     if not args.binary.is_file():
-        raise SystemExit(f'missing {args.binary}: run cargo build --release -p horizon-client')
+        raise SystemExit(f'missing {args.binary}: run cargo build --release -p phantom-client')
     if not (args.resources / 'horizon-resources.json').is_file():
-        raise SystemExit(f'missing prepared resources in {args.resources}: run horizon-prepare --prepare (cargo run --release -p horizon-prepare -- --prepare)')
+        raise SystemExit(f'missing prepared resources in {args.resources}: run phantom-prepare --prepare (cargo run --release -p phantom-prepare -- --prepare)')
     if not (args.resources / 'assets/minecraft/sounds.json').is_file():
-        print('warning: no sound assets; run cargo run -p horizon-prepare -- sounds for audio')
+        print('warning: no sound assets; run cargo run -p phantom-prepare -- sounds for audio')
 
     system = {'Linux': 'linux', 'Darwin': 'macos'}.get(platform.system())
     if system is None:
@@ -106,12 +106,12 @@ def main():
     args.out.mkdir(parents=True, exist_ok=True)
     archive = args.out / f'{name}.tar.gz'
     with tarfile.open(archive, 'w:gz', compresslevel=1) as tar:
-        tar.add(args.binary, 'horizon/horizon-client')
+        tar.add(args.binary, 'horizon/phantom-client')
         tar.add(ROOT / 'LICENSE', 'horizon/LICENSE')
         tar.add(ROOT / 'THIRD_PARTY_NOTICES.md', 'horizon/THIRD_PARTY_NOTICES.md')
-        ctl = args.binary.with_name('horizon-ctl')  # built with --bins: scripts and agents play through it
+        ctl = args.binary.with_name('phantom-ctl')  # built with --bins: scripts and agents play through it
         if ctl.is_file():
-            tar.add(ctl, 'horizon/horizon-ctl')
+            tar.add(ctl, 'horizon/phantom-ctl')
         add_bytes(tar, 'horizon/horizon.sh', LAUNCHER.replace('@MINECRAFT@', lab.VERSION).encode(), 0o755)
         tar.add(ROOT / 'docs/media/icon-256.png', 'horizon/horizon.png')
         add_bytes(tar, 'horizon/README.txt', README.format(version=version, commit=commit, platform=plat).encode())

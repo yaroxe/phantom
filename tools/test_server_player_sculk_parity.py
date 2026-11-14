@@ -88,11 +88,11 @@ def main():
     import lab
     import lan_e2e as lan
 
-    subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib',
-                    '--bin', 'horizon-client', '--bin', 'horizon-ctl'], cwd=lab.ROOT, check=True)
+    subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib',
+                    '--bin', 'phantom-client', '--bin', 'phantom-ctl'], cwd=lab.ROOT, check=True)
     metadata = json.loads(subprocess.check_output(
         ['cargo', 'metadata', '--format-version', '1', '--no-deps'], cwd=lab.ROOT, text=True))
-    ctl = lab.ROOT / metadata['target_directory'] / 'fast' / 'horizon-ctl'
+    ctl = lab.ROOT / metadata['target_directory'] / 'fast' / 'phantom-ctl'
     checks = ['sculk-walk-host', 'sculk-walk-guest']
     for role, name in zip(('host', 'guest'), checks):
         lan.CHECK_FNS[name] = lambda h, g, o, role=role: check_walk(h, g, o, role)

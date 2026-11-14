@@ -346,14 +346,14 @@ def main():
     build = lab.LOCAL / 'item-model-parity'; build.mkdir(parents=True, exist_ok=True)
     report_path = build / 'report.json'; report_path.unlink(missing_ok=True)
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaItemModelOracle.java'
-    crate = lab.ROOT / 'crates/horizon-assets'
+    crate = lab.ROOT / 'crates/phantom-assets'
     sources = [oracle, Path(__file__), lab.ROOT / 'tools/lab.py', lab.ROOT / 'tools/test_rust_parity.py', lab.ROOT / 'Cargo.toml',
                lab.ROOT / 'Cargo.lock', crate / 'Cargo.toml', *sorted(crate.rglob('*.rs'))]
     tested = base.source_hashes(sources)
     resources = build / 'resources'
     extract(jars['client'], resources)
     _, directory = lab.config()
-    prototypes_path = lab.LOCAL / 'horizon-client' / lock['minecraft']['version'] / 'items.json'
+    prototypes_path = lab.LOCAL / 'phantom-client' / lock['minecraft']['version'] / 'items.json'
     prototypes = json.loads(prototypes_path.read_text())
     focused = '--component-conditions' in sys.argv
     cases = [] if focused else corpus(prototypes)
@@ -368,7 +368,7 @@ def main():
             subprocess.run(list(map(str, command)), cwd=lab.ROOT, check=True, timeout=3600, stdout=log, stderr=subprocess.STDOUT)
     dependencies = os.pathsep.join(map(str, [jars['client'], *baking.client_libraries()]))
     run(['javac', '--release', lock['minecraft']['java_major'], '-proc:none', '-cp', dependencies, '-d', classes, oracle], 'compile-java')
-    run(['cargo', 'build', '--locked', '-p', 'horizon-assets', '--example', 'item_model_fixture'], 'compile-rust')
+    run(['cargo', 'build', '--locked', '-p', 'phantom-assets', '--example', 'item_model_fixture'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--no-deps', '--format-version', '1'], cwd=lab.ROOT))
     binary = Path(metadata['target_directory']) / 'debug/examples' / ('item_model_fixture.exe' if os.name == 'nt' else 'item_model_fixture')
     run(['java', '-Xmx2G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaItemModelOracle',

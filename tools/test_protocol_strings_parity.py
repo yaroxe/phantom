@@ -67,8 +67,8 @@ def main():
     build.mkdir(parents=True, exist_ok=True)
     (build / 'report.json').unlink(missing_ok=True)
     source = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaProtocolStringsOracle.java'
-    sources = [source, lab.ROOT / 'crates/horizon-protocol/src/buf.rs',
-               lab.ROOT / 'crates/horizon-protocol/examples/protocol_strings_probe.rs',
+    sources = [source, lab.ROOT / 'crates/phantom-protocol/src/buf.rs',
+               lab.ROOT / 'crates/phantom-protocol/examples/protocol_strings_probe.rs',
                lab.ROOT / 'tools/test_protocol_strings_parity.py']
     tested = base.source_hashes(sources)
     count = 0
@@ -84,7 +84,7 @@ def main():
          '-d', classes, source], 'compile-java')
     run(['java', '-cp', str(classes) + os.pathsep + cp,
          'dev.horizonlab.parity.VanillaProtocolStringsOracle', build / 'inputs.txt', build / 'java.txt'], 'java')
-    run(['cargo', 'build', '--locked', '-p', 'horizon-protocol', '--example', 'protocol_strings_probe'], 'compile-rust')
+    run(['cargo', 'build', '--locked', '-p', 'phantom-protocol', '--example', 'protocol_strings_probe'], 'compile-rust')
     binary = lab.cargo_target() / 'debug/examples' / ('protocol_strings_probe.exe' if os.name == 'nt' else 'protocol_strings_probe')
     run([binary, build / 'inputs.txt', build / 'rust.txt'], 'rust')
     matched = base.compare(build / 'java.txt', build / 'rust.txt')

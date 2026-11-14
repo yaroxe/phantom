@@ -284,8 +284,8 @@ def main():
     oracle=lab.ROOT/"mods/horizon/src/test/java/dev/horizonlab/parity/VanillaMaterialConditionOracle.java"
     anchor_oracle=oracle.with_name("VanillaAnchorOracle.java")
     biome_oracle=oracle.with_name("VanillaBiomeTemperatureOracle.java")
-    sources=[oracle,anchor_oracle,biome_oracle,lab.ROOT/"tools/test_biome_temperature_parity.py",Path(__file__),lab.ROOT/"tools/test_worldgen_parity.py",lab.ROOT/"tools/test_rust_parity.py",lab.ROOT/"tools/lab.py",lab.ROOT/"Cargo.toml",lab.ROOT/"Cargo.lock",lab.ROOT/"crates/horizon-core/Cargo.toml",lab.ROOT/"crates/horizon-world/Cargo.toml",
-             *sorted((lab.ROOT/"crates/horizon-core/src").rglob("*.rs")),*sorted((lab.ROOT/"crates/horizon-world/src").rglob("*.rs")),lab.ROOT/"crates/horizon-world/examples/probe/material_condition_fixture.rs"]
+    sources=[oracle,anchor_oracle,biome_oracle,lab.ROOT/"tools/test_biome_temperature_parity.py",Path(__file__),lab.ROOT/"tools/test_worldgen_parity.py",lab.ROOT/"tools/test_rust_parity.py",lab.ROOT/"tools/lab.py",lab.ROOT/"Cargo.toml",lab.ROOT/"Cargo.lock",lab.ROOT/"crates/phantom-core/Cargo.toml",lab.ROOT/"crates/phantom-world/Cargo.toml",
+             *sorted((lab.ROOT/"crates/phantom-core/src").rglob("*.rs")),*sorted((lab.ROOT/"crates/phantom-world/src").rglob("*.rs")),lab.ROOT/"crates/phantom-world/examples/probe/material_condition_fixture.rs"]
     tested_sources=base.source_hashes(sources)
     fixtures=[*corpus(),*codec_corpus(conditions),*rule_corpus(conditions),*noise_corpus(noises),*biome_corpus(biomes),*biome_tag_corpus(biomes,biome_tags),*preliminary_corpus(),*ore_corpus()];inputs=build/"inputs.txt";inputs.write_text("".join(json.dumps(f,separators=(",",":"))+"\n" for f in fixtures),encoding="utf-8")
     fixture_paths=[inputs,build/"noises.json",build/"conditions.json",build/"biomes.json",build/"biome_tags.json"];tested_fixtures=base.source_hashes(fixture_paths);classes=build/"classes";classes.mkdir(exist_ok=True)
@@ -293,7 +293,7 @@ def main():
         with (build/(name+".log")).open("w",encoding="utf-8") as log:base.run(list(map(str,command)),stdout=log,stderr=subprocess.STDOUT)
     dependency_path=os.pathsep.join(map(str,libraries))
     run(["javac","--release",lock["minecraft"]["java_major"],"-proc:none","-cp",str(jars["server"])+os.pathsep+dependency_path,"-d",classes,oracle,anchor_oracle,biome_oracle],"compile-java")
-    run(["cargo","build","--release","-p","horizon-world","--example","world_probe"],"compile-rust")
+    run(["cargo","build","--release","-p","phantom-world","--example","world_probe"],"compile-rust")
     metadata=json.loads(subprocess.check_output(["cargo","metadata","--no-deps","--format-version","1"],cwd=lab.ROOT,text=True))
     binary=Path(metadata["target_directory"])/"release/examples"/("world_probe.exe" if os.name=="nt" else "world_probe")
     run([binary,"material_condition_fixture",build],"rust")

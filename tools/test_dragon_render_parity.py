@@ -26,7 +26,7 @@ def main():
     harness.java_run(build, classes, dependencies, 'VanillaDragonRenderOracle', [build / 'client.json'], 'client')
     (build / 'rust.json').unlink(missing_ok=True)
     harness.run_logged(
-        ['cargo', 'test', '--locked', '-p', 'horizon-client', '--lib',
+        ['cargo', 'test', '--locked', '-p', 'phantom-client', '--lib',
          'game::dragon::tests::', '--', '--include-ignored'],
         build, 'rust', env=dict(os.environ, HORIZON_DRAGON_RENDER_OUTPUT=str(build / 'rust.json')))
     expected = json.loads((build / 'client.json').read_text())
@@ -44,10 +44,10 @@ def main():
     lab.write_json(report, dict(schema=1, minecraft=lock['minecraft']['version'], cases=8, vertices=vertices,
                                scope='Death-ray triangle positions, counts and RGBA gradients; no framebuffer comparison.',
                                sources_sha256=base.source_hashes([
-                                   oracle, __file__, lab.ROOT / 'crates/horizon-client/src/game/dragon.rs',
-                                   lab.ROOT / 'crates/horizon-client-render/src/gfx.rs',
-                                   lab.ROOT / 'crates/horizon-client-render/src/gfx/oit_features.rs',
-                                   lab.ROOT / 'crates/horizon-client-render/src/entity.wgsl'])))
+                                   oracle, __file__, lab.ROOT / 'crates/phantom-client/src/game/dragon.rs',
+                                   lab.ROOT / 'crates/phantom-client-render/src/gfx.rs',
+                                   lab.ROOT / 'crates/phantom-client-render/src/gfx/oit_features.rs',
+                                   lab.ROOT / 'crates/phantom-client-render/src/entity.wgsl'])))
     print(f'dragon render: {vertices} vertices match vanilla across 8 death times')
 
 

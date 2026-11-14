@@ -1,7 +1,7 @@
 //! What the browser installed into the game folder, and installing, updating and removing it.
 //!
 //! `mod-browser.json` beside `options.txt` lists each file the browser put in `resourcepacks/`,
-//! and each Java mod it ported into `horizon-mods/`: where it came from, its version and its
+//! and each Java mod it ported into `phantom-mods/`: where it came from, its version and its
 //! checksum. Files the player put there themselves are never touched: the browser only replaces
 //! or removes what it lists.
 use super::{pick, safe_name, Kind, Project, Source, SourceId, Support, Version};
@@ -177,7 +177,7 @@ fn add(
         return Err(format!("{}'s dependencies go too deep.", project.title));
     }
     if let Support::No(why) = project.support() {
-        return Err(format!("{} doesn't run in Horizon: {why}", project.title));
+        return Err(format!("{} doesn't run in Phantom: {why}", project.title));
     }
     let versions = source.versions(&project)?;
     let Some(version) = pick(project.kind, &versions, everything).cloned() else {

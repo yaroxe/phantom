@@ -4,7 +4,7 @@
 //!   `pack.mcmeta`. The ones turned on are `options.txt`'s `resourcePacks` list (vanilla's
 //!   format, `"file/<name>"`, the bottom first), so the game's Resource Packs screen shows the
 //!   same choice. A pack turned on here goes on top, as the screen puts a newly picked one.
-//! - Shader packs: `shaderpacks/`, Horizon's own (a folder with `horizon-shaders.toml`, or a
+//! - Shader packs: `shaderpacks/`, Horizon's own (a folder with `phantom-shaders.toml`, or a
 //!   `.hshader`) and those in the `shaders/` format (a `.zip`, or a folder with `shaders/`), as
 //!   the game's Shader Packs page lists them (`shader_pack_list`). One at most is on:
 //!   `pickedShaderPack` in `horizon-graphics.txt`.
@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 
 const OPTIONS: &str = "options.txt";
 const GRAPHICS: &str = "horizon-graphics.txt";
-const SHADER_MANIFEST: &str = "horizon-shaders.toml";
+const SHADER_MANIFEST: &str = "phantom-shaders.toml";
 const SHADER_PACKAGE: &str = "hshader";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -50,10 +50,10 @@ pub struct Pack {
 }
 
 fn shader_key(path: &Path) -> Option<String> {
-    if !horizon_shader_api::package::is_pack(path) {
+    if !phantom_shader_api::package::is_pack(path) {
         return None;
     }
-    let manifest = horizon_shader_api::Pack::read_manifest(path).ok()?;
+    let manifest = phantom_shader_api::Pack::read_manifest(path).ok()?;
     Some(format!("horizon:{}", manifest.id))
 }
 

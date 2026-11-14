@@ -5,5 +5,5 @@ pub fn run() -> Result<(), String> {
         .ancestors()
         .find(|path| path.join("native-hooks.json").is_file())
         .ok_or("run xtask from within the Horizon checkout")?;
-    horizon_mod_api_gen::fill_hooks(root)
+    phantom_mod_api_gen::fill_hooks(root)
 }

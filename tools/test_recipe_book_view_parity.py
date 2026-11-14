@@ -9,7 +9,7 @@ contents and the craftable filter on or off. The Java oracle
 (VanillaRecipeBookViewOracle, on the client jar) runs ClientRecipeBook,
 RecipeCollection.selectRecipes and the tab and page logic of
 RecipeBookComponent; examples/probe/recipe_book_view_fixture runs
-horizon_client::recipe_book::ClientBook. Per tab: visibility, pages and
+phantom_client::recipe_book::ClientBook. Per tab: visibility, pages and
 every button's displays with their selected and craftable flags, in order
 (the client's HashMap of display ids decides it). Most cases also carry a
 search text (names, parts of them, ids with a colon, odd ones); the oracle
@@ -128,7 +128,7 @@ def main():
     if run.returncode:
         print(run.stderr[-4000:])
         sys.exit('oracle failed')
-    lib.cargo_example('horizon-client', 'recipe_book_view_fixture', lib.RESOURCES, work / 'cases.jsonl', work / 'rust.txt')
+    lib.cargo_example('phantom-client', 'recipe_book_view_fixture', lib.RESOURCES, work / 'cases.jsonl', work / 'rust.txt')
 
     def describe(case):
         return json.dumps({k: (v if k != 'history' else [(h['op'], len(h['ids'])) for h in v]) for k, v in case.items()

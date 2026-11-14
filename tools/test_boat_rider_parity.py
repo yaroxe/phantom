@@ -32,12 +32,12 @@ except ImportError:
     from integration_env import run_game
 
 SOURCES = [
-    'crates/horizon-client/src/game.rs',
-    'crates/horizon-client/src/game/boat_rider_fixture.rs',
-    'crates/horizon-client/src/game/remote_vehicles.rs',
-    'crates/horizon-client/src/game/boats.rs',
-    'crates/horizon-client/src/game/remote_objects.rs',
-    'crates/horizon-client/src/game/hand.rs',
+    'crates/phantom-client/src/game.rs',
+    'crates/phantom-client/src/game/boat_rider_fixture.rs',
+    'crates/phantom-client/src/game/remote_vehicles.rs',
+    'crates/phantom-client/src/game/boats.rs',
+    'crates/phantom-client/src/game/remote_objects.rs',
+    'crates/phantom-client/src/game/hand.rs',
     'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaBoatRiderOracle.java',
     'mods/horizon/src/test/java/dev/horizonlab/parity/ParityData.java',
     'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaVehicleContainerOracle.java',
@@ -130,8 +130,8 @@ def main():
         return
     binary = args.binary
     if binary is None:
-        run(['cargo', 'build', '-p', 'horizon-client', '--bin', 'horizon-client'], 'compile-rust')
-        binary = lab.cargo_target() / 'debug' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+        run(['cargo', 'build', '-p', 'phantom-client', '--bin', 'phantom-client'], 'compile-rust')
+        binary = lab.cargo_target() / 'debug' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     with tempfile.TemporaryDirectory(prefix='hz-boat-rider-') as scratch:
         with (work / 'rust.log').open('w', encoding='utf-8') as log:
             run_game([str(binary.resolve()), '--headless', '--resources', str(args.resources.resolve()),

@@ -55,7 +55,7 @@ fn home(name: &str) -> PathBuf {
     put(&home.join("resourcepacks/Glass.zip"), b"glass pack");
     put(&home.join("resourcepacks/Own.zip"), b"own pack");
     put(
-        &home.join("horizon-mods/coords/horizon-mod.toml"),
+        &home.join("phantom-mods/coords/horizon-mod.toml"),
         b"id = \"coords\"\n",
     );
     put(&home.join("saves/Base/level.dat"), &level_dat());
@@ -131,7 +131,7 @@ fn a_zip_has_the_instance_and_the_picked_world_and_nothing_private() {
         names(&out),
         [
             "horizon-graphics.txt",
-            "horizon-mods/coords/horizon-mod.toml",
+            "phantom-mods/coords/horizon-mod.toml",
             "options.txt",
             "resourcepacks/Glass.zip",
             "resourcepacks/Own.zip",
@@ -182,7 +182,7 @@ fn an_mrpack_lists_what_modrinth_serves_and_carries_the_rest() {
         [
             "modrinth.index.json",
             "overrides/horizon-graphics.txt",
-            "overrides/horizon-mods/coords/horizon-mod.toml",
+            "overrides/phantom-mods/coords/horizon-mod.toml",
             "overrides/options.txt",
             "overrides/resourcepacks/Own.zip",
             "overrides/servers.dat",

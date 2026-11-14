@@ -236,7 +236,7 @@ def main():
         args.count = 3000
     lock, jars, libraries = base.verify_artifacts()
     facts = h.load_facts()
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     work = lab.LOCAL / 'mace-parity'
     work.mkdir(parents=True, exist_ok=True)
     all_cases = list(cases(facts, args.count, args.seed))
@@ -249,9 +249,9 @@ def main():
            '-cp', dependencies, '-d', str(classes), str(java_root / 'dev/horizonlab/parity/VanillaDispenserOracle.java')])
     d.run(['java', '-Xmx3G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaDispenserOracle',
            str(resources), str(work / 'cases.jsonl'), str(work / 'native.txt')])
-    d.run(['cargo', 'build', '-q', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], cwd=lab.ROOT,
+    d.run(['cargo', 'build', '-q', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], cwd=lab.ROOT,
           env={**os.environ, 'CARGO_BUILD_JOBS': os.environ.get('CARGO_BUILD_JOBS', '3')})
-    d.run([str(lab.cargo_target() / 'fast/horizon-client'), '--resources', str(resources)], cwd=work,
+    d.run([str(lab.cargo_target() / 'fast/phantom-client'), '--resources', str(resources)], cwd=work,
           env=lab.game_env(HORIZON_DISPENSE_FIXTURE=f'{work / "cases.jsonl"},{work / "rust.txt"}'))
     ignore = tuple(prefix + ' ' for prefix in args.ignore.split(',') if prefix) + ('D ',)
     native = h.split_cases((work / 'native.txt').read_text(), ignore)

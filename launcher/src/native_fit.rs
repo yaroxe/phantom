@@ -5,7 +5,7 @@
 use crate::i18n::{tr, trf};
 use crate::instances::Instance;
 use crate::{backend, native_mods};
-use horizon_mods::index::BrokenOn;
+use phantom_mods::index::BrokenOn;
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Mutex;

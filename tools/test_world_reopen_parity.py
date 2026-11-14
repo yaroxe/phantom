@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import lab  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-RESOURCES = ROOT / '.local' / 'horizon-client' / '26.3'
+RESOURCES = ROOT / '.local' / 'phantom-client' / '26.3'
 RUN = ROOT / '.local' / 'world-reopen'
 CYCLES = 3
 
@@ -49,12 +49,12 @@ def game_env():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin-dir', help='prebuilt horizon-client and horizon-ctl (default: build them with the fast profile)')
+    parser.add_argument('--bin-dir', help='prebuilt phantom-client and phantom-ctl (default: build them with the fast profile)')
     parser.add_argument('--keep', action='store_true', help='keep the run folder')
     args = parser.parse_args()
     bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else None
     if bin_dir is None:
-        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib', '--bins'], cwd=ROOT, check=True)
+        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib', '--bins'], cwd=ROOT, check=True)
         bin_dir = ROOT / os.environ.get('CARGO_TARGET_DIR', 'target') / 'fast'
     shutil.rmtree(RUN, ignore_errors=True)
     RUN.mkdir(parents=True)
@@ -62,10 +62,10 @@ def main():
     env, extra = game_env()
 
     def ctl(*words, check=True):
-        result = subprocess.run([str(bin_dir / 'horizon-ctl'), '--socket', str(socket), '--timeout', '600', *words],
+        result = subprocess.run([str(bin_dir / 'phantom-ctl'), '--socket', str(socket), '--timeout', '600', *words],
                                 cwd=RUN, env=env, capture_output=True, text=True)
         if check and result.returncode:
-            sys.exit(f'horizon-ctl {" ".join(words)} failed: {result.stdout}{result.stderr}')
+            sys.exit(f'phantom-ctl {" ".join(words)} failed: {result.stdout}{result.stderr}')
         return json.loads(result.stdout) if result.stdout.strip().startswith('{') else result.stdout
 
     def carts():

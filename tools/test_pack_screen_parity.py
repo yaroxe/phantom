@@ -17,7 +17,7 @@ records every GuiGraphicsExtractor call of the screen shown at the end
 (widgets, list backgrounds, scissor, separators, scroll bars, entries with
 their incompatibility tint, hover overlay and arrows, the selection
 outline, the search box, the buttons and their tooltip);
-examples/probe/pack_screen_fixture runs horizon_client::pack_screen, which the
+examples/probe/pack_screen_fixture runs phantom_client::pack_screen, which the
 game's pack screen is, through the same actions. The call lists must agree.
 
   test_pack_screen_parity.py [--count N] [--detail N]
@@ -162,7 +162,7 @@ def main():
          *(PARITY / f'{n}.java' for n in ('ParityData', 'ParityFont', 'VanillaPackScreenOracle'))], 'compile-java')
     run(['java', '-Xmx1G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaPackScreenOracle',
          inputs, build / 'vanilla.jsonl', lab.RESOURCES / 'assets'], 'vanilla')
-    lib.cargo_example('horizon-client', 'pack_screen_fixture', lib.RESOURCES, inputs, build / 'rust.jsonl')
+    lib.cargo_example('phantom-client', 'pack_screen_fixture', lib.RESOURCES, inputs, build / 'rust.jsonl')
     vanilla = [json.loads(l) for l in (build / 'vanilla.jsonl').read_text(encoding='utf-8').splitlines()]
     rust = [json.loads(l) for l in (build / 'rust.jsonl').read_text(encoding='utf-8').splitlines()]
     assert len(vanilla) == len(rust) == len(chosen), (len(vanilla), len(rust), len(chosen))

@@ -83,7 +83,7 @@ def cases():
                         dict(occupied=False, flags=[True, True]),
                     ])))
     # Player.causeExtraKnockback's nonliving branch, through the actual boat
-    # attack in Horizon: uncharged/non-sprinting controls, axis and oblique yaw,
+    # attack in Phantom: uncharged/non-sprinting controls, axis and oblique yaw,
     # retained target motion and the attacker's slowdown/sprint cancellation.
     for yaw in (0.0, 90.0, 180.0, -90.0, 37.0):
         for sprint in (False, True):
@@ -107,10 +107,10 @@ def main():
     args = parser.parse_args()
     lock, jars, _ = base.verify_artifacts()
     source_paths = [lab.ROOT / path for path in (
-        'crates/horizon-client/src/game/boats.rs',
-        'crates/horizon-client/src/game/remote_vehicles.rs',
-        'crates/horizon-client/src/game/lan_vehicles.rs',
-        'crates/horizon-client/src/game/boat_authority_fixture.rs',
+        'crates/phantom-client/src/game/boats.rs',
+        'crates/phantom-client/src/game/remote_vehicles.rs',
+        'crates/phantom-client/src/game/lan_vehicles.rs',
+        'crates/phantom-client/src/game/boat_authority_fixture.rs',
         'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaBoatAuthorityOracle.java',
         'tools/test_boat_authority_parity.py')]
     source_hashes = base.source_hashes(source_paths)
@@ -137,8 +137,8 @@ def main():
         'compile-java')
     run(['java', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaBoatAuthorityOracle',
          work / 'inputs.json', work / 'vanilla.json'], 'vanilla')
-    run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], 'compile-rust')
-    binary = lab.cargo_target() / 'fast' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+    run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], 'compile-rust')
+    binary = lab.cargo_target() / 'fast' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     with (work / 'rust.log').open('w') as log, tempfile.TemporaryDirectory(prefix='boat-authority-') as game_dir:
         run_game([str(binary), '--headless', '--resources', str(args.resources.resolve()), '--game-dir', game_dir], cwd=game_dir,
                  env=lab.game_env(HORIZON_BOAT_AUTHORITY_FIXTURE=work), stdout=log,

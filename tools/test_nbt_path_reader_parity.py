@@ -46,8 +46,8 @@ def main():
     build.mkdir(parents=True, exist_ok=True)
     report = build / 'report.json'
     report.unlink(missing_ok=True)
-    paths = ['crates/horizon-client-core/src/nbt_path.rs',
-             'crates/horizon-client-core/examples/nbt_path_reader_probe.rs',
+    paths = ['crates/phantom-client-core/src/nbt_path.rs',
+             'crates/phantom-client-core/examples/nbt_path_reader_probe.rs',
              'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaNbtPathReaderOracle.java',
              'tools/test_nbt_path_reader_parity.py']
     sources = [lab.ROOT / path for path in paths]
@@ -59,7 +59,7 @@ def main():
         {'client': jars['server']}, libraries, lock['minecraft']['java_major'])
     h.java_run(build, classes, dependencies, 'VanillaNbtPathReaderOracle',
                [inputs, build / 'java.txt'], 'java')
-    h.run_logged(['cargo', 'build', '--offline', '--locked', '-p', 'horizon-client-core',
+    h.run_logged(['cargo', 'build', '--offline', '--locked', '-p', 'phantom-client-core',
                   '--example', 'nbt_path_reader_probe'], build, 'compile-rust',
                  env=dict(os.environ, CARGO_BUILD_JOBS=os.environ.get('CARGO_BUILD_JOBS', '2')))
     binary = lab.cargo_target() / 'debug/examples' / (

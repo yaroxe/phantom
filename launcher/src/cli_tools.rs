@@ -276,7 +276,7 @@ Every command of `horizon-launcher`, and the tool `horizon-launcher mcp` offers 
 arguments are the command's, in snake_case. A tool runs the command with `--json` and returns what it printed. \
 The tools that change the player's things for good need `confirm: true`. \
 The tools that send something or reach other people say \"only when the player asks\". \
-The game's own tools, `game_*`, are in [horizon-ctl-commands.md](horizon-ctl-commands.md). \
+The game's own tools, `game_*`, are in [phantom-ctl-commands.md](phantom-ctl-commands.md). \
 With No AI on, `mcp` and `agent-config` are hidden and refuse; every other command stays. See [agent-control.md](agent-control.md#no-ai).\n\n",
     );
     let mut rows = Vec::new();

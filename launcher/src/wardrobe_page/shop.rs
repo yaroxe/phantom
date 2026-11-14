@@ -13,8 +13,8 @@
 //! Supporter badge all come from the catalogue: an item it doesn't price isn't sold.
 use super::*;
 use gpui::Hsla;
-use horizon_cosmetics::viewer::BodyMotion;
-use horizon_cosmetics::{Part, Pose, BODY};
+use phantom_cosmetics::viewer::BodyMotion;
+use phantom_cosmetics::{Part, Pose, BODY};
 use horizon_launcher::shop::{self as rules, FOUNDER_SET};
 use horizon_launcher::wardrobe::{words, Me, Order, Player, Set};
 use std::collections::{BTreeMap, HashSet};
@@ -126,7 +126,7 @@ fn tint(slot: &str) -> u32 {
         "emote" => 0x5b8cff,
         "name_tag" => 0xc9c4d8,
         // Sets and the pack.
-        _ => horizon_theme::glass::ACCENT,
+        _ => phantom_theme::glass::ACCENT,
     }
 }
 
@@ -136,7 +136,7 @@ fn ground(colour: Hsla, top: f32) -> [Div; 2] {
     let solid = if ui::light() {
         gpui::white().opacity(0.86)
     } else {
-        ui::color(horizon_theme::glass::PAGE).opacity(0.84)
+        ui::color(phantom_theme::glass::PAGE).opacity(0.84)
     };
     [
         div().absolute().top_0().left_0().size_full().bg(solid),
@@ -162,7 +162,7 @@ struct Played {
 impl Played {
     fn motion(item: Arc<Item>) -> Option<Arc<dyn BodyMotion>> {
         item.emote.as_ref()?;
-        let body = horizon_cosmetics::preview::player_model(false);
+        let body = phantom_cosmetics::preview::player_model(false);
         let rest = BODY.map(|b| {
             (body.children.iter().find(|p: &&Part| p.name == b.part())).map_or([0.0; 9], |p| p.pose)
         });
@@ -604,7 +604,7 @@ impl Launcher {
                 .gap(px(12.))
                 .children(title.map(|s| {
                     div()
-                        .font_family(horizon_theme::glass::HEADING_FONT)
+                        .font_family(phantom_theme::glass::HEADING_FONT)
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_size(px(22.))
                         .text_color(ui::white(ink::FULL))
@@ -721,7 +721,7 @@ impl Launcher {
         let n = unpack(id, c, me).len().to_string();
         let price = self.shop_price(id, c, owned, currency);
         let picture = self.shop_picture(id, HERO, c, me);
-        let accent = ui::color(horizon_theme::glass::ACCENT);
+        let accent = ui::color(phantom_theme::glass::ACCENT);
         let warm = ui::color(tint("head"));
         let open = id.to_owned();
         let opened = id.to_owned();
@@ -774,7 +774,7 @@ impl Launcher {
                     .pr(px(36.))
                     .child(
                         div()
-                            .font_family(horizon_theme::glass::DISPLAY_FONT)
+                            .font_family(phantom_theme::glass::DISPLAY_FONT)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_size(px(40.))
                             .line_height(px(44.))
@@ -866,7 +866,7 @@ impl Launcher {
             .min_w_0()
             .child(
                 div()
-                    .font_family(horizon_theme::glass::DISPLAY_FONT)
+                    .font_family(phantom_theme::glass::DISPLAY_FONT)
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_size(px(38.))
                     .line_height(px(42.))

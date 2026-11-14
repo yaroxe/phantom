@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""The prepared output's version: what keeps `OUTPUT_VERSION` (crates/horizon-prepare/src/lib.rs) honest.
+"""The prepared output's version: what keeps `OUTPUT_VERSION` (crates/phantom-prepare/src/lib.rs) honest.
 
-The launcher copies a prepared version's resources (`.local/horizon-client/<version>`) to a newly installed
+The launcher copies a prepared version's resources (`.local/phantom-client/<version>`) to a newly installed
 one when both pin the same Minecraft jars and their preparers declare the same `OUTPUT_VERSION`, so a release
 that changes the preparer's code without changing what it makes asks nobody to prepare again. The number is
 bumped by hand; this tool catches a change to the output without a bump.
 
-crates/horizon-prepare/output-versions.txt lists every `OUTPUT_VERSION` with the digest of what it prepares.
+crates/phantom-prepare/output-versions.txt lists every `OUTPUT_VERSION` with the digest of what it prepares.
 It only grows: the last line is the current version, and a change to the output appends a line.
 
     python3 tools/prepare_output.py digest [RESOURCES]          the digest of a preparation
     python3 tools/prepare_output.py check [--base SHA] [--cache] [RESOURCES]
-        fails when RESOURCES (default: this checkout's .local/horizon-client/<version>, as CI prepares it) is
+        fails when RESOURCES (default: this checkout's .local/phantom-client/<version>, as CI prepares it) is
         not what the last line says, or when the file changed other than by appending since SHA. --cache keeps
         the digest beside RESOURCES (CI: a preparation never changes once made; it takes ~30 s to compute)
 
@@ -21,7 +21,7 @@ creative-inventory.json, and the addresses in `$$Lambda/0x...` class names don't
 the sounds, the languages but the JAR's and the asset index (copied from the player's launcher by another step; CI
 clones the languages into a preparation after the fact), the game's run-time caches (horizon-sprites.cache,
 horizon-data.bin), the stamp naming the OUTPUT_VERSION
-(horizon-prepare.json), the lock file (.horizon-prepare.lock) and the manifest's file hashes (raw bytes) don't count. The manifest's own scalar fields (schema, data version, jar hashes, file count) do.
+(phantom-prepare.json), the lock file (.phantom-prepare.lock) and the manifest's file hashes (raw bytes) don't count. The manifest's own scalar fields (schema, data version, jar hashes, file count) do.
 """
 
 from __future__ import annotations
@@ -36,16 +36,16 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-VERSIONS = 'crates/horizon-prepare/output-versions.txt'
-LIB = 'crates/horizon-prepare/src/lib.rs'
+VERSIONS = 'crates/phantom-prepare/output-versions.txt'
+LIB = 'crates/phantom-prepare/src/lib.rs'
 MANIFEST = 'horizon-resources.json'
-# The OUTPUT_VERSION that made the preparation (crates/horizon-prepare/src/check.rs), for --check.
-STAMP = 'horizon-prepare.json'
-# The empty file a preparation locks while it writes (crates/horizon-prepare/src/lib.rs, LOCK).
-LOCK = '.horizon-prepare.lock'
+# The OUTPUT_VERSION that made the preparation (crates/phantom-prepare/src/check.rs), for --check.
+STAMP = 'phantom-prepare.json'
+# The empty file a preparation locks while it writes (crates/phantom-prepare/src/lib.rs, LOCK).
+LOCK = '.phantom-prepare.lock'
 # Written into a preparation by something other than the preparer's export: the sounds and languages step
-# (crates/horizon-prepare/src/sounds.rs) and, at run time, the game's caches (horizon-client-render's sprite_cache.rs,
-# horizon-core's prepared_files.rs). Whether a harness ran the game before the check must not change the digest.
+# (crates/phantom-prepare/src/sounds.rs) and, at run time, the game's caches (phantom-client-render's sprite_cache.rs,
+# phantom-core's prepared_files.rs). Whether a harness ran the game before the check must not change the digest.
 DATA_FILE = 'horizon-data.bin'
 FROM_ELSEWHERE = ('assets/minecraft/sounds.json', 'assets/pack.mcmeta', 'asset-index.json', 'horizon-sprites.cache',
                   DATA_FILE, STAMP, LOCK)
@@ -135,7 +135,7 @@ def problems(versions: list[tuple[int, str]], constant: int | None) -> list[str]
 
 def default_resources() -> Path:
     lock = json.loads((ROOT / 'research-lock.json').read_text())
-    return ROOT / '.local/horizon-client' / lock['minecraft']['version']
+    return ROOT / '.local/phantom-client' / lock['minecraft']['version']
 
 
 def main() -> int:

@@ -148,7 +148,7 @@ mod tests {
         assert!(other_launcher_pids("", 1).is_empty());
         // The setup exe and other programs are not launchers.
         let other = "\"horizon-launcher-setup.exe\",\"77\",\"Console\",\"1\",\"9 K\"\r\n\
-            \"horizon-client.exe\",\"78\",\"Console\",\"1\",\"9 K\"\r\n";
+            \"phantom-client.exe\",\"78\",\"Console\",\"1\",\"9 K\"\r\n";
         assert!(other_launcher_pids(other, 1).is_empty());
     }
 }

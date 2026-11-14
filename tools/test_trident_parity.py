@@ -101,15 +101,15 @@ def main():
     libraries = baking.client_libraries()
     build = lab.LOCAL / 'trident-parity'
     build.mkdir(parents=True, exist_ok=True)
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     oracle = ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaArrowOracle.java'
     sources = [Path(__file__), ROOT / 'tools/oracle_harness.py', ROOT / 'tools/lab.py',
                ROOT / 'tools/test_rust_parity.py', ROOT / 'tools/test_model_baking_parity.py', oracle,
                ROOT / 'Cargo.toml', ROOT / 'Cargo.lock',
-               ROOT / 'crates/horizon-client/examples/probe/trident_probe.rs',
-               ROOT / 'crates/horizon-client/examples/probe/main.rs',
-               ROOT / 'crates/horizon-client/src/arrows.rs',
-               ROOT / 'crates/horizon-client/src/game/trident.rs']
+               ROOT / 'crates/phantom-client/examples/probe/trident_probe.rs',
+               ROOT / 'crates/phantom-client/examples/probe/main.rs',
+               ROOT / 'crates/phantom-client/src/arrows.rs',
+               ROOT / 'crates/phantom-client/src/game/trident.rs']
     tested = base.source_hashes(sources)
     cases = fixtures()
     (build / 'inputs.txt').write_text(''.join(json.dumps(row, separators=(',', ':')) + '\n'

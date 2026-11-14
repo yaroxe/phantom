@@ -5,7 +5,7 @@
 
 Vanilla's `ServerPlayer.broadcastToPlayer` never sends a spectator to a player who isn't one, so no name tag of
 a spectator ever shows to them (a client that draws invisible players' names or armour would show it, if it were
-sent invisible); a spectator still sees everyone. Two real Horizon clients (horizon-ctl, offscreen)
+sent invisible); a spectator still sees everyone. Two real Horizon clients (phantom-ctl, offscreen)
 join a dedicated server: Pat stays in survival, Ops goes in and out of spectator mode from the console. Pat's
 client must know of Ops (`entities`) and show Ops's name tag (`status`'s name_tags) exactly while Ops isn't a
 spectator: right after the switch,
@@ -14,7 +14,7 @@ again as a spectator. Ops, spectating, sees Pat's.
 
 The server and the games run in fresh folders with fresh HORIZON_HOME and XDG folders (lab.game_env), on a free
 port. Build first:
-    cargo build --profile fast -p horizon-client -p horizon-client-lib --bin horizon-client --bin horizon-ctl
+    cargo build --profile fast -p phantom-client -p phantom-client-lib --bin phantom-client --bin phantom-ctl
 """
 import argparse
 import os
@@ -51,12 +51,12 @@ class Run:
         props = dict(PROPERTIES, **{'server-port': str(self.port)})
         (folder / 'server.properties').write_text(''.join(f'{k}={v}\n' for k, v in props.items()))
         (folder / 'eula.txt').write_text('eula=true\n')
-        command = [bins / f'horizon-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
+        command = [bins / f'phantom-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
         self.server = Server(command, folder, out / 'server.log')
         self.server.wait_for(DONE, 300)
 
     def join(self, name):
-        game = Game(name, self.bins / f'horizon-ctl{EXE}', lab.RESOURCES)
+        game = Game(name, self.bins / f'phantom-ctl{EXE}', lab.RESOURCES)
         self.games[name] = game
         game.pid = game.raw('launch', '--offscreen', '--no-pause')['pid']
         game.raw('connect', f'127.0.0.1:{self.port}', name)

@@ -634,7 +634,7 @@ fn the_free_claim_is_offered_only_where_the_service_says_and_grants_once() {
 
 #[test]
 fn each_claim_refusal_says_what_to_do_instead_of_a_bare_failure() {
-    // The service's answers to `POST /v1/claim` (horizon-cosmetics' README): each one gets its
+    // The service's answers to `POST /v1/claim` (phantom-cosmetics' README): each one gets its
     // own words, never the "had a problem" line a 403 used to show (Discord, 2026-11-05).
     let generic = Error::Service(403).message();
     let paddle = Error::Shop("paddle".into()).message();

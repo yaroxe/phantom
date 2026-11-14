@@ -93,7 +93,7 @@ enum ServersCmd {
         #[arg(long)]
         version: Option<String>,
     },
-    /// Run a horizon-server command on a server, for example: servers run "My server" -- status
+    /// Run a phantom-server command on a server, for example: servers run "My server" -- status
     Run {
         /// The server's name or folder
         server: String,
@@ -570,7 +570,7 @@ enum ModsCmd {
         #[arg(long)]
         instance: Option<String>,
     },
-    /// Say how well a Java mod runs in Horizon: its jar is downloaded (checksum checked),
+    /// Say how well a Java mod runs in Phantom: its jar is downloaded (checksum checked),
     /// carried over and read; the answer is kept
     Check {
         project: String,
@@ -581,7 +581,7 @@ enum ModsCmd {
         source: SourceArg,
     },
     /// Install a pack and what it needs into an instance, by its id or slug (checksums
-    /// checked); a Java mod is ported into horizon-mods and turned on (a Java instance gets the
+    /// checked); a Java mod is ported into phantom-mods and turned on (a Java instance gets the
     /// jar made for its version and loader in mods/); a modpack is imported as an instance of
     /// its own; a data pack goes into the world `--world` names
     Install {
@@ -649,7 +649,7 @@ enum ModsCmd {
         #[arg(long)]
         instance: Option<String>,
     },
-    /// Turn on a mod the browser installed (horizon-mods.txt, as the game's Options > Mods does;
+    /// Turn on a mod the browser installed (phantom-mods.txt, as the game's Options > Mods does;
     /// in a Java instance, its file loses `.disabled`)
     Enable {
         project: String,
@@ -713,11 +713,11 @@ enum Cmd {
     Install { tag: String },
     /// Remove an installed version
     Remove { tag: String },
-    /// Install a game program you have, such as a horizon-client built on your fork's Actions,
+    /// Install a game program you have, such as a phantom-client built on your fork's Actions,
     /// as its own version on an installed release or Nightly's game files, and select it.
     /// Nothing signed it: it runs with your rights, and updates never replace it
     ImportBuild {
-        /// The program (horizon-client, horizon-client.exe on Windows), or a zip holding it
+        /// The program (phantom-client, phantom-client.exe on Windows), or a zip holding it
         path: PathBuf,
         /// The installed release or Nightly whose game files it plays with (default: the
         /// selected one, else the newest)
@@ -959,8 +959,8 @@ enum Cmd {
         #[command(subcommand)]
         action: Option<RustCmd>,
     },
-    /// Servers hosted with horizon-server (the Servers page): list them, create one, or run any
-    /// horizon-server command on one
+    /// Servers hosted with phantom-server (the Servers page): list them, create one, or run any
+    /// phantom-server command on one
     Servers {
         #[command(subcommand)]
         action: Option<ServersCmd>,
@@ -979,7 +979,7 @@ enum Cmd {
         test: bool,
     },
     /// Show or set No AI: on hides and turns off every AI feature (the companion, agent control,
-    /// horizon-ctl and both MCP servers); off, the default, makes them available
+    /// phantom-ctl and both MCP servers); off, the default, makes them available
     NoAi {
         /// Omit to show the current state
         #[arg(value_parser = ["on", "off"])]
@@ -1171,7 +1171,7 @@ pub fn run() -> Option<i32> {
     let cli = Cli::from_arg_matches(&definition.get_matches()).unwrap_or_else(|e| e.exit());
     let command = cli.command?;
     let result = match command {
-        Cmd::Mcp | Cmd::AgentConfig { .. } if no_ai => Err(horizon_core::no_ai::REFUSAL.into()),
+        Cmd::Mcp | Cmd::AgentConfig { .. } if no_ai => Err(phantom_core::no_ai::REFUSAL.into()),
         Cmd::Mcp => crate::mcp::serve(),
         command => {
             let result = execute(command, cli.json);
@@ -1875,12 +1875,12 @@ fn update(check: bool, as_json: bool) -> Result<(), String> {
         return Ok(());
     }
     match &updates.horizon {
-        None => println!("Horizon: up to date."),
-        Some(r) if check => println!("Horizon: {} is available.", r.tag),
+        None => println!("Phantom: up to date."),
+        Some(r) if check => println!("Phantom: {} is available.", r.tag),
         Some(r) => {
             let tag =
                 backend::install_tag(&r.tag, true, progress(format!("Installing {}", r.tag)))?;
-            println!("Horizon: installed {tag}.");
+            println!("Phantom: installed {tag}.");
         }
     }
     match &updates.launcher {
@@ -2127,7 +2127,7 @@ fn account_command(action: AccountCmd, as_json: bool) -> Result<(), String> {
 /// `data`: the same consent as Settings → Data collection.
 fn data(action: DataCmd, as_json: bool) -> Result<(), String> {
     use horizon_launcher::telemetry;
-    let review = |item: &horizon_telemetry::Item, yes: bool| -> Result<bool, String> {
+    let review = |item: &phantom_telemetry::Item, yes: bool| -> Result<bool, String> {
         println!(
             "{}",
             serde_json::to_string_pretty(item).map_err(|e| e.to_string())?
@@ -2161,7 +2161,7 @@ fn data(action: DataCmd, as_json: bool) -> Result<(), String> {
                 println!("{name}: {}", if on { "on" } else { "off" });
             }
             println!("Waiting to be sent: {}", status["waiting"]);
-            match horizon_telemetry::endpoint() {
+            match phantom_telemetry::endpoint() {
                 Some(url) => println!("Server: {url}"),
                 None => println!("Server: turned off (HORIZON_TELEMETRY_URL=off), nothing is sent"),
             }
@@ -2182,14 +2182,14 @@ fn data(action: DataCmd, as_json: bool) -> Result<(), String> {
         DataCmd::Delete => println!("{}", telemetry::delete_my_data()?),
         DataCmd::Send => println!("{:?}", telemetry::send()),
         DataCmd::Bug { text, log, yes } => {
-            telemetry::ensure_allowed(horizon_telemetry::Kind::Bug)?;
+            telemetry::ensure_allowed(phantom_telemetry::Kind::Bug)?;
             let item = telemetry::bug_report(&text, log)?;
             if review(&item, yes)? {
                 println!("{}", telemetry::submit(&item)?);
             }
         }
         DataCmd::Benchmark { file, yes } => {
-            telemetry::ensure_allowed(horizon_telemetry::Kind::Benchmark)?;
+            telemetry::ensure_allowed(phantom_telemetry::Kind::Benchmark)?;
             let item = telemetry::benchmark_report(&file)?;
             if review(&item, yes)? {
                 println!("{}", telemetry::submit(&item)?);
@@ -2289,7 +2289,7 @@ fn servers(action: ServersCmd, as_json: bool) -> Result<(), String> {
                 .status()
                 .map_err(|e| e.to_string())?;
             if !status.success() {
-                return Err(format!("horizon-server exited with {status}"));
+                return Err(format!("phantom-server exited with {status}"));
             }
         }
         ServersCmd::Forget { server } => {
@@ -3629,7 +3629,7 @@ fn worlds(action: WorldsCmd, as_json: bool) -> Result<(), String> {
 fn modpack(action: ModpackCmd, as_json: bool) -> Result<(), String> {
     use horizon_launcher::browser::horizon;
     use horizon_launcher::modpacks::{self, Imported};
-    use horizon_port_pack::report::Status;
+    use phantom_port_pack::report::Status;
     let log = &|line: String| eprintln!("{line}");
     let work = |pack: &str| {
         let registry = horizon::pack::packs_dir().join(pack);

@@ -34,11 +34,11 @@ def main():
     sources = [Path(__file__), lab.ROOT / 'tools/lab.py', lab.ROOT / 'tools/oracle_harness.py',
                lab.ROOT / 'tools/test_rust_parity.py', lab.ROOT / 'tools/integration_env.py',
                lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock',
-               lab.ROOT / 'crates/horizon-client/src/game/lan.rs',
-               lab.ROOT / 'crates/horizon-client/src/game/remote_mob_data.rs',
-               lab.ROOT / 'crates/horizon-client/src/mobs/raider.rs',
-               lab.ROOT / 'crates/horizon-client/src/mobs.rs',
-               lab.ROOT / 'crates/horizon-client/src/lan/entity.rs',
+               lab.ROOT / 'crates/phantom-client/src/game/lan.rs',
+               lab.ROOT / 'crates/phantom-client/src/game/remote_mob_data.rs',
+               lab.ROOT / 'crates/phantom-client/src/mobs/raider.rs',
+               lab.ROOT / 'crates/phantom-client/src/mobs.rs',
+               lab.ROOT / 'crates/phantom-client/src/lan/entity.rs',
                lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaRaiderCelebrationOracle.java']
     hashes = base.source_hashes(sources)
     rows = list(cases())
@@ -52,7 +52,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='horizon-raider-parity-') as scratch:
         env = integration_env.game_environment(os.environ, scratch)
         env.update(HORIZON_RAIDER_SYNC_INPUT=str(inputs), HORIZON_RAIDER_SYNC_OUTPUT=str(build / 'rust.txt'))
-        harness.run_logged(['cargo', 'test', '--locked', '-p', 'horizon-client', '--lib',
+        harness.run_logged(['cargo', 'test', '--locked', '-p', 'phantom-client', '--lib',
                             'game::remote_mob_data::tests::raider_celebration_parity_fixture',
                             '--', '--exact', '--ignored'], build, 'rust', env=env)
     matched = harness.compare(build / 'client.txt', build / 'rust.txt', len(rows))

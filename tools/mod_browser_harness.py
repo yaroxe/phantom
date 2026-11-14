@@ -7,8 +7,8 @@ In a scratch game folder, as a player would through the Mods page (its CLI):
 
 1. `horizon-launcher mods search --kind mod TEXT` finds the mod on Modrinth;
 2. `horizon-launcher mods check SLUG` downloads its jar (checksum checked) and says Works or Partly;
-3. `horizon-launcher mods install SLUG` ports it into horizon-mods/ and turns it on;
-4. the game opens a survival world with it (horizon-ctl, offscreen), and
+3. `horizon-launcher mods install SLUG` ports it into phantom-mods/ and turns it on;
+4. the game opens a survival world with it (phantom-ctl, offscreen), and
 5. a ported block item is given, held, and placed: the world then holds the mod's block;
 6. a ported recipe with vanilla ingredients is crafted on a crafting table: the result slot shows
    the mod's item and taking it puts it in the inventory.
@@ -18,9 +18,9 @@ It also times the install and the world's load with the mod against the same wor
 Prints one JSON line per step and a summary; exits 1 when a step fails.
 
 Needs the launcher (launcher/target/debug/horizon-launcher, built with
-`--features gpui_platform/runtime_shaders` on macOS), the game and horizon-ctl
-(target/fast/horizon-client, target/fast/horizon-ctl, or --bin DIR) and the prepared resources in
-.local/horizon-client/26.3. Downloads from Modrinth.
+`--features gpui_platform/runtime_shaders` on macOS), the game and phantom-ctl
+(target/fast/phantom-client, target/fast/phantom-ctl, or --bin DIR) and the prepared resources in
+.local/phantom-client/26.3. Downloads from Modrinth.
 """
 import argparse
 import json
@@ -153,15 +153,15 @@ def main():
     ap.add_argument("--mod", default="macaws-fences-and-walls", help="Modrinth slug of a Works or Partly mod")
     ap.add_argument("--query", default="macaw", help="the search text that finds it")
     ap.add_argument("--launcher", default=str(ROOT / "launcher/target/debug/horizon-launcher"))
-    ap.add_argument("--bin", default=str(ROOT / "target/fast"), help="folder with horizon-client and horizon-ctl")
-    ap.add_argument("--resources", default=str(ROOT / ".local/horizon-client/26.3"))
+    ap.add_argument("--bin", default=str(ROOT / "target/fast"), help="folder with phantom-client and phantom-ctl")
+    ap.add_argument("--resources", default=str(ROOT / ".local/phantom-client/26.3"))
     ap.add_argument("--keep", action="store_true", help="keep the scratch game folder")
     args = ap.parse_args()
 
     home = Path(tempfile.mkdtemp(prefix="horizon-mod-browser-"))
     env = lab.game_env(HORIZON_HOME=home, HORIZON_NO_HEARTBEAT="1", HORIZON_CONTROL=home / "ctl.sock")
     launcher = [args.launcher]
-    game = Game(str(Path(args.bin) / "horizon-ctl"), str(Path(args.bin) / "horizon-client"),
+    game = Game(str(Path(args.bin) / "phantom-ctl"), str(Path(args.bin) / "phantom-client"),
                 args.resources, home, env)
     summary = {"mod": args.mod}
     ok = False
@@ -195,8 +195,8 @@ def main():
         run(launcher + ["mods", "install", args.mod], env)
         summary["install_s"] = round(time.monotonic() - start, 2)
         mod_id = check["mod_id"]
-        mod = home / "horizon-mods" / mod_id
-        on = (home / "horizon-mods.txt").read_text()
+        mod = home / "phantom-mods" / mod_id
+        on = (home / "phantom-mods.txt").read_text()
         report("install", folder=str(mod.relative_to(home)), turned_on=f"mod.{mod_id}:true" in on,
                seconds=summary["install_s"])
         if not (mod / "horizon-mod.toml").is_file() or f"mod.{mod_id}:true" not in on:
@@ -228,7 +228,7 @@ def main():
 
         recipe = pick_recipe(mod, mod_id)
         result = recipe["result"]["id"]
-        # A server command: horizon-ctl's own setblock changes the client's world only.
+        # A server command: phantom-ctl's own setblock changes the client's world only.
         game("command", f"setblock {x + 2} {y} {z + 2} minecraft:crafting_table")
         cells = grid_cells(recipe)
         game("select", 9)

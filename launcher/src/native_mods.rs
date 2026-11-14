@@ -41,15 +41,15 @@ const PREFIX: &str = "native-";
 const MIXINS_GIT: &str = "https://github.com/horizon-rust/horizon-mixins";
 pub const MIXINS_REV: &str = "5a64af938ec86b00d53d16a408aabc0038fb3e57";
 /// The features of the release's own game (game-build.yml).
-const FEATURES: &str = "horizon-client/mods";
+const FEATURES: &str = "phantom-client/mods";
 
 /// What a native build is compiled for. `Performance`, the default, is the workspace's `fast` (16
-/// codegen units, incremental, thin-local LTO only), so changing a mod recompiles only `horizon-client`'s
-/// changed parts; `Dev`, for developing a mod, is `fast` with `horizon-client` unoptimized: the
+/// codegen units, incremental, thin-local LTO only), so changing a mod recompiles only `phantom-client`'s
+/// changed parts; `Dev`, for developing a mod, is `fast` with `phantom-client` unoptimized: the
 /// quickest to rebuild after an edit, for a game about twice as slow; `Release` is the release's
 /// own (thin LTO, one codegen unit): slowest to build, slightly faster game. `Performance` and
 /// `Dev` share `native/target/fast/`: every other crate is built alike, so switching between them
-/// recompiles only `horizon-client`, and Cargo keeps both builds of it. Each profile has its own
+/// recompiles only `phantom-client`, and Cargo keeps both builds of it. Each profile has its own
 /// key, so their builds never mix.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -100,7 +100,7 @@ impl Profile {
     fn cargo(self) -> (&'static str, &'static [&'static str]) {
         match self {
             Self::Performance => ("fast", &[]),
-            Self::Dev => ("fast", &["profile.fast.package.horizon-client.opt-level=0"]),
+            Self::Dev => ("fast", &["profile.fast.package.phantom-client.opt-level=0"]),
             Self::Release => ("release", &[]),
         }
     }
@@ -112,7 +112,7 @@ impl Profile {
 /// and a standalone runtime folder outside the managed versions.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Target {
-    /// The game: `horizon-client` as the release ships it.
+    /// The game: `phantom-client` as the release ships it.
     #[default]
     Client,
     /// The headless engine: the same binary without the default features, installed and
@@ -603,10 +603,10 @@ pub fn cache_info(clear: bool) -> Result<CacheInfo, String> {
 }
 
 const MANIFEST: &str = "horizon-mixin.toml";
-/// A registry download's manifest (`.hnmod`, `horizon_mods::index::native`), beside `mixins/<id>/`.
-const NATIVE_MANIFEST: &str = horizon_mods::index::native::MANIFEST;
+/// A registry download's manifest (`.hnmod`, `phantom_mods::index::native`), beside `mixins/<id>/`.
+const NATIVE_MANIFEST: &str = phantom_mods::index::native::MANIFEST;
 /// Where an instance keeps the native mods installed from the registry, `<id>.hnmod`, each on or
-/// off in `horizon-mods.txt` like any mod.
+/// off in `phantom-mods.txt` like any mod.
 pub const INSTALLED: &str = "horizon-native-mods";
 
 /// The native mods turned on in the game folder `home`, unpacked into a folder [`build`] takes.
@@ -622,7 +622,7 @@ pub fn installed_mods(home: &Path) -> Result<PathBuf, String> {
     paths.sort();
     let mut count = 0;
     for path in paths {
-        let bundle = horizon_mods::index::native::Bundle::read(&path)
+        let bundle = phantom_mods::index::native::Bundle::read(&path)
             .map_err(|e| format!("{}: {e}", path.display()))?;
         if !crate::browser::java::is_enabled(home, &bundle.manifest.id) {
             continue;
@@ -1152,7 +1152,7 @@ fn mismatch(mods: &[Bundle], revision: &str) -> Option<String> {
 }
 
 /// Where Horizon declares its native hook points' version, and the line that does.
-const HOOKS_FILE: &str = "crates/horizon-client/src/game/native_hooks.rs";
+const HOOKS_FILE: &str = "crates/phantom-client/src/game/native_hooks.rs";
 const HOOKS_LINE: &str = "pub(crate) const NATIVE_HOOKS_API: u32 = ";
 
 /// The native hook points' version in `HOOKS_FILE`'s text.
@@ -1282,7 +1282,7 @@ fn repin(bundle: &Bundle, revision: &str) -> Result<(), String> {
 /// Whether Horizon's source at `source` has the `mods` feature (the WebAssembly mods' runtime,
 /// gone from later revisions).
 fn has_mods_feature(source: &Path) -> bool {
-    let path = source.join("crates/horizon-client/Cargo.toml");
+    let path = source.join("crates/phantom-client/Cargo.toml");
     let text = fs::read_to_string(path).unwrap_or_default();
     let value: toml::Table = text.parse().unwrap_or_default();
     value.get("features").and_then(|f| f.get("mods")).is_some()
@@ -1825,7 +1825,7 @@ fn mod_id_from_file(file: &str) -> Option<&str> {
 
 /// A horizon-mixins diagnostic (`{"code", "message", "file"}`) in one line, led by the mod it
 /// names (`mod_id`, its `injection_id`, or extracted from its `file` path for `E_MODULE_CONFLICT`),
-/// so a player with several mods sees which one doesn't apply to the build's Horizon: their files'
+/// so a player with several mods sees which one doesn't apply to the build's Phantom: their files'
 /// paths are deep in the launcher's folder.
 fn diagnostic(text: &str) -> Option<String> {
     let start = text.find('{')?;
@@ -1916,7 +1916,7 @@ fn compile(
     if has_mods_feature(stage) {
         cmd.args(["--features", FEATURES]);
     }
-    cmd.args(["-p", package, "--bin", "horizon-client"]);
+    cmd.args(["-p", package, "--bin", "phantom-client"]);
     cmd
 }
 
@@ -2491,7 +2491,7 @@ fn pipeline(
                 if has_api {
                     api::PACKAGE
                 } else {
-                    "horizon-client"
+                    "phantom-client"
                 },
             ),
             "Compiling the game",
@@ -2854,7 +2854,7 @@ fn copy_runtime(from: &Path, to: &Path) -> std::io::Result<()> {
         if entry.file_type()?.is_dir() {
             copy_runtime(&entry.path(), &destination)?;
         } else {
-            horizon_prepare::clone_or_copy(&entry.path(), &destination)?;
+            phantom_prepare::clone_or_copy(&entry.path(), &destination)?;
             fs::set_permissions(&destination, entry.metadata()?.permissions())?;
         }
     }
@@ -2913,8 +2913,8 @@ pub(crate) fn copy_base(from: &Path, to: &Path, target: Target) -> Result<(), St
         let copied = if entry.path().is_dir() {
             backend::copy_dir(&entry.path(), &to)
         } else {
-            // A clone is a new file: horizon-ctl and horizon-server keep their permissions.
-            horizon_prepare::clone_or_copy(&entry.path(), &to)
+            // A clone is a new file: phantom-ctl and phantom-server keep their permissions.
+            phantom_prepare::clone_or_copy(&entry.path(), &to)
                 .and_then(|()| fs::set_permissions(&to, entry.metadata()?.permissions()))
         };
         copied.map_err(|e| format!("Could not copy {}: {e}", entry.path().display()))?;
@@ -3060,7 +3060,7 @@ mod tests {
         ] {
             assert!(!carried_over(OsStr::new(own), Target::Client), "{own}");
         }
-        for kept in ["horizon-ctl", "resources", "LICENSE"] {
+        for kept in ["phantom-ctl", "resources", "LICENSE"] {
             assert!(carried_over(OsStr::new(kept), Target::Client), "{kept}");
         }
         // A server build keeps neither the game's own binary nor a stale `horizon-engine` the
@@ -3434,7 +3434,7 @@ mod tests {
         for (id, injection) in [
             ("plain", ""),
             ("ordinary", "[[injection]]\nid = 'ordinary'\n"),
-            ("trait_injection", "[[injection]]\nid = 'hook'\ntarget = 'horizon_client::game::tick'\nkind = 'HEAD'\ntrait_method = 'tick'\n"),
+            ("trait_injection", "[[injection]]\nid = 'hook'\ntarget = 'phantom_client::game::tick'\nkind = 'HEAD'\ntrait_method = 'tick'\n"),
         ] {
             let bundle = incoming.join(id);
             fs::create_dir_all(bundle.join("engine")).unwrap();
@@ -3481,7 +3481,7 @@ mod tests {
     const A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
-    /// An unpacked `.hnmod`, as the registry ships one (horizon_mods::index::native).
+    /// An unpacked `.hnmod`, as the registry ships one (phantom_mods::index::native).
     fn write_native(at: &Path, id: &str, horizon: &str, mixins: &str) {
         let manifest = serde_json::json!({"schema": 1, "id": id, "version": "0.3.0", "game": "26.3",
             "horizon": horizon, "mixins": mixins});
@@ -3887,7 +3887,7 @@ mod tests {
             d.join(MANIFEST),
             "[mod]\nid = \"blockscope\"\nversion = \"0.3.1\"\n\
              [[injection]]\nid = \"hud\"\nkind = \"HEAD\"\nhook = \"hud\"\nhook_version = 1\n\
-             [[injection]]\nid = \"raw\"\nkind = \"HEAD\"\ntarget = \"horizon_client::game::tick\"\n",
+             [[injection]]\nid = \"raw\"\nkind = \"HEAD\"\ntarget = \"phantom_client::game::tick\"\n",
         )
         .unwrap();
         let c = "c".repeat(40);
@@ -4136,10 +4136,10 @@ mod tests {
         let fresh = d.join("fresh");
         let snapshot = d.join("snapshot");
         let stage = d.join("stage");
-        fs::create_dir_all(fresh.join("crates/horizon-client")).unwrap();
+        fs::create_dir_all(fresh.join("crates/phantom-client")).unwrap();
         fs::write(
-            fresh.join("crates/horizon-client/Cargo.toml"),
-            "[package]\nname = 'horizon-client'\nversion = '0.1.0'\n[build-dependencies]\nhorizon-mod-api-gen = { path = '../horizon-mod-api-gen' }\n",
+            fresh.join("crates/phantom-client/Cargo.toml"),
+            "[package]\nname = 'phantom-client'\nversion = '0.1.0'\n[build-dependencies]\nhorizon-mod-api-gen = { path = '../phantom-mod-api-gen' }\n",
         )
         .unwrap();
         let rusts = toolchains(d.join("rust"));
@@ -4204,7 +4204,7 @@ mod tests {
                         target,
                         Path::new("/native/target"),
                         Profile::Performance,
-                        "horizon-client",
+                        "phantom-client",
                     );
                     args_after_host(rust, &cmd)
                 })
@@ -4221,9 +4221,9 @@ mod tests {
         let client = flags(&d, Target::Client);
         assert!(!client.contains(&"--no-default-features".into()));
         // A source with the `mods` feature keeps it in both builds.
-        fs::create_dir_all(d.join("crates/horizon-client")).unwrap();
+        fs::create_dir_all(d.join("crates/phantom-client")).unwrap();
         fs::write(
-            d.join("crates/horizon-client/Cargo.toml"),
+            d.join("crates/phantom-client/Cargo.toml"),
             "[features]\nmods = []\n",
         )
         .unwrap();
@@ -4343,9 +4343,9 @@ mod tests {
         let base = "native-test-server-base";
         let version = "native-test-server-cache";
         let source = backend::version_dir(base);
-        fs::create_dir_all(source.join(".local/horizon-client/26.3")).unwrap();
+        fs::create_dir_all(source.join(".local/phantom-client/26.3")).unwrap();
         fs::write(
-            source.join(".local/horizon-client/26.3/facts.json"),
+            source.join(".local/phantom-client/26.3/facts.json"),
             b"facts",
         )
         .unwrap();
@@ -4376,7 +4376,7 @@ mod tests {
         );
         assert_eq!(fs::read(output.join("native-data/test")).unwrap(), b"baked");
         assert_eq!(
-            fs::read(output.join(".local/horizon-client/26.3/facts.json")).unwrap(),
+            fs::read(output.join(".local/phantom-client/26.3/facts.json")).unwrap(),
             b"facts"
         );
         assert!(output.join("native-mods.json").is_file());
@@ -4651,8 +4651,8 @@ mod tests {
         use std::time::{Duration, SystemTime};
         let (from, to) = (dir("sync-old-from"), dir("sync-old-to"));
         let commit = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000_000_000);
-        fs::create_dir_all(from.join("crates/horizon-core/src")).unwrap();
-        let file = from.join("crates/horizon-core/src/storage.rs");
+        fs::create_dir_all(from.join("crates/phantom-core/src")).unwrap();
+        let file = from.join("crates/phantom-core/src/storage.rs");
         fs::write(&file, "pub fn unpack_into() {}").unwrap();
         fs::File::options()
             .write(true)
@@ -4660,9 +4660,9 @@ mod tests {
             .unwrap()
             .set_modified(commit)
             .unwrap();
-        fs::create_dir_all(to.join("crates/horizon-core/src")).unwrap();
+        fs::create_dir_all(to.join("crates/phantom-core/src")).unwrap();
         fs::write(
-            to.join("crates/horizon-core/src/storage.rs"),
+            to.join("crates/phantom-core/src/storage.rs"),
             "pub fn unpack() {}",
         )
         .unwrap();
@@ -4670,7 +4670,7 @@ mod tests {
         let built = SystemTime::now();
         std::thread::sleep(Duration::from_millis(20));
         sync(&from, &to).unwrap();
-        let staged = to.join("crates/horizon-core/src/storage.rs");
+        let staged = to.join("crates/phantom-core/src/storage.rs");
         assert_eq!(
             fs::read_to_string(&staged).unwrap(),
             "pub fn unpack_into() {}"
@@ -4777,7 +4777,7 @@ mod tests {
             Target::Client,
             Path::new("/native/target"),
             Profile::Performance,
-            "horizon-client",
+            "phantom-client",
         );
         let args = args_after_host(rust, &cmd);
         assert_eq!(
@@ -4789,7 +4789,7 @@ mod tests {
             ]
         );
         assert!(
-            args.ends_with(&["-p", "horizon-client", "--bin", "horizon-client"].map(String::from))
+            args.ends_with(&["-p", "phantom-client", "--bin", "phantom-client"].map(String::from))
         );
         let dir = cmd.get_current_dir().expect("a folder of its own");
         assert!(
@@ -4806,7 +4806,7 @@ mod tests {
             Target::Client,
             Path::new("/native/target"),
             Profile::Performance,
-            "horizon-client",
+            "phantom-client",
         );
         let args = args_after_host(rust, &cmd);
         assert_eq!(args[1], "--config");
@@ -4843,7 +4843,7 @@ mod tests {
                         Target::Client,
                         Path::new("/native/target"),
                         profile,
-                        "horizon-client",
+                        "phantom-client",
                     );
                     args_after_host(rust, &cmd)
                 })
@@ -4859,7 +4859,7 @@ mod tests {
         assert!(dev.windows(2).any(|w| w
             == [
                 "--config",
-                "profile.fast.package.horizon-client.opt-level=0"
+                "profile.fast.package.phantom-client.opt-level=0"
             ]));
         let release = args(Profile::Release);
         assert!(release.windows(2).any(|w| w == ["--profile", "release"]));
@@ -4884,11 +4884,11 @@ mod tests {
         // (made for ba6344a), as a player's build was on 2026-11-04.
         let err = r#"{
   "code": "E_TARGET_NOT_FOUND",
-  "message": "no source function 'horizon_client::game::titles::Game<'_>::draw_titles'",
+  "message": "no source function 'phantom_client::game::titles::Game<'_>::draw_titles'",
   "file": "/home/p/.local/share/horizon-launcher/native/mixins.incoming/appleskin/horizon-mixin.toml",
   "mod_id": "appleskin",
   "injection_id": "hud",
-  "target": "horizon_client::game::titles::Game<'_>::draw_titles"
+  "target": "phantom_client::game::titles::Game<'_>::draw_titles"
 }"#;
         let line = diagnostic(err).unwrap();
         assert!(
@@ -4993,7 +4993,7 @@ mod tests {
         let mut cmd = Command::new("sh");
         cmd.args([
             "-c",
-            "echo 'error: could not compile `horizon-client`' >&2; exit 101",
+            "echo 'error: could not compile `phantom-client`' >&2; exit 101",
         ]);
         let e = run(cmd, "Compiling the game", |_| {}).unwrap_err();
         assert!(!e.contains("Smart App Control"), "{e}");

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Far terrain on a dedicated server (`horizon-lod-distance`, crates/horizon-client/src/lod_net.rs), end to end.
+"""Far terrain on a dedicated server (`horizon-lod-distance`, crates/phantom-client/src/lod_net.rs), end to end.
 
     python3 tools/server_lod_e2e.py --bin-dir target/fast
 
-A real Horizon client (horizon-ctl, offscreen) with LOD Distance 32 joins a dedicated server:
+A real Horizon client (phantom-ctl, offscreen) with LOD Distance 32 joins a dedicated server:
 - `horizon-lod-distance=16`: the server samples the client's far terrain (`status`'s lod.source is "server"), no
   farther than 16 chunks (effective_distance 16), and far tiles are drawn (active_tiles > 0);
 - no `horizon-lod-distance` (off by default): the server offers none, so the client draws only the chunks it was
@@ -11,7 +11,7 @@ A real Horizon client (horizon-ctl, offscreen) with LOD Distance 32 joins a dedi
 
 Each server and game runs in fresh folders with fresh HORIZON_HOME and XDG folders (lab.game_env), on a free
 port. Build first:
-    cargo build --profile fast -p horizon-client -p horizon-client-lib --bin horizon-client --bin horizon-ctl
+    cargo build --profile fast -p phantom-client -p phantom-client-lib --bin phantom-client --bin phantom-ctl
 """
 import argparse
 import os
@@ -45,7 +45,7 @@ def server(bins, folder, out, name, extra):
     props = dict(PROPERTIES, **extra, **{'server-port': str(port)})
     (folder / 'server.properties').write_text(''.join(f'{k}={v}\n' for k, v in props.items()))
     (folder / 'eula.txt').write_text('eula=true\n')
-    command = [bins / f'horizon-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
+    command = [bins / f'phantom-client{EXE}', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
     s = Server(command, folder, out / f'{name}.log')
     s.wait_for(DONE, 300)
     return s, port
@@ -53,7 +53,7 @@ def server(bins, folder, out, name, extra):
 
 def far_terrain(bins, out, port, name, wanted, seconds):
     """Join with LOD Distance CLIENT_LOD; the state's lod part once `wanted` holds of it (or after `seconds`)."""
-    game = Game(name, bins / f'horizon-ctl{EXE}', lab.RESOURCES)
+    game = Game(name, bins / f'phantom-ctl{EXE}', lab.RESOURCES)
     for folder in (game.work, game.work / 'home'):
         folder.mkdir(parents=True, exist_ok=True)
         (folder / 'horizon-graphics.txt').write_text(f'lodDistance:{CLIENT_LOD}\n')

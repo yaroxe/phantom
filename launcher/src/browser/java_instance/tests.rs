@@ -343,7 +343,7 @@ fn a_planted_list_never_reaches_outside_the_instance() {
         entry("absolute", &absolute),
         entry("up", "../outside/id_ed25519"),
         entry("through-mods", "mods/../../outside/id_ed25519"),
-        entry("whole-folder", "horizon-mods"),
+        entry("whole-folder", "phantom-mods"),
         entry("x", "mods/x.jar"),
     ]});
     fs::write(home.join("mod-browser.json"), manifest.to_string()).unwrap();

@@ -2,18 +2,18 @@
 """How long Horizon takes to build, measured the same way on any checkout (docs/build-times.md).
 
     python3 tools/build_times.py run                          # cold + incremental, dev and fast profiles
-    python3 tools/build_times.py run --profiles dev --only incremental --crates horizon-items
+    python3 tools/build_times.py run --profiles dev --only incremental --crates phantom-items
     python3 tools/build_times.py compare before.json after.json
 
-`run` builds the game (`cargo build --locked -p horizon-client --profile P --timings`) and writes a JSON
+`run` builds the game (`cargo build --locked -p phantom-client --profile P --timings`) and writes a JSON
 report and a Markdown table under .local/build-times/reports/:
 
 - cold: a build from an empty target folder of its own (never target/), per profile. The timings page of
   that build gives the slowest crates and the critical path: the chain of units, each waiting on the one
   before it, that ends last.
 - no-op: the same build again with nothing changed (the floor of every incremental build).
-- incremental: after a one-line change in one file of each large crate (by default horizon-world,
-  horizon-client-render, horizon-client's game.rs and horizon-items), the build that follows, and which
+- incremental: after a one-line change in one file of each large crate (by default phantom-world,
+  phantom-client-render, phantom-client's game.rs and phantom-items), the build that follows, and which
   crates it recompiled.
 
 The change is a comment line (--edit): it cannot change behaviour, yet cargo and rustc see a changed file.
@@ -51,16 +51,16 @@ ROOT = lab.ROOT
 REPORT_FORMAT, REPORT_VERSION = "horizon-build-times", 1
 WORK = Path(".local") / "build-times"
 MARKER = ".horizon-build-times"
-PACKAGE = "horizon-client"
+PACKAGE = "phantom-client"
 PROFILES = ["dev", "fast"]
-# The files an edit goes to by default: large, often changed, and each in a different layer. horizon-client's
+# The files an edit goes to by default: large, often changed, and each in a different layer. phantom-client's
 # game.rs belongs to the game binary, the others to libraries the binary links. Any other crate in the
 # workspace gets its lib.rs; --file crate=path picks another file.
 EDIT_FILES = {
-    "horizon-world": "crates/horizon-world/src/level/mod.rs",
-    "horizon-client-render": "crates/horizon-client-render/src/gfx.rs",
-    "horizon-client": "crates/horizon-client/src/game.rs",
-    "horizon-items": "crates/horizon-items/src/items.rs",
+    "phantom-world": "crates/phantom-world/src/level/mod.rs",
+    "phantom-client-render": "crates/phantom-client-render/src/gfx.rs",
+    "phantom-client": "crates/phantom-client/src/game.rs",
+    "phantom-items": "crates/phantom-items/src/items.rs",
 }
 EDIT_MODES = ["middle", "top", "append", "touch"]
 # Programs that build, link or check Rust; any of them running beside the measurement skews it.

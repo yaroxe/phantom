@@ -1,7 +1,7 @@
 //! `horizon-launcher mcp`: the Model Context Protocol over stdin and stdout (JSON-RPC 2.0, one
 //! message per line), so AI agents can install, prepare and run Horizon. Every tool goes through
 //! `backend`. A server started here lives as long as the session. The running game's own tools
-//! come from its `horizon-ctl` as `game_*` (game_tools.rs).
+//! come from its `phantom-ctl` as `game_*` (game_tools.rs).
 use crate::cli_tools;
 use crate::game_tools::{self, GameTools};
 use horizon_launcher::account::{self, Accounts, SignIn, SignInState};
@@ -14,17 +14,17 @@ use std::time::Duration;
 /// What an agent reads before its first call.
 const INSTRUCTIONS: &str = "Manage Horizon, a Rust reimplementation of Minecraft Java Edition: install versions, prepare them from the player's own Minecraft, start the client or a dedicated server. Every tool is a horizon-launcher CLI command of the same name (mods_search is horizon-launcher mods search). Once play started the game, or the player turned on Agent Control in a game they started, the game_* tools play it: game_state, game_ui (every widget of the open screen), game_click, game_goto, game_screenshot...";
 
-/// The revisions this server advertises: `horizon_mcp` serves them (`2026-07-28` stateless,
+/// The revisions this server advertises: `phantom_mcp` serves them (`2026-07-28` stateless,
 /// `2025-06-18` for the clients that still open with `initialize`).
-fn server() -> horizon_mcp::Server<'static> {
-    horizon_mcp::Server::new("horizon-launcher", backend::VERSION, INSTRUCTIONS)
+fn server() -> phantom_mcp::Server<'static> {
+    phantom_mcp::Server::new("horizon-launcher", backend::VERSION, INSTRUCTIONS)
 }
 
 struct Session {
     server: Option<Logged>,
     client: Option<Logged>,
     sign_in: Option<SignIn>,
-    /// The selected version's `horizon-ctl mcp`, once a version is installed.
+    /// The selected version's `phantom-ctl mcp`, once a version is installed.
     game: Option<GameTools>,
 }
 
@@ -104,7 +104,7 @@ impl Session {
                     cmd.args(extra.iter().filter_map(Value::as_str));
                 }
                 let client = Logged::start(Job::Client, cmd)?;
-                // Started once its control socket answers, as horizon-ctl launch waits.
+                // Started once its control socket answers, as phantom-ctl launch waits.
                 let deadline = std::time::Instant::now() + Duration::from_secs(120);
                 while !game_tools::listening() {
                     if let Some(result) = client.finished() {
@@ -248,7 +248,7 @@ impl Session {
         }
     }
 
-    /// The game's tools, starting the selected version's horizon-ctl the first time.
+    /// The game's tools, starting the selected version's phantom-ctl the first time.
     fn game(&mut self) -> Option<&mut GameTools> {
         if self.game.is_none() {
             self.game = backend::resolve_version(None)
@@ -265,7 +265,7 @@ impl Session {
         }
     }
 
-    /// The two tool methods; `horizon_mcp` answers the protocol's own (`initialize`,
+    /// The two tool methods; `phantom_mcp` answers the protocol's own (`initialize`,
     /// `server/discover`) and frames these results for the revision the request speaks.
     fn handle(&mut self, method: &str, params: &Value) -> Result<Value, (i64, String)> {
         match method {
@@ -278,7 +278,7 @@ impl Session {
             }
             // No AI turned on during the session: nothing more runs.
             "tools/call" if backend::no_ai() => {
-                Err((-32000, horizon_core::no_ai::REFUSAL.to_string()))
+                Err((-32000, phantom_core::no_ai::REFUSAL.to_string()))
             }
             "tools/call" => {
                 let name = params
@@ -292,7 +292,7 @@ impl Session {
                     let args = params.get("arguments").cloned().unwrap_or(json!({}));
                     let game = self.game().ok_or((
                         -32602,
-                        "No installed version with horizon-ctl: install one first".to_string(),
+                        "No installed version with phantom-ctl: install one first".to_string(),
                     ))?;
                     if !game.tools().iter().any(|t| t["name"] == name) {
                         return Err((-32602, format!("Unknown tool {name}")));
@@ -344,10 +344,10 @@ mod tests {
             .unwrap();
         assert_eq!(
             reply["result"]["supportedVersions"],
-            json!(horizon_mcp::VERSIONS)
+            json!(phantom_mcp::VERSIONS)
         );
         assert_eq!(
-            reply["result"]["_meta"][horizon_mcp::SERVER_INFO_KEY]["name"],
+            reply["result"]["_meta"][phantom_mcp::SERVER_INFO_KEY]["name"],
             "horizon-launcher"
         );
     }

@@ -223,7 +223,7 @@ mod tests {
         let output = r#"error: plan failed
 {
   "code": "E_TARGET_NOT_FOUND",
-  "message": "no source function 'horizon_client::item_render::ItemRenderer::resolve'",
+  "message": "no source function 'phantom_client::item_render::ItemRenderer::resolve'",
   "mod_id": "eatinganimation",
   "injection_id": "held-frame"
 }"#;
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn a_module_clash_names_its_mod_by_the_module() {
         let root = super::super::tests::dir("isolate-module");
-        let lib = "crates/horizon-client/src/lib.rs";
+        let lib = "crates/phantom-client/src/lib.rs";
         let mods = [
             bundle(&root, "gyro", &[(lib, "gyro")]),
             bundle(&root, "hitbox_plus", &[(lib, "official_hitbox_plus")]),
@@ -260,25 +260,25 @@ mod tests {
             ("hitbox_plus", Why::OtherVersion)
         );
         // Or by its destination, a file this Horizon doesn't have (worldedit 1.2.1 on 6475f62).
-        let chat = "crates/horizon-client/src/chat.rs";
+        let chat = "crates/phantom-client/src/chat.rs";
         let mods = [
             bundle(&root, "zoom", &[]),
             bundle(&root, "worldedit", &[(chat, "worldedit_chat")]),
         ];
-        let output = r#"{"code": "E_MODULE", "message": "module destination must be an indexed Rust source file", "file": "crates/horizon-client/src/chat.rs"}"#;
+        let output = r#"{"code": "E_MODULE", "message": "module destination must be an indexed Rust source file", "file": "crates/phantom-client/src/chat.rs"}"#;
         assert_eq!(from_mixins(output, &mods).unwrap().id, "worldedit");
     }
 
     #[test]
     fn two_mods_declaring_one_module_leave_the_later_out() {
         let root = super::super::tests::dir("isolate-clash");
-        let game = "crates/horizon-client/src/game.rs";
+        let game = "crates/phantom-client/src/game.rs";
         let mods = [
             bundle(&root, "a_zoom", &[(game, "zoom")]),
             bundle(&root, "fps", &[(game, "fps")]),
             bundle(&root, "b_zoom", &[(game, "zoom")]),
         ];
-        let output = r#"{"code": "E_MODULE_CONFLICT", "message": "competing support modules", "file": "crates/horizon-client/src/game.rs"}"#;
+        let output = r#"{"code": "E_MODULE_CONFLICT", "message": "competing support modules", "file": "crates/phantom-client/src/game.rs"}"#;
         let left = from_mixins(output, &mods).unwrap();
         assert_eq!(left.id, "b_zoom");
         assert_eq!(left.label(), "b_zoom was left out: clashes with a_zoom");

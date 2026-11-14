@@ -65,7 +65,7 @@ fn a_summary_says_what_runs() {
 
 #[test]
 fn each_system_gets_its_plan() {
-    let game = os(&["/opt/horizon-client", "--world", "My World"]);
+    let game = os(&["/opt/phantom-client", "--world", "My World"]);
     let wrapper = Launch {
         wrapper: "nice -n 5".into(),
         ..Launch::default()
@@ -76,7 +76,7 @@ fn each_system_gets_its_plan() {
             "nice",
             "-n",
             "5",
-            "/opt/horizon-client",
+            "/opt/phantom-client",
             "--world",
             "My World"
         ]))
@@ -94,12 +94,12 @@ fn each_system_gets_its_plan() {
     assert_eq!(
         plan(
             &both,
-            os(&[r"C:\Horizon\horizon-client.exe", "--world", "My World"]),
+            os(&[r"C:\Horizon\phantom-client.exe", "--world", "My World"]),
             true,
             &Found::default()
         ),
         Plan::Cmd {
-            line: r#"echo hi && nice -n 5 C:\Horizon\horizon-client.exe --world "My World""#.into()
+            line: r#"echo hi && nice -n 5 C:\Horizon\phantom-client.exe --world "My World""#.into()
         }
     );
 }

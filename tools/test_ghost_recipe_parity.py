@@ -11,7 +11,7 @@ it fills: the menu slot, whether it is the result and the stacks the slot
 cycles through (PlaceRecipeHelper's centred placement of shaped recipes, the
 first slots for shapeless ones, every fuel for an empty fuel slot);
 examples/probe/ghost_recipe_fixture prints the same from
-horizon_client::recipe_book::Book::ghost, which the game fills its ghost
+phantom_client::recipe_book::Book::ghost, which the game fills its ghost
 slots from. The lines must agree.
 """
 import argparse
@@ -66,7 +66,7 @@ def main():
     if run.returncode:
         print(run.stderr[-4000:])
         sys.exit('oracle failed')
-    lib.cargo_example('horizon-client', 'ghost_recipe_fixture', lib.RESOURCES, work / 'cases.jsonl', work / 'rust.txt')
+    lib.cargo_example('phantom-client', 'ghost_recipe_fixture', lib.RESOURCES, work / 'cases.jsonl', work / 'rust.txt')
     bad = lib.compare(cases, work / 'native.txt', work / 'rust.txt',
                       lambda case, line: case['menu'] if not line.startswith('error') else 'oracle error',
                       describe=json.dumps, limit=args.limit)

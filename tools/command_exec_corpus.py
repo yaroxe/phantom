@@ -1771,7 +1771,7 @@ def world_misc():
         cmd('/summon minecraft:armor_stand 4.5 210 4.5 {NoGravity:1b,Tags:["w"],CustomName:{text:"Stand",color:"blue"}}'),
         cmd('/swing @e[tag=w]'),
         cmd('/summon minecraft:lightning_bolt 4.5 300 4.5'),
-        # Primed TNT is no command target in Horizon: still "Summoned new
+        # Primed TNT is no command target in Phantom: still "Summoned new
         # Primed TNT" (it explodes high in the air, far from the rest).
         cmd('/summon minecraft:tnt 60.5 300 60.5 {fuse:1s}'),
         cmd('/summon minecraft:pig 4.5 210 4.5 {NoAI:1b,Invulnerable:1b,Tags:["w"],Passengers:[{id:"minecraft:chicken",NoAI:1b,Tags:["w"]}]}'),

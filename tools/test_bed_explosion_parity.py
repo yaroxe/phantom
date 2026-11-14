@@ -235,18 +235,18 @@ def main():
     subprocess.run(['javac', '--release', str(lock['minecraft']['java_major']), '-proc:none', '-nowarn', '-sourcepath',
                     lab.ROOT / 'mods/horizon/src/test/java', '-cp', dependencies, '-d', classes, oracle],
                    cwd=lab.ROOT, check=True, capture_output=True)
-    subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], cwd=lab.ROOT,
+    subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], cwd=lab.ROOT,
                    check=True, capture_output=True)
     import json
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
-    binary = Path(metadata['target_directory']) / 'fast' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+    binary = Path(metadata['target_directory']) / 'fast' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     vanilla_server = ['java', '-Xmx2g', '-Duser.timezone=UTC', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [binary, '--resources', lab.LOCAL / 'horizon-client/26.3', '--dedicated', '--nogui']
+    phantom_server = [binary, '--resources', lab.LOCAL / 'phantom-client/26.3', '--dedicated', '--nogui']
     client = ['java', '-Xmx1g', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.KnockbackClient']
     kb.CASES, kb.SETUP, kb.PLAYERS = CASES, SETUP, ('Alice',)
     world = generate_world(vanilla_server, build)
     vanilla = compared(kb.run_side('vanilla', vanilla_server, client, build, world))
-    horizon = compared(kb.run_side('horizon', horizon_server, client, build, world))
+    horizon = compared(kb.run_side('horizon', phantom_server, client, build, world))
     differ = []
     for case in CASES:
         want, got = vanilla.get(case, []), horizon.get(case, [])

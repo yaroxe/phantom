@@ -285,7 +285,7 @@ impl Launcher {
         cx: &mut Context<Self>,
     ) -> Stateful<Div> {
         use crate::glass_ui::{self as ui, white};
-        use horizon_theme::glass::{ink, radius};
+        use phantom_theme::glass::{ink, radius};
         let t = self.theme;
         let panel = || {
             div()
@@ -307,7 +307,7 @@ impl Launcher {
             .child(
                 div()
                     .mt(px(8.))
-                    .font_family(horizon_theme::glass::DISPLAY_FONT)
+                    .font_family(phantom_theme::glass::DISPLAY_FONT)
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_size(px(28.))
                     .line_height(px(35.))
@@ -425,7 +425,7 @@ impl Launcher {
             Shown::Error(e) => card.child(
                 panel().child(
                     ui::text(14., FontWeight::NORMAL, ink::FULL)
-                        .text_color(ui::color(horizon_theme::glass::DANGER))
+                        .text_color(ui::color(phantom_theme::glass::DANGER))
                         .child(e.to_string()),
                 ),
             ),
@@ -463,10 +463,10 @@ impl Launcher {
                         .bg(gpui::white())
                         .cursor_pointer()
                         .hover(|s| s.opacity(0.9))
-                        .font_family(horizon_theme::glass::FONT)
+                        .font_family(phantom_theme::glass::FONT)
                         .text_size(px(15.))
                         .font_weight(FontWeight::SEMIBOLD)
-                        .text_color(gpui::rgb(horizon_theme::glass::ON_LIGHT))
+                        .text_color(gpui::rgb(phantom_theme::glass::ON_LIGHT))
                         .child(microsoft::logo(18.))
                         .child(tr("Sign in with Microsoft")),
                     &t,

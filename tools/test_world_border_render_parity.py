@@ -7,7 +7,7 @@ warning changes and ticks, and for every frame runs WorldBorderRenderer's
 extract, prepare (the cached wall vertex buffer), prepareDynamicTransforms
 (colour, model offset, scrolling texture) and draw (which walls), and
 Hud.extractVignette (the red warning vignette colour). `examples/
-world_border_render_fixture` replays the same cases with `horizon_client::
+world_border_render_fixture` replays the same cases with `phantom_client::
 worldborder`, `border_render` and `hud_overlays::vignette`; every value must agree
 bit for bit.
 
@@ -103,7 +103,7 @@ def main():
          PARITY / 'VanillaWorldBorderRenderOracle.java'], 'compile-java')
     run(['java', '-Xmx1G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaWorldBorderRenderOracle',
          inputs, build / 'vanilla.jsonl'], 'vanilla')
-    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe', '--',
+    run(['cargo', 'run', '--quiet', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe', '--',
          'world_border_render_fixture', inputs, build / 'rust.jsonl'], 'rust')
     vanilla = [json.loads(l) for l in (build / 'vanilla.jsonl').read_text().splitlines()]
     rust = [json.loads(l) for l in (build / 'rust.jsonl').read_text().splitlines()]

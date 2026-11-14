@@ -2,7 +2,7 @@
 """Server benchmark: the same bots on Horizon's server and on vanilla 26.3's (docs/server.md, section 9).
 
 Every run starts a fresh server from the same server.properties (seed, view and simulation distance 10,
-offline, creative so the bots can fly), waits for `Done`, lets `horizon-bots` join one a second, warms up,
+offline, creative so the bots can fly), waits for `Done`, lets `phantom-bots` join one a second, warms up,
 then measures for a while:
 
 - MSPT (average, P50, P95, P99) from each server's own `/tick query`, asked every 5 seconds on the console:
@@ -16,7 +16,7 @@ then measures for a while:
     python3 tools/server_bench.py --servers horizon,vanilla --bots 1,10,25 --behaviour walk,explore
 
 The bots can run on another machine, so they don't take the server's CPU: `--bots-via 'ssh macmini'` with
-`--bots-bin` naming horizon-bots there and `--connect` the address it reaches this machine at. `--nice 19`
+`--bots-bin` naming phantom-bots there and `--connect` the address it reaches this machine at. `--nice 19`
 runs every server at the lowest priority (a shared machine). The explore bots fly as fast as each server
 sends them chunks, so a faster server gets more terrain to generate; `--explore-speed` slows them to a rate
 both servers keep up with, for equal work. After the runs, the work table compares the servers at each bot
@@ -24,8 +24,8 @@ count: chunks sent and new chunks generated a second, against the busiest server
 than 10 % apart isn't a fair comparison of its tick times.
 
 The vanilla side runs the pinned server jar from tools/lab.py prepare (your own copy). It needs Java 25. The
-Horizon side runs target/release/horizon-server with the engine beside it; build both first:
-    cargo build --release -p horizon-client --bin horizon-client -p horizon-server -p horizon-bots
+Horizon side runs target/release/phantom-server with the engine beside it; build both first:
+    cargo build --release -p phantom-client --bin phantom-client -p phantom-server -p phantom-bots
 
 Two more Java servers, both dev-only downloads into .local/server-bench/jars (never committed or shipped):
 - `paper`: Paper's newest build for the pinned version, from PaperMC's download API, checked against the
@@ -69,7 +69,7 @@ except ImportError:
 
 ROOT = lab.ROOT
 EXE = '.exe' if os.name == 'nt' else ''
-# Where horizon-server and horizon-bots are (the engine is found beside horizon-server or on the PATH).
+# Where phantom-server and phantom-bots are (the engine is found beside phantom-server or on the PATH).
 BIN = Path(os.environ.get('HORIZON_BENCH_BIN', ROOT / 'target/release'))
 
 PROPERTIES = {
@@ -190,7 +190,7 @@ def paper_jar():
     lock, _ = lab.config()
     version = lock['minecraft']['version']
     request = urllib.request.Request(PAPER_API.format(version=version),
-                                     headers={'User-Agent': 'horizon-server-bench (github.com/horizon-rust/horizon)'})
+                                     headers={'User-Agent': 'phantom-server-bench (github.com/horizon-rust/horizon)'})
     with urllib.request.urlopen(request, timeout=30) as response:
         build = json.load(response)
     download = build['downloads']['server:default']
@@ -361,7 +361,7 @@ def server_command(kind, directory, args):
             (directory / name).parent.mkdir(parents=True, exist_ok=True)
             (directory / name).write_text(pumpkin_config(text, args.port, args) if '[networking.java]' in text else text)
         return [args.pumpkin]
-    server = BIN / f'horizon-server{EXE}'
+    server = BIN / f'phantom-server{EXE}'
     subprocess.run([server, '--dir', directory, 'import', directory / 'server.properties'], check=True,
                    capture_output=True)
     toml = directory / 'server.toml'
@@ -386,10 +386,10 @@ def flag_count(directory):
 
 
 def bots_command(args):
-    """horizon-bots here, or through `--bots-via` (for example `ssh macmini`) on another machine."""
+    """phantom-bots here, or through `--bots-via` (for example `ssh macmini`) on another machine."""
     if args.bots_via:
-        return [*args.bots_via.split(), args.bots_bin or 'horizon-bots']
-    return [args.bots_bin or BIN / f'horizon-bots{EXE}']
+        return [*args.bots_via.split(), args.bots_bin or 'phantom-bots']
+    return [args.bots_bin or BIN / f'phantom-bots{EXE}']
 
 
 def run_once(kind, bots, behaviour, args, out):
@@ -459,7 +459,7 @@ def run_once(kind, bots, behaviour, args, out):
             if isinstance(sample, dict) and 't' in sample:
                 measured.append(sample)
             elif isinstance(sample, dict) and set(sample) == {'spawn'}:
-                # The first bot's spawn position (horizon-bots prints it for perf_bench --server-bots).
+                # The first bot's spawn position (phantom-bots prints it for perf_bench --server-bots).
                 continue
             else:
                 rest.append(line)
@@ -573,7 +573,7 @@ def main():
                         help='a flat survival world, the bots walking on its ground and saying so in every move '
                              "(what the anticheat's ground check judges)")
     parser.add_argument('--bots-via', default='', help="a command prefix to run the bots elsewhere ('ssh host')")
-    parser.add_argument('--bots-bin', default='', help='horizon-bots (on the --bots-via machine)')
+    parser.add_argument('--bots-bin', default='', help='phantom-bots (on the --bots-via machine)')
     parser.add_argument('--connect', default='127.0.0.1', help='the address the bots reach the server at')
     parser.add_argument('--pumpkin', type=Path, default=None, help='the Pumpkin binary (--servers pumpkin)')
     parser.add_argument('--repeat', type=int, default=1,
@@ -593,7 +593,7 @@ def main():
                     runs.append(result)
                     print(json.dumps(result), flush=True)
     report = {
-        'kind': 'horizon-server-benchmark',
+        'kind': 'phantom-server-benchmark',
         'date': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
         'machine': {'system': platform.system(), 'machine': platform.machine(), 'cpus': os.cpu_count()},
         'commit': subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True, text=True).stdout.strip(),

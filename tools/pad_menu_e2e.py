@@ -4,7 +4,7 @@
     python3 tools/pad_menu_e2e.py                 # every case
     python3 tools/pad_menu_e2e.py --only release
 
-Each case starts its own isolated game through horizon-ctl (fresh scratch homes from `lab.game_env`) and drives
+Each case starts its own isolated game through phantom-ctl (fresh scratch homes from `lab.game_env`) and drives
 it with the virtual pad, reading what `pad status` reports: the focused widget and the screen's targets.
 
 Cases:
@@ -36,8 +36,8 @@ Cases:
 - erase_checkbox: the D-pad reaches Optimize World's Erase Cached Data box, and A ticks it.
 - extras_shell: Horizon Extras on the settings shell: the D-pad walks its rows and scrolls through the hidden ones, past
   a greyed row, the right stick scrolls it, A changes and saves a toggle, the strip follows the row, B leaves.
-Needs built fast binaries (`cargo build --profile fast -p horizon-client -p horizon-client-lib --bins`)
-and prepared resources in .local/horizon-client/26.3. Exit status 0 when every case passes.
+Needs built fast binaries (`cargo build --profile fast -p phantom-client -p phantom-client-lib --bins`)
+and prepared resources in .local/phantom-client/26.3. Exit status 0 when every case passes.
 """
 import argparse
 import json
@@ -513,7 +513,7 @@ def split_setup(args, name):
 @title_case
 def actions_follow_screen(game, check, single, options, quit_game):
     # X, then B before Options may have been drawn: B leaves Options either way, never the title's Quit Game.
-    # Whether a frame gets between them is up to horizon-ctl's round trip; `widgets`' own test is exact.
+    # Whether a frame gets between them is up to phantom-ctl's round trip; `widgets`' own test is exact.
     for attempt in range(5):
         game.ctl('pad', 'west', 'tap')
         game.ctl('pad', 'east', 'tap')
@@ -1615,7 +1615,7 @@ def every_screen_has_targets(game, check, single, options, quit_game):
         for _ in range(4):
             if quit_game in game.rects():
                 break
-            # Not the Escape key: horizon-ctl's needs a world open.
+            # Not the Escape key: phantom-ctl's needs a world open.
             game.pad('east')
             time.sleep(SETTLE)
         else:
@@ -2549,9 +2549,9 @@ CASES = {'idle_a': idle_a, 'idle_b': idle_b, 'idle_x': idle_x, 'release': releas
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--game', type=Path, default=lab.cargo_target() / f'fast/horizon-client{EXE}')
-    parser.add_argument('--ctl', type=Path, default=lab.cargo_target() / f'fast/horizon-ctl{EXE}')
-    parser.add_argument('--resources', type=Path, default=ROOT / '.local/horizon-client/26.3')
+    parser.add_argument('--game', type=Path, default=lab.cargo_target() / f'fast/phantom-client{EXE}')
+    parser.add_argument('--ctl', type=Path, default=lab.cargo_target() / f'fast/phantom-ctl{EXE}')
+    parser.add_argument('--resources', type=Path, default=ROOT / '.local/phantom-client/26.3')
     parser.add_argument('--only', nargs='*', choices=sorted(CASES), help='run only these cases')
     parser.add_argument('--shots', type=Path, help='keep screenshots in this folder')
     parser.add_argument('--jobs', type=int, default=1, help='cases at once; each has its own game and home')

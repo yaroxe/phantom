@@ -129,8 +129,8 @@ impl Page {
         let page = match std::env::var("HORIZON_LAUNCHER_PAGE").as_deref() {
             Ok("mods" | "modpacks" | "resourcepacks" | "shaders" | "datapacks") => Page::Mods,
             Ok("servers") => Page::Servers,
-            Ok("wardrobe") if horizon_cosmetics::forced() => Page::Wardrobe,
-            Ok("shop") if horizon_cosmetics::forced() => Page::Shop,
+            Ok("wardrobe") if phantom_cosmetics::forced() => Page::Wardrobe,
+            Ok("shop") if phantom_cosmetics::forced() => Page::Shop,
             Ok("versions") => Page::Versions,
             Ok("settings") => Page::Settings,
             _ => Page::Play,
@@ -193,9 +193,9 @@ struct Crash {
 
 /// The opening: the wordmark holds at least `OPENING_HOLD` (until the release
 /// list is in, at most `OPENING_MAX`), then the launcher appears over `OPENING_REVEAL`.
-const OPENING_HOLD: Duration = horizon_theme::OPENING_HOLD;
-const OPENING_MAX: Duration = horizon_theme::OPENING_MAX;
-const OPENING_REVEAL: Duration = horizon_theme::OPENING_REVEAL;
+const OPENING_HOLD: Duration = phantom_theme::OPENING_HOLD;
+const OPENING_MAX: Duration = phantom_theme::OPENING_MAX;
+const OPENING_REVEAL: Duration = phantom_theme::OPENING_REVEAL;
 
 /// The phase of the opening at one moment: how far the reveal has gone, 0 to 1.
 struct Opening {
@@ -206,7 +206,7 @@ struct Opening {
 }
 
 fn ease_out_cubic(x: f32) -> f32 {
-    horizon_theme::ease_out_cubic(x)
+    phantom_theme::ease_out_cubic(x)
 }
 
 enum Load<T> {
@@ -308,8 +308,8 @@ struct Launcher {
     account_menu: bool,
     /// The glass sidebar's ⋮ menu (`frame.rs`).
     row_menu: frame::RowMenu,
-    /// The glass look's colours for the player's accent (`horizon_theme::glass`).
-    look: horizon_theme::glass::Glass,
+    /// The glass look's colours for the player's accent (`phantom_theme::glass`).
+    look: phantom_theme::glass::Glass,
     /// Where the mouse went down to close a menu by pressing outside it, so that the
     /// same press, ending on the menu's own button, doesn't open it again.
     menu_closed_at: Option<Point<Pixels>>,
@@ -465,7 +465,7 @@ struct Launcher {
     registry_packs: Vec<horizon_launcher::browser::horizon::pack::Installed>,
     packs_loaded: Option<Instant>,
     pack_open: Option<String>,
-    pack_filter: Option<horizon_port_pack::report::Status>,
+    pack_filter: Option<phantom_port_pack::report::Status>,
     pack_busy: bool,
     pack_log: VecDeque<String>,
     pack_error: Option<String>,
@@ -637,7 +637,7 @@ impl Launcher {
             language_menu: false,
             account_menu: false,
             row_menu: Default::default(),
-            look: horizon_theme::glass::Glass::default_look(),
+            look: phantom_theme::glass::Glass::default_look(),
             menu_closed_at: None,
             skin: None,
             wardrobe: None,
@@ -1738,7 +1738,7 @@ impl Launcher {
             .settings
             .minecraft_dir
             .clone()
-            .unwrap_or_else(|| horizon_prepare::artifacts::minecraft_dir(None));
+            .unwrap_or_else(|| phantom_prepare::artifacts::minecraft_dir(None));
         self.prepare_log.clear();
         self.prepare_error = None;
         self.prepare_log
@@ -2130,7 +2130,7 @@ fn hover_fade(
     let key = |dir: &str, at: Instant| {
         ElementId::named_usize(format!("{id}-{dir}"), (at - start).as_micros() as usize)
     };
-    let ease = || motion::eased(horizon_theme::QUICK);
+    let ease = || motion::eased(phantom_theme::QUICK);
     if let Some((_, at)) = state.on.as_ref().filter(|(h, _)| h == id) {
         return layer()
             .with_animation(key("in", *at), ease(), paint)
@@ -2753,7 +2753,7 @@ fn offline_name() -> Option<String> {
     player_name(&std::fs::read_to_string(backend::game_home().join("horizon-player.txt")).ok()?)
 }
 
-/// The name in `horizon-player.txt`: the game writes `name:Player12345` (horizon-client's
+/// The name in `horizon-player.txt`: the game writes `name:Player12345` (phantom-client's
 /// offline_name.rs).
 fn player_name(text: &str) -> Option<String> {
     text.lines()
@@ -2780,7 +2780,7 @@ fn thousands(n: u64) -> String {
 fn caps(s: impl AsRef<str>) -> Div {
     // The glass look writes these as the mockup's small headings (`h3`): 13 px, medium.
     if glass_ui::on() {
-        return glass_ui::text(13., FontWeight::MEDIUM, horizon_theme::glass::ink::BODY)
+        return glass_ui::text(13., FontWeight::MEDIUM, phantom_theme::glass::ink::BODY)
             .line_height(px(19.5))
             .child(s.as_ref().to_string());
     }
@@ -4387,7 +4387,7 @@ impl Launcher {
     }
 
     /// Keeps the Proxy field in `settings.json`, and tells the parts that build their own agents
-    /// (`horizon-port-pack`) which proxy to use.
+    /// (`phantom-port-pack`) which proxy to use.
     fn save_proxy(&mut self) {
         let value = self.proxy_input.text().trim().to_owned();
         self.settings.proxy = (!value.is_empty()).then_some(value);
@@ -4723,7 +4723,7 @@ impl Launcher {
     }
 
     fn join_friend(&mut self) {
-        if horizon_friends::invite::parse(self.friend_code.text()).is_none() {
+        if phantom_friends::invite::parse(self.friend_code.text()).is_none() {
             return;
         }
         self.joining = Some(self.friend_code.text().to_string());
@@ -5215,7 +5215,7 @@ fn progress_bar(fraction: Option<(f32, f32)>, t: &Theme) -> Div {
         .when(t.glass, |d| {
             d.h(px(4.))
                 .rounded_full()
-                .bg(glass_ui::white(horizon_theme::glass::fill::ACTIVE))
+                .bg(glass_ui::white(phantom_theme::glass::fill::ACTIVE))
         });
     match fraction {
         Some((from, to)) => {
@@ -5260,8 +5260,8 @@ impl Render for Launcher {
         glass_ui::set_look(self.look);
         glass::set_look(self.look);
         // The mockup tints the scene with any accent but its violet.
-        let tint = (self.theme.dark && self.look.accent != horizon_theme::glass::ACCENT)
-            .then(|| horizon_theme::glass::mix_oklab(self.look.accent, 0x767676, 0.58));
+        let tint = (self.theme.dark && self.look.accent != phantom_theme::glass::ACCENT)
+            .then(|| phantom_theme::glass::mix_oklab(self.look.accent, 0x767676, 0.58));
         let blur = self.look.blur;
         let performance = self.settings.performance();
         // Performance mode's plates are solid: no glass, no blur, nothing sampled from the scene.
@@ -5711,7 +5711,7 @@ fn main() {
     backend::remove_replaced_binaries();
     backend::cleanup_launcher_updates();
     // What the launcher downloads goes through the player's proxy, if they set one: the parts
-    // that build their own agents (`horizon-port-pack`) are told before anything starts.
+    // that build their own agents (`phantom-port-pack`) are told before anything starts.
     horizon_launcher::proxy::announce(horizon_launcher::backend::Settings::load().proxy);
     // The setup wizard and `horizon-launcher.exe uninstall` (what Control Panel runs) are windows,
     // not CLI commands: asked of the CLI parser first, `uninstall` was refused as an unknown
@@ -5733,17 +5733,17 @@ fn main() {
         .run(move |cx: &mut App| {
             cx.text_system()
                 .add_fonts(vec![
-                    Cow::Borrowed(horizon_theme::fonts::GEIST_MONO),
-                    Cow::Borrowed(horizon_theme::fonts::BRICOLAGE_REGULAR),
-                    Cow::Borrowed(horizon_theme::fonts::BRICOLAGE_MEDIUM),
-                    Cow::Borrowed(horizon_theme::fonts::BRICOLAGE_SEMIBOLD),
-                    Cow::Borrowed(horizon_theme::fonts::BRICOLAGE_BOLD),
-                    Cow::Borrowed(horizon_theme::fonts::BRICOLAGE_DISPLAY_BOLD),
-                    Cow::Borrowed(horizon_theme::fonts::BRICOLAGE_DISPLAY_SEMIBOLD),
-                    Cow::Borrowed(horizon_theme::fonts::BRICOLAGE_HEADING_SEMIBOLD),
-                    Cow::Borrowed(horizon_theme::fonts::GEIST_REGULAR),
-                    Cow::Borrowed(horizon_theme::fonts::GEIST_MEDIUM),
-                    Cow::Borrowed(horizon_theme::fonts::GEIST_SEMIBOLD),
+                    Cow::Borrowed(phantom_theme::fonts::GEIST_MONO),
+                    Cow::Borrowed(phantom_theme::fonts::BRICOLAGE_REGULAR),
+                    Cow::Borrowed(phantom_theme::fonts::BRICOLAGE_MEDIUM),
+                    Cow::Borrowed(phantom_theme::fonts::BRICOLAGE_SEMIBOLD),
+                    Cow::Borrowed(phantom_theme::fonts::BRICOLAGE_BOLD),
+                    Cow::Borrowed(phantom_theme::fonts::BRICOLAGE_DISPLAY_BOLD),
+                    Cow::Borrowed(phantom_theme::fonts::BRICOLAGE_DISPLAY_SEMIBOLD),
+                    Cow::Borrowed(phantom_theme::fonts::BRICOLAGE_HEADING_SEMIBOLD),
+                    Cow::Borrowed(phantom_theme::fonts::GEIST_REGULAR),
+                    Cow::Borrowed(phantom_theme::fonts::GEIST_MEDIUM),
+                    Cow::Borrowed(phantom_theme::fonts::GEIST_SEMIBOLD),
                 ])
                 .expect("bundled fonts");
             cx.bind_keys(key_bindings());

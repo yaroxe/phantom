@@ -12,7 +12,7 @@ it renders), the notification display time, the text background opacity and its
 order with the pose: which subtitles show, their order, merging of repeats,
 expiry, the fade by age (looping sounds stay bright longer), the direction
 arrows and the box width. `examples/probe/subtitle_fixture` replays the cases through
-`horizon_client::subtitles`; the frames must agree exactly.
+`phantom_client::subtitles`; the frames must agree exactly.
 
   test_subtitle_parity.py [--count N] [--detail N]
 """
@@ -133,7 +133,7 @@ def main():
          *(PARITY / f'{n}.java' for n in ('ParityFont', 'VanillaSubtitleOracle'))], 'compile-java')
     run(['java', '-Xmx1G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaSubtitleOracle',
          inputs, build / 'vanilla.jsonl'], 'vanilla')
-    run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe'], 'compile-rust')
+    run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
     binary = Path(metadata['target_directory']) / 'fast/examples' / ('client_probe.exe' if os.name=='nt' else 'client_probe')
     run([binary, 'subtitle_fixture',resources, inputs, build / 'rust.jsonl'], 'rust')

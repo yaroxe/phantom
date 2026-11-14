@@ -5,7 +5,7 @@ CommandSourceStack.broadcastToAdmins: a command's success that vanilla sends wit
 italic as `[name: message]`, to every other operator while `send_command_feedback` is on, including the
 console's own commands when `broadcast-console-to-ops` is (DedicatedServer.shouldInformAdmins).
 
-A vanilla dedicated server and Horizon's (`horizon-client --dedicated --nogui`) each serve a copy of one flat
+A vanilla dedicated server and Horizon's (`phantom-client --dedicated --nogui`) each serve a copy of one flat
 world vanilla generated first, with the same server.properties and Alice and Bob as operators. LocatorBarClient
 joins them both (players made of vanilla's protocol code) and records the system chat each receives while, step
 by step, the console sets the time, asks for the difficulty (a query, told to nobody), whitelists a player,
@@ -118,20 +118,20 @@ def main():
     subprocess.run(['javac', '--release', str(lock['minecraft']['java_major']), '-proc:none', '-nowarn', '-sourcepath',
                     lab.ROOT / 'mods/horizon/src/test/java', '-cp', dependencies, '-d', classes, oracle],
                    cwd=lab.ROOT, check=True, capture_output=True)
-    subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], cwd=lab.ROOT,
+    subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], cwd=lab.ROOT,
                    check=True, capture_output=True)
     import json
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'],
                                                   cwd=lab.ROOT, text=True))
-    binary = Path(metadata['target_directory']) / 'fast' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+    binary = Path(metadata['target_directory']) / 'fast' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     vanilla_server = ['java', '-Xmx2g', '-Duser.timezone=UTC', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [binary, '--resources', lab.LOCAL / 'horizon-client/26.3', '--dedicated', '--nogui']
+    phantom_server = [binary, '--resources', lab.LOCAL / 'phantom-client/26.3', '--dedicated', '--nogui']
     client = ['java', '-Xmx1g', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.LocatorBarClient']
 
     world = generate_world(vanilla_server, build)
     sides = {'vanilla': ([], []), 'horizon': ([], [])}
     for case in CASES:
-        for label, command in [('vanilla', vanilla_server), ('horizon', horizon_server)]:
+        for label, command in [('vanilla', vanilla_server), ('horizon', phantom_server)]:
             lines, errors = run_side(label, case, command, client, build, world)
             sides[label][0].extend(lines)
             sides[label][1].extend(errors)

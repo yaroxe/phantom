@@ -312,7 +312,7 @@ impl Launcher {
     /// patterns. Dark appearance only.
     pub(super) fn glass_console(&mut self, cx: &mut Context<Self>) -> Option<Div> {
         use crate::glass_ui::{self as ui, white};
-        use horizon_theme::glass::{ink, radius};
+        use phantom_theme::glass::{ink, radius};
         let t = self.theme;
         if self.prepare_log.is_empty() && self.client.is_none() {
             return None;

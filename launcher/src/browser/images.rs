@@ -20,8 +20,8 @@ const HOSTS: [&str; 7] = [
     "https://edge.forgecdn.net/",
     // Horizon's registry's icons (its GitHub Pages), and the mirror kept at the address it had
     // before the repositories moved to the horizon-rust organization.
-    "https://horizon-rust.github.io/horizon-mods/",
-    "https://ludovic111.github.io/horizon-mods/",
+    "https://horizon-rust.github.io/phantom-mods/",
+    "https://ludovic111.github.io/phantom-mods/",
 ];
 /// The most an image may weigh before decoding.
 pub const MAX_DOWNLOAD: u64 = 8 << 20;

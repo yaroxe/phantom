@@ -3,9 +3,9 @@
 
     mod_port_harness.py --work WORK [--resources PREPARED] [--jars DIR --deps DIR] [MOD ...]
 
-WORK is a `horizon-port-pack` work folder whose mods were carried over. With --jars the NeoForge
+WORK is a `phantom-port-pack` work folder whose mods were carried over. With --jars the NeoForge
 oracle (tools/neoforge_oracle.py, dev-only) first exports WORK/oracle/facts.json. The Horizon side
-is crates/horizon-client/examples/mod_port_probe.rs: the content root built from WORK/mods/*/carry
+is crates/phantom-client/examples/mod_port_probe.rs: the content root built from WORK/mods/*/carry
 and what the game's loaders make of it. For every block and item the mod registers, compared:
 
 - blocks: declared in Horizon at all; per state hardness, explosion resistance, light, tool need,
@@ -222,7 +222,7 @@ def compare_mod(mod, oracle, horizon, carry, upgrades, old_items, carry_dir=None
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--work', required=True)
-    parser.add_argument('--resources', default=str(ROOT / '.local/horizon-client/26.3'))
+    parser.add_argument('--resources', default=str(ROOT / '.local/phantom-client/26.3'))
     parser.add_argument('--jars', help='export the oracle facts from these jars first')
     parser.add_argument('--deps')
     parser.add_argument('mods', nargs='*')
@@ -241,7 +241,7 @@ def main():
         subprocess.run(command, check=True)
     if not facts.exists():
         sys.exit(f'{facts}: no oracle facts (run with --jars, or tools/neoforge_oracle.py export)')
-    subprocess.run(['cargo', 'build', '--release', '-q', '-p', 'horizon-client-lib', '--example', 'mod_port_probe'],
+    subprocess.run(['cargo', 'build', '--release', '-q', '-p', 'phantom-client-lib', '--example', 'mod_port_probe'],
                    cwd=ROOT, check=True)
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'],
                                                   cwd=ROOT, text=True))

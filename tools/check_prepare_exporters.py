@@ -141,7 +141,7 @@ def main():
             text = (work / f'{name}.log').read_text()
             if 'Compiling ' in text:
                 raise SystemExit(f'{name} unexpectedly needed a compiler')
-            resources = next((folder / '.local/horizon-client').iterdir())
+            resources = next((folder / '.local/phantom-client').iterdir())
             results.append(resources)
             times.append(round(time.monotonic() - started, 2))
             print(f'{name}: {times[-1]}s, prepared', flush=True)

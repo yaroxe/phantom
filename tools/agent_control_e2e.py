@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""End-to-end check of agent control: play Horizon with horizon-ctl.
+"""End-to-end check of agent control: play Horizon with phantom-ctl.
 
 A script creates a world through the title menus, finds a tree it can walk to, breaks a log,
 checks the inventory, crafts planks in the inventory screen, places one and reads it back. It
-runs through the CLI (one horizon-ctl process per command) and through `horizon-ctl mcp` with a
+runs through the CLI (one phantom-ctl process per command) and through `phantom-ctl mcp` with a
 small JSON-RPC client, and saves a screenshot of each run. The ui scenario drives the menus by
 widget id instead: the title screen, the options (a slider set by id) and the inventory's slots;
 the options scenario reads and sets options.txt values by key; the events scenario waits for
@@ -16,7 +16,7 @@ middle-clicks slots (AbstractContainerScreen's cloning): a full stack in creativ
 and from an item tab, and nothing in survival;
 the suggestions scenario checks slash-command Tab completion on single player's connected client
 after a fresh launch; the no-ai scenario turns No AI on in a scratch game home and checks that
-horizon-ctl, its MCP server and the game's control socket all refuse.
+phantom-ctl, its MCP server and the game's control socket all refuse.
 
     python3 tools/agent_control_e2e.py                 # both modes
     python3 tools/agent_control_e2e.py --mode mcp      # one of them
@@ -24,8 +24,8 @@ horizon-ctl, its MCP server and the game's control socket all refuse.
     python3 tools/agent_control_e2e.py --scenario ui   # menus by widget id only (a minute)
 
 Needs vscreen on Linux (the desktop); on macOS the game renders offscreen, so it also runs in a
-locked session or over SSH. It needs the prepared resources in .local/horizon-client and a build of
-horizon-client and horizon-ctl (built with the fast profile unless --bin-dir is given). Games
+locked session or over SSH. It needs the prepared resources in .local/phantom-client and a build of
+phantom-client and phantom-ctl (built with the fast profile unless --bin-dir is given). Games
 started here have no audio (HORIZON_NO_AUDIO=1).
 """
 import argparse
@@ -94,7 +94,7 @@ def game_env(screen, home=None):
 
 
 class Cli:
-    """One horizon-ctl process per command, as a shell script would."""
+    """One phantom-ctl process per command, as a shell script would."""
     name = 'cli'
 
     def __init__(self, ctl, socket, cwd, env):
@@ -128,7 +128,7 @@ class Cli:
 
 
 class Mcp:
-    """`horizon-ctl mcp` driven over JSON-RPC, as an AI agent's client would."""
+    """`phantom-ctl mcp` driven over JSON-RPC, as an AI agent's client would."""
     name = 'mcp'
 
     def __init__(self, ctl, socket, cwd, env):
@@ -138,7 +138,7 @@ class Mcp:
         self.cwd = cwd
         init = self.rpc('initialize', {'protocolVersion': '2025-06-18', 'capabilities': {},
                                        'clientInfo': {'name': 'agent_control_e2e', 'version': '1'}})
-        assert init['serverInfo']['name'] == 'horizon-ctl', init
+        assert init['serverInfo']['name'] == 'phantom-ctl', init
         self.notify('notifications/initialized')
         self.tools = {t['name']: t for t in self.rpc('tools/list', {})['tools']}
         print(f'[mcp] {len(self.tools)} tools: {", ".join(sorted(self.tools))}')
@@ -919,18 +919,18 @@ def scratch(mode, resources):
     """A scratch game home with the prepared resources, and the game's environment for it."""
     work = Path(tempfile.mkdtemp(prefix=f'hzac-{mode}-'))
     (work / '.local').mkdir()
-    (work / '.local/horizon-client').mkdir()
-    lab.link_dir(resources, work / '.local/horizon-client' / lab.VERSION)
+    (work / '.local/phantom-client').mkdir()
+    lab.link_dir(resources, work / '.local/phantom-client' / lab.VERSION)
     # A first launch shows the accessibility onboarding before the title (Gui.addInitialScreens): these
     # scenarios start at the title, as a player does after it.
     (work / 'options.txt').write_text('onboardAccessibility:false\n')
-    # horizon-ctl reads No AI in the game home: this one, not the player's.
+    # phantom-ctl reads No AI in the game home: this one, not the player's.
     env = game_env(os.environ.get('VSCREEN', 'agent-control'), home=work)
     return work, env
 
 
 def no_ai_check(mode, ctl, resources):
-    """No AI on: horizon-ctl refuses (exit 4, kind denied), so does its MCP server, and the game
+    """No AI on: phantom-ctl refuses (exit 4, kind denied), so does its MCP server, and the game
     started with --control-socket never opens it."""
     work, env = scratch(mode, resources)
     socket = work / 'c.sock'
@@ -943,7 +943,7 @@ def no_ai_check(mode, ctl, resources):
                 reply = json.loads(r.stdout.strip().splitlines()[-1])
                 log(mode, words, reply)
                 assert r.returncode == 4 and reply == {'error': REFUSAL, 'kind': 'denied'}, (r.returncode, reply)
-            client = ctl.with_name('horizon-client')
+            client = ctl.with_name('phantom-client')
             args = [str(client), '--control-socket', str(socket), '--world', 'NoAi', '--world-frames', '30']
             if sys.platform == 'darwin':
                 args.append('--offscreen')
@@ -957,7 +957,7 @@ def no_ai_check(mode, ctl, resources):
             r = subprocess.run([str(ctl), '--socket', str(socket), 'mcp'], cwd=work, env=env, input='',
                                capture_output=True, text=True, timeout=60)
             log(mode, ['mcp'], {'exit': r.returncode, 'stderr': r.stderr.strip()})
-            assert r.returncode == 4 and r.stderr.strip() == f'horizon-ctl mcp: {REFUSAL}', r
+            assert r.returncode == 4 and r.stderr.strip() == f'phantom-ctl mcp: {REFUSAL}', r
             # Turned on during a session: the next call refuses.
             (work / 'horizon-extras.txt').write_text('noAi:false\n')
             m = Mcp(ctl, socket, work, env)
@@ -985,7 +985,7 @@ def setting_check(mode, ctl, out, resources):
     socket = work / 'c.sock'
     env['HORIZON_CONTROL'] = str(socket)  # the default endpoint, this home's
     (work / 'horizon-extras.txt').write_text('agentControl:true\n')
-    args = [str(ctl.with_name('horizon-client'))]
+    args = [str(ctl.with_name('phantom-client'))]
     if sys.platform == 'darwin':
         args.append('--offscreen')
     game = subprocess.Popen(args, cwd=work, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -1073,13 +1073,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--mode', choices=['cli', 'mcp', 'both'], default='both')
     parser.add_argument('--scenario', choices=[*SCENARIOS, 'no-ai', 'setting', 'all'], default='all')
-    parser.add_argument('--bin-dir', help='prebuilt horizon-client and horizon-ctl (default: build with the fast profile)')
+    parser.add_argument('--bin-dir', help='prebuilt phantom-client and phantom-ctl (default: build with the fast profile)')
     parser.add_argument('--out', default=str(ROOT / '.local/agent-control-e2e'), help='screenshots go here')
     args = parser.parse_args()
     if args.bin_dir:
         bins = Path(args.bin_dir).resolve()
     else:
-        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib', '--bins'],
+        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib', '--bins'],
                        cwd=ROOT, check=True)
         meta = json.loads(subprocess.run(['cargo', 'metadata', '--format-version', '1', '--no-deps'], cwd=ROOT,
                                          capture_output=True, text=True, check=True).stdout)
@@ -1091,7 +1091,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     modes = ['cli', 'mcp'] if args.mode == 'both' else [args.mode]
     scenarios = [*SCENARIOS, 'no-ai', 'setting'] if args.scenario == 'all' else [args.scenario]
-    results = {f'{m}/{s}': run(m, bins / 'horizon-ctl', out, resources, s) for m in modes for s in scenarios}
+    results = {f'{m}/{s}': run(m, bins / 'phantom-ctl', out, resources, s) for m in modes for s in scenarios}
     print(json.dumps(results))
     sys.exit(0 if all(results.values()) else 1)
 

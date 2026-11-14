@@ -21,7 +21,7 @@ fn ruby(dir: &Path, version: &str, blocks: &[&str], items: &[&str]) -> PathBuf {
         .collect();
     let files: Vec<(&str, &[u8])> = names.iter().map(|(n, b)| (n.as_str(), *b)).collect();
     let manifest = format!("{MANIFEST}version = \"{version}\"\n");
-    let bytes = horizon_mods::Package::write_files(&manifest, None, &files).unwrap();
+    let bytes = phantom_mods::Package::write_files(&manifest, None, &files).unwrap();
     let path = dir.join(format!("ruby-{version}.hmod"));
     fs::write(&path, bytes).unwrap();
     path
@@ -36,8 +36,8 @@ fn index_of(versions: &[(&str, &str, &Path)]) -> Index {
         .map(|(version, game, path)| index::Version {
             version: (*version).into(),
             api: "0.2".into(),
-            side: Some(horizon_mods::Side::Both),
-            capabilities: vec![horizon_mods::Capability::Registries],
+            side: Some(phantom_mods::Side::Both),
+            capabilities: vec![phantom_mods::Capability::Registries],
             api_level: None,
             game: (*game).into(),
             broken_on: Vec::new(),
@@ -78,7 +78,7 @@ fn entry(version: &str) -> installed::Entry {
         kind: Kind::Mod,
         version: version.into(),
         number: version.into(),
-        file: "horizon-mods/ruby.hmod".into(),
+        file: "phantom-mods/ruby.hmod".into(),
         checksum: String::new(),
         page: String::new(),
         dependency: false,
@@ -155,7 +155,7 @@ fn updates_forward_on_the_same_game_only() {
     };
     assert_eq!(to(&modrinth, &PLAY), None);
 
-    // The newest needs a newer Horizon: the one before it.
+    // The newest needs a newer Phantom: the one before it.
     let mut newer = index.clone();
     let ruby_at = newer.projects.len() - 1;
     newer.projects[ruby_at].versions[0].api_level = Some(7);

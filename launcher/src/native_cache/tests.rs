@@ -36,7 +36,7 @@ fn clears_only_disposable_outputs_and_keeps_installed_games_and_player_data() {
         "saves/W/level.dat",
         "instances/A/options.txt",
         "mods/player-mod.hnmod",
-        "versions/native-game/horizon-client",
+        "versions/native-game/phantom-client",
         "native/server-builds/engine/horizon-engine",
         "native/stage/Cargo.toml",
         "native/cache/mod-output",

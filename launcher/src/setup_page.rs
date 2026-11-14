@@ -390,7 +390,7 @@ impl Setup {
                     );
             }
         }
-        glass_ui::dialog_plate(horizon_theme::glass::radius::MODAL)
+        glass_ui::dialog_plate(phantom_theme::glass::radius::MODAL)
             .w(px(560.))
             .p(px(32.))
             .flex()
@@ -435,8 +435,8 @@ impl Render for Setup {
         // player's accent as the launcher tints it, and the dawn sky in the light one (the
         // redesign has no light scene yet). The setup therefore looks like the client it
         // installs: a player with a blue accent gets the blue scene, not the night sunset.
-        let tint = (t.dark && t.look.accent != horizon_theme::glass::ACCENT)
-            .then(|| horizon_theme::glass::mix_oklab(t.look.accent, 0x767676, 0.58));
+        let tint = (t.dark && t.look.accent != phantom_theme::glass::ACCENT)
+            .then(|| phantom_theme::glass::mix_oklab(t.look.accent, 0x767676, 0.58));
         self.scene
             .update(cx, |scene, cx| scene.set_look(tint, t.look.blur, cx));
         let sky = if t.dark {

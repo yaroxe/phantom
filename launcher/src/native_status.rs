@@ -122,7 +122,7 @@ pub fn horizon_label(version: &str) -> String {
 pub fn enabled(home: &Path) -> Vec<Mod> {
     let mut out = Vec::new();
     for path in hnmods(home) {
-        match horizon_mods::index::native::Bundle::read(&path) {
+        match phantom_mods::index::native::Bundle::read(&path) {
             Ok(b) => {
                 if java::is_enabled(home, &b.manifest.id) {
                     let digest = native_mods::digest(
@@ -148,10 +148,10 @@ pub fn pinning(home: &Path, revision: &str) -> Vec<String> {
 }
 
 /// The readable native mods turned on in game folder `home`.
-pub fn bundles_on(home: &Path) -> Vec<horizon_mods::index::native::Bundle> {
+pub fn bundles_on(home: &Path) -> Vec<phantom_mods::index::native::Bundle> {
     hnmods(home)
         .into_iter()
-        .filter_map(|path| horizon_mods::index::native::Bundle::read(&path).ok())
+        .filter_map(|path| phantom_mods::index::native::Bundle::read(&path).ok())
         .filter(|b| java::is_enabled(home, &b.manifest.id))
         .collect()
 }
@@ -175,7 +175,7 @@ pub fn untracked(home: &Path) -> Vec<Installed> {
             if !path.is_file() || tracked.entries.iter().any(|e| e.file == file) {
                 return None;
             }
-            let (id, version) = horizon_mods::index::native::Bundle::read(&path)
+            let (id, version) = phantom_mods::index::native::Bundle::read(&path)
                 .map(|b| (b.manifest.id, b.manifest.version))
                 .unwrap_or_else(|_| (stem(&path), String::new()));
             let origin = (path.file_stem()?.to_str()? == id)
@@ -227,7 +227,7 @@ fn parse_built(about: &serde_json::Value) -> Vec<Mod> {
 pub fn fingerprint(home: &Path, version: Option<&str>) -> String {
     let mut out = format!("{}\n{version:?}\n", home.display());
     // The on/off list (`browser::java::is_enabled`).
-    out += &fs::read_to_string(home.join("horizon-mods.txt")).unwrap_or_default();
+    out += &fs::read_to_string(home.join("phantom-mods.txt")).unwrap_or_default();
     for path in hnmods(home)
         .into_iter()
         .flat_map(|p| [p.clone(), p.with_extension("origin.json")])
@@ -487,7 +487,7 @@ mod tests {
     fn only_hnmods_in_the_native_folder_are_native() {
         assert!(is_native_file("horizon-native-mods/veinminer.hnmod"));
         assert!(!is_native_file("horizon-native-mods-old/x.hnmod"));
-        assert!(!is_native_file("horizon-mods/zoom.hmod"));
+        assert!(!is_native_file("phantom-mods/zoom.hmod"));
         assert!(!is_native_file("resourcepacks/x.zip"));
     }
 

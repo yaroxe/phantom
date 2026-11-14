@@ -16,7 +16,7 @@ import lab
 def snapshot_tests(build):
     """Run the prepared-resource hurt, landing, world lifetime and wire cases."""
     run = subprocess.run(
-        ["cargo", "test", "--locked", "-p", "horizon-client", "-p", "horizon-client-lib",
+        ["cargo", "test", "--locked", "-p", "phantom-client", "-p", "phantom-client-lib",
          "--lib", "datapack_damage_", "--", "--include-ignored"],
         cwd=lab.ROOT, text=True, capture_output=True)
     output = run.stdout + run.stderr
@@ -71,13 +71,13 @@ def main():
     (build / "report.json").unlink(missing_ok=True)
     source = lab.ROOT / "mods/horizon/src/test/java/dev/horizonlab/parity/VanillaDamageCatalogOracle.java"
     sources = [source, Path(__file__).resolve(),
-               lab.ROOT / "crates/horizon-world/examples/damage_catalog_probe.rs",
-               lab.ROOT / "crates/horizon-world/src/damage_source.rs",
-               lab.ROOT / "crates/horizon-world/src/damage_source/resources.rs",
-               lab.ROOT / "crates/horizon-client/src/health/datapack_tests.rs",
-               lab.ROOT / "crates/horizon-client/src/landing.rs",
-               lab.ROOT / "crates/horizon-client/src/lan/data.rs",
-               lab.ROOT / "crates/horizon-client/src/game/lan.rs"]
+               lab.ROOT / "crates/phantom-world/examples/damage_catalog_probe.rs",
+               lab.ROOT / "crates/phantom-world/src/damage_source.rs",
+               lab.ROOT / "crates/phantom-world/src/damage_source/resources.rs",
+               lab.ROOT / "crates/phantom-client/src/health/datapack_tests.rs",
+               lab.ROOT / "crates/phantom-client/src/landing.rs",
+               lab.ROOT / "crates/phantom-client/src/lan/data.rs",
+               lab.ROOT / "crates/phantom-client/src/game/lan.rs"]
     hashes = {str(p.relative_to(lab.ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     libraries = sorted((args.game_dir / "libraries/server").rglob("*.jar"))
     jar = args.game_dir / "jars/server-game.jar"
@@ -109,7 +109,7 @@ def main():
                            "dev.horizonlab.parity.VanillaDamageCatalogOracle"], input=inputs, text=True,
                           capture_output=True, check=True)
     (build / "java.log").write_text(java.stdout + java.stderr)
-    subprocess.run(["cargo", "build", "--offline", "-p", "horizon-world", "--example", "damage_catalog_probe"], cwd=lab.ROOT, check=True)
+    subprocess.run(["cargo", "build", "--offline", "-p", "phantom-world", "--example", "damage_catalog_probe"], cwd=lab.ROOT, check=True)
     probe = lab.cargo_target() / "debug/examples/damage_catalog_probe"
     rust = subprocess.run([str(probe)], input=inputs, text=True, capture_output=True, check=True)
     (build / "rust.jsonl").write_text(rust.stdout)

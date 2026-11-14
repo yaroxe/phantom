@@ -116,7 +116,7 @@ fn read(home: &Path, java_instance: bool) -> Vec<ModRow> {
                     let entry = entries.iter().find(|e| e.file == file).cloned();
                     let (name, version) = match &entry {
                         Some(e) => (e.title.clone(), e.number.clone()),
-                        None => horizon_port_pack::jar::read(&f.path())
+                        None => phantom_port_pack::jar::read(&f.path())
                             .map(|j| (j.name, j.version))
                             .unwrap_or_else(|_| {
                                 (jar.trim_end_matches(".jar").into(), String::new())

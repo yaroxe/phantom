@@ -42,9 +42,9 @@ def main():
     classes = build / 'classes'
     classes.mkdir(exist_ok=True)
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaServerPropertyNumbersOracle.java'
-    sources = [oracle, lab.ROOT / 'crates/horizon-core/src/text.rs',
-               lab.ROOT / 'crates/horizon-server-files/src/properties.rs',
-               lab.ROOT / 'crates/horizon-server-files/examples/properties_numbers.rs',
+    sources = [oracle, lab.ROOT / 'crates/phantom-core/src/text.rs',
+               lab.ROOT / 'crates/phantom-server-files/src/properties.rs',
+               lab.ROOT / 'crates/phantom-server-files/examples/properties_numbers.rs',
                lab.ROOT / 'tools/test_server_property_numbers_parity.py', lab.ROOT / 'Cargo.lock']
     hashes = base.source_hashes(sources)
     values = number_cases()
@@ -63,7 +63,7 @@ def main():
          '-cp', classpath, '-d', classes, oracle], 'compile-java')
     expected = run(['java', '-Djava.awt.headless=true', '-cp', str(classes) + os.pathsep + classpath,
                     'dev.horizonlab.parity.VanillaServerPropertyNumbersOracle', inputs], 'vanilla')
-    actual = run(['cargo', 'run', '--locked', '-p', 'horizon-server-files', '--example',
+    actual = run(['cargo', 'run', '--locked', '-p', 'phantom-server-files', '--example',
                   'properties_numbers', '--', inputs], 'rust')
     if len(expected) != len(actual) or len(actual) != len(values) * 3:
         raise AssertionError(f'incomplete corpus: {len(expected)} vanilla / {len(actual)} native records')

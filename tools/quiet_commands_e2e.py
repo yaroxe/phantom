@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mods' quiet commands on Horizon's dedicated server, end to end (horizon_protocol::quiet).
+"""Mods' quiet commands on Horizon's dedicated server, end to end (phantom_protocol::quiet).
 
 Horizon's dedicated server (a flat world) and Horizon's headless client (`HORIZON_NET_REPORT`, the net
 harness), which joins, then sends a batch of quiet commands as a mod would (`HORIZON_NET_QUIET`):
@@ -64,18 +64,18 @@ def join(binary, port, out, label, lines):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin-dir', help='a prebuilt horizon-client (default: build it with the fast profile)')
+    parser.add_argument('--bin-dir', help='a prebuilt phantom-client (default: build it with the fast profile)')
     parser.add_argument('--out', default=str(ROOT / '.local/quiet-commands-e2e'), help='logs go here')
     args = parser.parse_args()
     out = Path(args.out)
     shutil.rmtree(out, ignore_errors=True)
     out.mkdir(parents=True)
     if args.bin_dir:
-        binary = Path(args.bin_dir) / 'horizon-client'
+        binary = Path(args.bin_dir) / 'phantom-client'
     else:
-        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'],
+        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'],
                        cwd=ROOT, check=True)
-        binary = Path(lab.cargo_target()) / 'fast' / 'horizon-client'
+        binary = Path(lab.cargo_target()) / 'fast' / 'phantom-client'
     port = lab.free_port()
     directory = out / 'server'
     directory.mkdir()

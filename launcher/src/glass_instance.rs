@@ -7,7 +7,7 @@ use super::*;
 use crate::glass_ui::{self as ui, white};
 use horizon_launcher::instances::{self, Icon, Instance};
 use horizon_launcher::loaders::Kind as Loader;
-use horizon_theme::glass::{fill, ink, radius};
+use phantom_theme::glass::{fill, ink, radius};
 use new_instance::{NewKind, VersionList};
 use servers_page::Field;
 use std::sync::Arc;
@@ -136,9 +136,9 @@ pub(super) fn letter_tile(colour: Hsla, name: &str, size: f32) -> Div {
         .rounded(px((size * 0.26).round()))
         .bg(colour)
         .font_family(if letter >= 40. {
-            horizon_theme::glass::DISPLAY_FONT
+            phantom_theme::glass::DISPLAY_FONT
         } else {
-            horizon_theme::glass::HEADING_FONT
+            phantom_theme::glass::HEADING_FONT
         })
         .font_weight(FontWeight::SEMIBOLD)
         .text_size(px(letter))
@@ -470,7 +470,7 @@ impl Launcher {
                     .px(px(8.))
                     .rounded(px(radius::CONTROL))
                     .cursor_pointer()
-                    .font_family(horizon_theme::glass::FONT)
+                    .font_family(phantom_theme::glass::FONT)
                     .text_size(px(14.))
                     .text_color(white(ink::BODY))
                     .hover(|s| s.bg(white(fill::ROW_HOVER)).text_color(white(ink::FULL)))
@@ -517,7 +517,7 @@ impl Launcher {
                 div()
                     .mt(px(20.))
                     .truncate()
-                    .font_family(horizon_theme::glass::DISPLAY_FONT)
+                    .font_family(phantom_theme::glass::DISPLAY_FONT)
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_size(px(30.))
                     .line_height(px(32.))
@@ -615,7 +615,7 @@ impl Launcher {
                     .child(
                         div()
                             .truncate()
-                            .font_family(horizon_theme::glass::DISPLAY_FONT)
+                            .font_family(phantom_theme::glass::DISPLAY_FONT)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_size(px(size))
                             .line_height(px(size * 1.25))
@@ -724,7 +724,7 @@ impl Launcher {
                 .px(px(20.))
                 .rounded(px(radius::ROW))
                 .cursor_pointer()
-                .font_family(horizon_theme::glass::FONT)
+                .font_family(phantom_theme::glass::FONT)
                 .text_size(px(15.))
                 .font_weight(FontWeight::MEDIUM)
                 .text_color(white(ink::BODY))
@@ -751,7 +751,7 @@ impl Launcher {
                 .bg(accent)
                 .cursor_pointer()
                 .hover(move |s| s.bg(lit))
-                .font_family(horizon_theme::glass::FONT)
+                .font_family(phantom_theme::glass::FONT)
                 .text_size(px(15.))
                 .font_weight(FontWeight::SEMIBOLD)
                 .text_color(ui::color(self.look.on_accent))

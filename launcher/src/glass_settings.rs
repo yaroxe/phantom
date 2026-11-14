@@ -11,7 +11,7 @@
 
 use super::*;
 use crate::glass_ui::{self as ui, white};
-use horizon_theme::glass::{fill, ink, radius};
+use phantom_theme::glass::{fill, ink, radius};
 
 /// The list's entries: name and icon. The mockup's seven, then data collection.
 const SECTIONS: [(&str, &str); 8] = [
@@ -117,7 +117,7 @@ impl Launcher {
                         .px(px(if wide { 12. } else { 10. }))
                         .rounded(px(radius::ROW))
                         .cursor_pointer()
-                        .font_family(horizon_theme::glass::FONT)
+                        .font_family(phantom_theme::glass::FONT)
                         .text_size(px(14.))
                         .when(on, |d| {
                             d.bg(white(fill::ACTIVE))

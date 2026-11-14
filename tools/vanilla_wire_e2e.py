@@ -25,8 +25,8 @@ Rules (vanilla's code in brackets):
   python3 tools/vanilla_wire_e2e.py --rules no-play-before-login --login-delay 2
 
 Every game and server here runs in fresh temporary folders (HORIZON_HOME, HORIZON_LAUNCHER_HOME, XDG_*), with no
-audio and no self-update. Needs .local (the vanilla jars and prepared resources) and a built horizon-client and
-horizon-ctl (--bin DIR, default target/fast).
+audio and no self-update. Needs .local (the vanilla jars and prepared resources) and a built phantom-client and
+phantom-ctl (--bin DIR, default target/fast).
 """
 import argparse
 import json
@@ -140,7 +140,7 @@ def run(args, out):
     lock, jars, libraries = base.verify_artifacts()
     deps = os.pathsep.join(map(str, [jars['server'], *libraries]))
     vanilla = ['java', '-Xmx1g', '-cp', deps, 'net.minecraft.server.Main', 'nogui']
-    resources = lab.LOCAL / 'horizon-client' / lab.VERSION
+    resources = lab.LOCAL / 'phantom-client' / lab.VERSION
     work = Path(tempfile.mkdtemp(prefix='hz-wire-'))
     print(f'scratch: {work}')
     for var, sub in (('HORIZON_HOME', 'home'), ('HORIZON_LAUNCHER_HOME', 'launcher'), ('XDG_DATA_HOME', 'data'),
@@ -198,7 +198,7 @@ def run(args, out):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin', default=str(lab.cargo_target() / 'fast'), help='horizon-client and horizon-ctl')
+    parser.add_argument('--bin', default=str(lab.cargo_target() / 'fast'), help='phantom-client and phantom-ctl')
     parser.add_argument('--out', default=str(lab.LOCAL / 'vanilla-wire-e2e'))
     parser.add_argument('--rules', default=','.join(RULES), type=lambda s: s.split(','),
                         help='comma-separated rule names (default: all)')

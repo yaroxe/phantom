@@ -354,7 +354,7 @@ def horizon_resave(source, destination, bin_dir):
     saves.mkdir(parents=True)
     shutil.copytree(source, saves / 'world')
     socket = Path(tempfile.mkdtemp(prefix='hzrt')) / 'control.sock'  # sockets need short paths
-    ctl = [str(bin_dir / 'horizon-ctl'), '--socket', str(socket)]
+    ctl = [str(bin_dir / 'phantom-ctl'), '--socket', str(socket)]
     extra = []
     # Offscreen on macOS, and on a Linux without vscreen (never a window on a real monitor).
     if sys.platform == 'darwin' or not shutil.which('vscreen'):
@@ -379,7 +379,7 @@ def horizon_resave(source, destination, bin_dir):
         result = subprocess.run(ctl + step, cwd=destination, env=env, capture_output=True, text=True)
         print(' '.join(step), '->', result.stdout.strip() or result.stderr.strip())
         if step[0] != 'quit' and result.returncode:
-            sys.exit('horizon-ctl failed: ' + result.stdout)
+            sys.exit('phantom-ctl failed: ' + result.stdout)
     time.sleep(3)
     return saves / 'world'
 
@@ -640,7 +640,7 @@ def summarize(report):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--keep', action='store_true')
-    parser.add_argument('--bin-dir', help='prebuilt horizon-client and horizon-ctl (default: build them with the fast profile)')
+    parser.add_argument('--bin-dir', help='prebuilt phantom-client and phantom-ctl (default: build them with the fast profile)')
     parser.add_argument('--vanilla', help='an existing vanilla world folder (skips generation)')
     parser.add_argument('--horizon', help='an existing Horizon-saved world folder (skips the Horizon run)')
     parser.add_argument('--skip-vanilla-load', action='store_true')
@@ -665,7 +665,7 @@ def main():
     else:
         bin_dir = Path(args.bin_dir).resolve() if args.bin_dir else None
         if bin_dir is None:
-            subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib', '--bins'], cwd=ROOT, check=True)
+            subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib', '--bins'], cwd=ROOT, check=True)
             bin_dir = ROOT / os.environ.get('CARGO_TARGET_DIR', 'target') / 'fast'
         h = horizon_resave(v0, RUN / 'h', bin_dir)
     print('comparing', v0, 'with', h)

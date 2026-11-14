@@ -125,7 +125,7 @@ TREE_LOOKUP_ERROR = 'error IllegalStateException net.minecraft.core.RegistryAcce
 def execute(name, cases, args, facts, origin_of=None):
     """Run both sides; return failing cases, counting mismatches and oracle errors."""
     lock, jars, libraries = base.verify_artifacts()
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     work = lab.LOCAL / name
     work.mkdir(parents=True, exist_ok=True)
     (work / 'cases.jsonl').write_text(''.join(json.dumps(case) + '\n' for case in cases))
@@ -137,7 +137,7 @@ def execute(name, cases, args, facts, origin_of=None):
                     '-cp', dependencies, '-d', str(classes), str(java_root / 'dev/horizonlab/parity/VanillaBlockUpdateOracle.java')])
     run(['java', '-Xmx2G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaBlockUpdateOracle',
                     str(resources), str(work / 'cases.jsonl'), str(work / 'native.txt')])
-    run(['cargo', 'run', '-q', '--release', '-p', 'horizon-world', '--example', 'world_probe', '--',
+    run(['cargo', 'run', '-q', '--release', '-p', 'phantom-world', '--example', 'world_probe', '--',
                     'block_update_fixture', str(resources), str(work / 'cases.jsonl'), str(work / 'rust.txt')], cwd=lab.ROOT, env={**os.environ, 'CARGO_BUILD_JOBS': '3'})
     ignore = tuple(prefix + ' ' for prefix in args.ignore.split(',') if prefix)
     native = split_cases((work / 'native.txt').read_text(), ignore)
@@ -214,7 +214,7 @@ def describe_case(case, facts):
 
 def load_facts():
     lock, _, _ = base.verify_artifacts()
-    return Facts(lab.LOCAL / 'horizon-client' / lock['minecraft']['version'])
+    return Facts(lab.LOCAL / 'phantom-client' / lock['minecraft']['version'])
 
 
 def state_pool(facts, only):

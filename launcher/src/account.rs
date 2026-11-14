@@ -2207,7 +2207,7 @@ pub fn session_for_game(
         pass.session.as_ref().map(|(a, _)| a.uuid.as_str()),
     );
     if let Err(e) = accounts.save() {
-        eprintln!("Horizon: the accounts are not saved: {e}");
+        eprintln!("Phantom: the accounts are not saved: {e}");
     }
     Ok(session_file(game_home, pass, env))
 }
@@ -2226,7 +2226,7 @@ pub fn session_for_game_as(game_home: &Path, who: &Player) -> Result<GameSession
         who,
     );
     if let Err(e) = accounts.save() {
-        eprintln!("Horizon: the accounts are not saved: {e}");
+        eprintln!("Phantom: the accounts are not saved: {e}");
     }
     let pass = pass?;
     let env = split_sessions(
@@ -2235,7 +2235,7 @@ pub fn session_for_game_as(game_home: &Path, who: &Player) -> Result<GameSession
         pass.session.as_ref().map(|(a, _)| a.uuid.as_str()),
     );
     if let Err(e) = accounts.save() {
-        eprintln!("Horizon: the accounts are not saved: {e}");
+        eprintln!("Phantom: the accounts are not saved: {e}");
     }
     Ok(session_file(game_home, pass, env))
 }
@@ -2434,7 +2434,7 @@ pub fn java_player() -> Result<crate::java_launch::Player, String> {
         &mut accounts,
     );
     if let Err(e) = accounts.save() {
-        eprintln!("Horizon: the accounts are not saved: {e}");
+        eprintln!("Phantom: the accounts are not saved: {e}");
     }
     player
 }

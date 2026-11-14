@@ -22,11 +22,11 @@ def main():
     report.unlink(missing_ok=True)
     source = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaMobDiscardOracle.java'
     sources = [source, Path(__file__).resolve(),
-               lab.ROOT / 'crates/horizon-client/src/game/mob_discard_tests.rs',
-               lab.ROOT / 'crates/horizon-client/src/game/commands.rs',
-               lab.ROOT / 'crates/horizon-client/src/game/entity.rs',
-               lab.ROOT / 'crates/horizon-client/src/game/native_mobs.rs',
-               lab.ROOT / 'crates/horizon-client/src/game/persist.rs']
+               lab.ROOT / 'crates/phantom-client/src/game/mob_discard_tests.rs',
+               lab.ROOT / 'crates/phantom-client/src/game/commands.rs',
+               lab.ROOT / 'crates/phantom-client/src/game/entity.rs',
+               lab.ROOT / 'crates/phantom-client/src/game/native_mobs.rs',
+               lab.ROOT / 'crates/phantom-client/src/game/persist.rs']
     def hashes():
         return {str(p.relative_to(lab.ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     tested = hashes()
@@ -48,7 +48,7 @@ def main():
                            stdout=log, stderr=subprocess.STDOUT, check=True)
     cp = os.pathsep.join(map(str, [jars['server'], *libraries]))
     run('compile-java', [javac, '-proc:none', '-cp', cp, '-d', build, source])
-    run('rust', ['cargo', 'test', '--offline', '--locked', '-p', 'horizon-client', '--lib',
+    run('rust', ['cargo', 'test', '--offline', '--locked', '-p', 'phantom-client', '--lib',
                  'discarded_mob_leaves_selectors_and_saves_while_frozen', '--', '--ignored', '--nocapture'])
     actual = json.loads(rust.read_text())
     for side, jar in jars.items():

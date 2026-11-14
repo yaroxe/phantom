@@ -1,4 +1,4 @@
-"""The hosting panel setups for horizon-server (docs/hosting.md, "Hosting panels"), the Pterodactyl egg and the AMP
+"""The hosting panel setups for phantom-server (docs/hosting.md, "Hosting panels"), the Pterodactyl egg and the AMP
 template, name only things the server has: its HORIZON_* variables, its start script, its ready line and the `port`
 key of server.toml."""
 import json
@@ -14,10 +14,10 @@ SERVER = ROOT / "packaging/server"
 EGG = SERVER / "pterodactyl-egg.json"
 START = SERVER / "panel-start.sh"
 AMP = SERVER / "amp"
-INIT_RS = (ROOT / "crates/horizon-server/src/init.rs").read_text()
-CONFIG_RS = (ROOT / "crates/horizon-server/src/config.rs").read_text()
-DEDICATED_RS = (ROOT / "crates/horizon-client/src/game/dedicated.rs").read_text()
-LAN_RS = (ROOT / "crates/horizon-client/src/game/lan.rs").read_text()
+INIT_RS = (ROOT / "crates/phantom-server/src/init.rs").read_text()
+CONFIG_RS = (ROOT / "crates/phantom-server/src/config.rs").read_text()
+DEDICATED_RS = (ROOT / "crates/phantom-client/src/game/dedicated.rs").read_text()
+LAN_RS = (ROOT / "crates/phantom-client/src/game/lan.rs").read_text()
 
 # Read at install only, so init.rs does not know them.
 INSTALL_ONLY = {"HORIZON_VERSION"}

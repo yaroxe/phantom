@@ -109,7 +109,7 @@ def main():
     oracle=parity/'VanillaTreeFeatureOracle.java';exporter=parity/'VanillaSimpleBlockOracle.java'
     helpers=[parity/(name+'.java') for name in ['VanillaPlacementOracle','VanillaBlockSurvivalOracle','VanillaBlockPropertiesOracle','VanillaBlockSupportOracle','VanillaBlockStateCodecOracle','VanillaCollisionOracle','VanillaHeightmapOracle']]
     sources=[oracle,exporter,*helpers,Path(__file__),*[lab.ROOT/'tools'/name for name in ['test_block_survival_parity.py','test_worldgen_parity.py','test_rust_parity.py','lab.py']],lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',
-             *sorted((lab.ROOT/'crates/horizon-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/horizon-world/src').rglob('*.rs')),lab.ROOT/'crates/horizon-world/examples/probe/tree_feature_fixture.rs']
+             *sorted((lab.ROOT/'crates/phantom-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/phantom-world/src').rglob('*.rs')),lab.ROOT/'crates/phantom-world/examples/probe/tree_feature_fixture.rs']
     tested_sources=base.source_hashes(sources);classes=build/'classes';classes.mkdir(exist_ok=True)
     def run(command,name):
         with (build/(name+'.log')).open('w',encoding='utf-8') as log:subprocess.run(list(map(str,command)),cwd=lab.ROOT,check=True,timeout=7200,stdout=log,stderr=subprocess.STDOUT)
@@ -135,7 +135,7 @@ def main():
             output.write(json.dumps(fixture,separators=(',',':'))+'\n');count+=1
     fixtures=[inputs,*sorted(build.glob('*.nbt')),*[p for p in sorted(build.glob('*.json')) if p.name!='report.json']];tested_fixtures=fixture_hashes(fixtures)
     print(f'Prepared {count:,} feature fixtures',flush=True)
-    run(['cargo','build','--release','-p','horizon-world','--example','world_probe'],'compile-rust')
+    run(['cargo','build','--release','-p','phantom-world','--example','world_probe'],'compile-rust')
     metadata=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1'],cwd=lab.ROOT,text=True))
     binary=Path(metadata['target_directory'])/'release/examples'/('world_probe.exe' if os.name=='nt' else 'world_probe')
     run([binary,'tree_feature_fixture',build],'rust');references=[]

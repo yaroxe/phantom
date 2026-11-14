@@ -34,10 +34,10 @@ def main():
     sources = [Path(__file__), lab.ROOT / 'tools/lab.py', lab.ROOT / 'tools/oracle_harness.py',
                lab.ROOT / 'tools/test_rust_parity.py', lab.ROOT / 'tools/integration_env.py',
                lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock',
-               lab.ROOT / 'crates/horizon-client/src/game/commands.rs',
-               lab.ROOT / 'crates/horizon-client/src/save.rs',
-               lab.ROOT / 'crates/horizon-client/src/save/loot_tests.rs',
-               lab.ROOT / 'crates/horizon-client-render/src/chunk.rs',
+               lab.ROOT / 'crates/phantom-client/src/game/commands.rs',
+               lab.ROOT / 'crates/phantom-client/src/save.rs',
+               lab.ROOT / 'crates/phantom-client/src/save/loot_tests.rs',
+               lab.ROOT / 'crates/phantom-client-render/src/chunk.rs',
                lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaOpenedLootOracle.java',
                lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaBlockUpdateOracle.java',
                lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/ParityData.java']
@@ -53,7 +53,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='horizon-opened-loot-parity-') as scratch:
         env = integration_env.game_environment(os.environ, scratch)
         env.update(HORIZON_OPENED_LOOT_INPUT=str(inputs), HORIZON_OPENED_LOOT_OUTPUT=str(build / 'rust.txt'))
-        harness.run_logged(['cargo', 'test', '--locked', '-p', 'horizon-client-lib', '--lib',
+        harness.run_logged(['cargo', 'test', '--locked', '-p', 'phantom-client-lib', '--lib',
                             'save::loot_tests::opened_loot_parity_fixture',
                             '--', '--exact', '--ignored'], build, 'rust', env=env)
     matched = harness.compare(build / 'client.txt', build / 'rust.txt', len(rows))

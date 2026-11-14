@@ -72,7 +72,7 @@ class AssetTests(unittest.TestCase):
             harness.own_reports(root)
             self.assertFalse(reports.exists() or reports.is_symlink())
             self.assertTrue((store / "minecraft").is_dir())
-            reports.mkdir()  # its own reports, from an earlier horizon-prepare, stay
+            reports.mkdir()  # its own reports, from an earlier phantom-prepare, stay
             harness.own_reports(root)
             self.assertTrue(reports.is_dir())
 

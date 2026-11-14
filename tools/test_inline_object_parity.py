@@ -34,8 +34,8 @@ def main():
     report.unlink(missing_ok=True)
     sources = [lab.ROOT / path for path in (
         'tools/test_inline_object_parity.py',
-        'crates/horizon-client-render/src/hud.rs',
-        'crates/horizon-client/examples/probe/inline_object_fixture.rs',
+        'crates/phantom-client-render/src/hud.rs',
+        'crates/phantom-client/examples/probe/inline_object_fixture.rs',
         'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaInlineObjectOracle.java')]
     tested = base.source_hashes(sources)
     inputs, count = make_input(build)
@@ -45,7 +45,7 @@ def main():
                      [inputs, build / 'client.txt'], 'client')
     # Text geometry needs neither an audio device nor controller system libraries.
     harness.run_logged(['cargo', 'build', '--locked', '--no-default-features',
-                        '-p', 'horizon-client-lib', '--example', 'client_probe'], build, 'compile-rust')
+                        '-p', 'phantom-client-lib', '--example', 'client_probe'], build, 'compile-rust')
     harness.run_logged([lab.cargo_target() / 'debug/examples/client_probe', 'inline_object_fixture',
                         inputs, build / 'rust.txt'], build, 'rust')
     matched = base.compare(build / 'client.txt', build / 'rust.txt')

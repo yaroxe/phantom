@@ -843,7 +843,7 @@ def main():
         libraries=baking.client_libraries();jars={'client':jars['client']}
     build=lab.LOCAL/('rust-native-flight-scene' if args.flight_only else 'rust-native-sprint-scene' if args.sprint_input else 'rust-native-scene-motion');build.mkdir(exist_ok=True)
     report=build/'report.json';report.unlink(missing_ok=True)
-    resources=lab.LOCAL/'horizon-client'/lock['minecraft']['version']
+    resources=lab.LOCAL/'phantom-client'/lock['minecraft']['version']
     resource_hash=client.resource_fingerprint(resources)
     oracle=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaSceneMotionOracle.java'
     helpers=[oracle.with_name(name+'.java') for name in ['VanillaSceneCollisionOracle','VanillaRegistryCollisionScanOracle',
@@ -852,8 +852,8 @@ def main():
     if args.sprint_input:helpers.append(oracle.with_name('VanillaSprintInputOracle.java'))
     sources=[Path(__file__),lab.ROOT/'tools/test_native_client.py',lab.ROOT/'tools/test_rust_parity.py',lab.ROOT/'tools/lab.py',
              lab.ROOT/'tools/prepare_native_client.py',oracle,*helpers,lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',
-             lab.ROOT/'crates/horizon-client/examples/probe/scene_motion_probe.rs']
-    for crate in ['horizon-core','horizon-world','horizon-assets','horizon-client','horizon-client-render']:
+             lab.ROOT/'crates/phantom-client/examples/probe/scene_motion_probe.rs']
+    for crate in ['phantom-core','phantom-world','phantom-assets','phantom-client','phantom-client-render']:
         sources += [lab.ROOT/'crates'/crate/'Cargo.toml',*sorted((lab.ROOT/'crates'/crate/'src').rglob('*.rs'))]
     if args.sprint_input:sources.append(lab.ROOT/'tools/test_model_baking_parity.py')
     tested=base.source_hashes(sources)
@@ -870,7 +870,7 @@ def main():
     damage_dir=build/'damage';damage_dir.mkdir(exist_ok=True)
     for target, source in [('types.json','damage-types.json'),('tags.json','damage-tags.json')]:
         (damage_dir/target).write_bytes((resources/source).read_bytes())
-    run(['cargo','build','--locked','-p','horizon-client-lib','--example','client_probe',
+    run(['cargo','build','--locked','-p','phantom-client-lib','--example','client_probe',
          *(['--no-default-features'] if args.no_default_features else [])],'compile-rust')
     metadata=json.loads(subprocess.check_output(['cargo','metadata','--locked','--no-deps','--format-version','1'],cwd=lab.ROOT))
     binary=Path(metadata['target_directory'])/'debug/examples'/('client_probe.exe' if os.name=='nt' else 'client_probe')

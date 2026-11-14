@@ -1,5 +1,5 @@
 //! The running game's tools in the launcher's MCP, so an agent needs one server
-//! (docs/agent-control.md): the selected version's `horizon-ctl mcp` runs as a child, its tools
+//! (docs/agent-control.md): the selected version's `phantom-ctl mcp` runs as a child, its tools
 //! are offered as `game_<name>`, and calls go to it unchanged. `play` starts the game with
 //! the launcher's own control endpoint; a game the player started with Agent Control on answers
 //! on the game's default endpoint instead. The child talks to whichever of them answers.
@@ -14,13 +14,13 @@ use std::time::Duration;
 
 pub const PREFIX: &str = "game_";
 
-/// horizon-ctl tools the launcher covers itself: `play` starts the game.
+/// phantom-ctl tools the launcher covers itself: `play` starts the game.
 const HIDDEN: &[&str] = &["launch"];
 
 const CTL: &str = if cfg!(windows) {
-    "horizon-ctl.exe"
+    "phantom-ctl.exe"
 } else {
-    "horizon-ctl"
+    "phantom-ctl"
 };
 
 /// The control endpoint of a game started by `play`: a Unix socket, or on Windows the
@@ -43,7 +43,7 @@ pub fn control_args() -> Vec<String> {
 
 /// The endpoint a game listens on when nothing names one, which is where Agent Control opens it.
 /// The launcher runs whichever version is installed, so this is a contract with every game
-/// rather than shared code: `control::default_path` in horizon-client, and `horizon-ctl help`.
+/// rather than shared code: `control::default_path` in phantom-client, and `phantom-ctl help`.
 fn default_endpoint(
     control: Option<OsString>,
     runtime: Option<OsString>,
@@ -90,7 +90,7 @@ fn answers(path: &Path) -> bool {
     tcp_answers(path).unwrap_or(false)
 }
 
-/// The file names a localhost port and its token (`control::connect` in horizon-client): a game
+/// The file names a localhost port and its token (`control::connect` in phantom-client): a game
 /// accepts that token, and whatever took over the port of a game long gone does not.
 fn tcp_answers(path: &Path) -> Option<bool> {
     let endpoint: Value = serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
@@ -111,7 +111,7 @@ pub fn listening() -> bool {
 }
 
 pub struct GameTools {
-    /// The installed version this `horizon-ctl` belongs to.
+    /// The installed version this `phantom-ctl` belongs to.
     tag: String,
     /// The endpoint it talks to.
     endpoint: PathBuf,
@@ -123,7 +123,7 @@ pub struct GameTools {
 }
 
 impl GameTools {
-    /// Start `horizon-ctl mcp` of an installed version and read its tools.
+    /// Start `phantom-ctl mcp` of an installed version and read its tools.
     pub fn start(tag: &str) -> Result<Self, String> {
         Self::start_on(tag, current_endpoint())
     }
@@ -154,10 +154,10 @@ impl GameTools {
             tools: Vec::new(),
         };
         tools.rpc(
-            // The child is whichever `horizon-ctl` the player has installed, so open with the
+            // The child is whichever `phantom-ctl` the player has installed, so open with the
             // handshake revision: older versions do not know the stateless one.
             "initialize",
-            json!({ "protocolVersion": horizon_mcp::LEGACY, "capabilities": {},
+            json!({ "protocolVersion": phantom_mcp::LEGACY, "capabilities": {},
                     "clientInfo": { "name": "horizon-launcher", "version": backend::VERSION } }),
         )?;
         tools.send(&json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }))?;
@@ -171,8 +171,8 @@ impl GameTools {
         &self.tools
     }
 
-    /// Call a `game_` tool; the result is horizon-ctl's (text and image content). The game can
-    /// start, stop or turn Agent Control on between two calls, and an installed horizon-ctl keeps
+    /// Call a `game_` tool; the result is phantom-ctl's (text and image content). The game can
+    /// start, stop or turn Agent Control on between two calls, and an installed phantom-ctl keeps
     /// the endpoint it started with, so another endpoint means another child.
     pub fn call(&mut self, name: &str, args: &Value) -> Result<Value, String> {
         let inner = name.strip_prefix(PREFIX).ok_or("not a game tool")?;
@@ -187,7 +187,7 @@ impl GameTools {
     fn send(&mut self, message: &Value) -> Result<(), String> {
         writeln!(self.stdin, "{message}")
             .and_then(|_| self.stdin.flush())
-            .map_err(|e| format!("horizon-ctl stopped: {e}"))
+            .map_err(|e| format!("phantom-ctl stopped: {e}"))
     }
 
     fn rpc(&mut self, method: &str, params: Value) -> Result<Value, String> {
@@ -198,7 +198,7 @@ impl GameTools {
         loop {
             line.clear();
             match self.stdout.read_line(&mut line) {
-                Ok(0) | Err(_) => return Err("horizon-ctl stopped".into()),
+                Ok(0) | Err(_) => return Err("phantom-ctl stopped".into()),
                 Ok(_) => {}
             }
             let Ok(reply) = serde_json::from_str::<Value>(&line) else {
@@ -222,7 +222,7 @@ impl Drop for GameTools {
     }
 }
 
-/// horizon-ctl's tools as the launcher offers them.
+/// phantom-ctl's tools as the launcher offers them.
 fn prefixed(tools: &Value) -> Vec<Value> {
     tools
         .as_array()

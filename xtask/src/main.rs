@@ -1,17 +1,17 @@
 //! Repository tasks, run with `cargo run -p xtask -- TASK`.
 //!
-//! `package BINARY OUTDIR`: a playable Horizon folder with the game binary, horizon-ctl,
-//! horizon-prepare and horizon-server (built beside it: cargo build --release -p horizon-client -p horizon-client-lib
-//! --bins -p horizon-prepare -p horizon-server), the exporters horizon-prepare compiles, its sources (the launcher compares
+//! `package BINARY OUTDIR`: a playable Horizon folder with the game binary, phantom-ctl,
+//! phantom-prepare and phantom-server (built beside it: cargo build --release -p phantom-client -p phantom-client-lib
+//! --bins -p phantom-prepare -p phantom-server), the exporters phantom-prepare compiles, its sources (the launcher compares
 //! them to its own), and PLAY.txt. It holds none of Minecraft's files: players prepare those
 //! from their own copy. .github/workflows/release.yml makes the release folders with it.
 //!
 //! `package-server ENGINE OUTDIR`: a server folder (docs/server.md): the server build of the game
-//! (`cargo build --release -p horizon-client --no-default-features`, without sound or controllers)
-//! as horizon-engine, with horizon-prepare and horizon-server from beside it and the same sources.
+//! (`cargo build --release -p phantom-client --no-default-features`, without sound or controllers)
+//! as horizon-engine, with phantom-prepare and phantom-server from beside it and the same sources.
 //!
-//! `tokens`: writes `crates/horizon-theme/tokens.css`, the design tokens of `crates/horizon-theme` as CSS
-//! custom properties (a horizon-theme test fails when the file is out of date).
+//! `tokens`: writes `crates/phantom-theme/tokens.css`, the design tokens of `crates/phantom-theme` as CSS
+//! custom properties (a phantom-theme test fails when the file is out of date).
 //!
 //! `icons`: renders the icon masters in `docs/media/brand` (with `rsvg-convert`, from librsvg)
 //! into every size the platforms and the website use, and packs `packaging/icons/horizon.ico`
@@ -29,19 +29,19 @@ const USAGE: &str = "usage: cargo run -p xtask -- package BINARY OUTDIR | packag
 const ARCHIVED: [&str; 5] = [
     "tools",
     "mods/horizon/src/test/java",
-    "crates/horizon-prepare",
+    "crates/phantom-prepare",
     "research-lock.json",
     "LICENSE",
 ];
 
-/// The programs that sit beside the client: horizon-ctl, the command line and MCP server that
-/// play the game, horizon-prepare, which prepares the resources from the player's own
-/// Minecraft, and horizon-server, which hosts a server with the client as its engine
+/// The programs that sit beside the client: phantom-ctl, the command line and MCP server that
+/// play the game, phantom-prepare, which prepares the resources from the player's own
+/// Minecraft, and phantom-server, which hosts a server with the client as its engine
 /// (docs/server.md).
-const TOOLS: [&str; 3] = ["horizon-ctl", "horizon-prepare", "horizon-server"];
+const TOOLS: [&str; 3] = ["phantom-ctl", "phantom-prepare", "phantom-server"];
 
 /// The programs beside the engine in a server folder.
-const SERVER_TOOLS: [&str; 2] = ["horizon-prepare", "horizon-server"];
+const SERVER_TOOLS: [&str; 2] = ["phantom-prepare", "phantom-server"];
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -82,9 +82,9 @@ fn git(repo: &Path, args: &[&str]) -> Result<Vec<u8>, String> {
 }
 
 fn tokens() -> Result<(), String> {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../crates/horizon-theme/tokens.css");
-    fs::write(&path, horizon_theme::css()).map_err(|e| format!("{}: {e}", path.display()))?;
-    println!("wrote crates/horizon-theme/tokens.css");
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../crates/phantom-theme/tokens.css");
+    fs::write(&path, phantom_theme::css()).map_err(|e| format!("{}: {e}", path.display()))?;
+    println!("wrote crates/phantom-theme/tokens.css");
     Ok(())
 }
 
@@ -195,7 +195,7 @@ fn icons() -> Result<(), String> {
     write(&packaging.join("horizon.icns"), &icns(&entries))?;
     // The window icon the game and the launcher set at run time (X11 and Windows title bars).
     write(
-        &repo.join("crates/horizon-theme/icons/horizon-64.png"),
+        &repo.join("crates/phantom-theme/icons/horizon-64.png"),
         &render(&square, (64, 64))?,
     )?;
     // Avatars, and the website's icons (horizon-site copies docs/media/brand/web/ into its public/).
@@ -240,7 +240,7 @@ fn package_server(engine: &Path, out: &Path) -> Result<(), String> {
 /// Release builds supply only our compiled classes and their integrity manifest.
 fn copy_exporters(from: &Path, to: &Path) -> Result<(), String> {
     if !from.join("manifest.json").is_file() {
-        return Err("Missing exporters/manifest.json; run horizon-prepare compile-exporters and copy its bundle to exporters/".into());
+        return Err("Missing exporters/manifest.json; run phantom-prepare compile-exporters and copy its bundle to exporters/".into());
     }
     copy_exporter_tree(from, to)
 }
@@ -297,7 +297,7 @@ fn copy_beside(program: &Path, tools: &[&str], out: &Path) -> Result<(), String>
             .join(program_name(program, tool));
         if !path.is_file() {
             return Err(format!(
-                "{} is missing; build it too: cargo build --release -p horizon-client -p horizon-client-lib --bins -p horizon-prepare -p horizon-server",
+                "{} is missing; build it too: cargo build --release -p phantom-client -p phantom-client-lib --bins -p phantom-prepare -p phantom-server",
                 path.display()
             ));
         }

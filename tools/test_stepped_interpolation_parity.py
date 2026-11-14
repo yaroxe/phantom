@@ -2,7 +2,7 @@
 """Compare how a client walks a living entity along its server's positions with vanilla.
 
 Vanilla's unmodified SteppedInterpolationHandler.InterpolationData (VanillaSteppedInterpolationOracle
-drives it as the handler does) and horizon-world's SteppedInterpolation replay the same packets and
+drives it as the handler does) and phantom-world's SteppedInterpolation replay the same packets and
 client ticks: move packets with and without a position or rotation, straight or stepped paths,
 repeats of the one the entity is headed for, packets a tick apart that pile up and others after it
 stopped, for update intervals of 1 to 3 ticks, plus a punched pig's knockback as the server sends it
@@ -93,7 +93,7 @@ def main():
     subprocess.run(['java', '-Xmx512M', '-cp', str(classes) + os.pathsep + classpath,
                     'dev.horizonlab.parity.VanillaSteppedInterpolationOracle', str(events), str(build / 'vanilla.txt')],
                    check=True)
-    subprocess.run(['cargo', 'run', '--quiet', '--release', '-p', 'horizon-world', '--example',
+    subprocess.run(['cargo', 'run', '--quiet', '--release', '-p', 'phantom-world', '--example',
                     'world_probe', '--', 'stepped_interpolation_fixture', str(events), str(build / 'rust.txt')], cwd=lab.ROOT, check=True)
     matched = base.compare(build / 'vanilla.txt', build / 'rust.txt')
     print(f'Stepped interpolation parity passed: {matched} entity positions and rotations match vanilla')

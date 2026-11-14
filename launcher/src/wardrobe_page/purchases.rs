@@ -27,7 +27,7 @@ fn chip(live: bool, label: impl Into<SharedString>) -> Div {
         .h(px(24.))
         .px(px(9.))
         .rounded(px(8.))
-        .font_family(horizon_theme::glass::FONT)
+        .font_family(phantom_theme::glass::FONT)
         .text_size(px(12.))
         .font_weight(FontWeight::MEDIUM)
         .whitespace_nowrap();

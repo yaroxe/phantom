@@ -76,7 +76,7 @@ def main():
     report_path = build / 'report.json'; report_path.unlink(missing_ok=True)
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaModelBakingOracle.java'
     helper = oracle.with_name('VanillaCuboidModelOracle.java')
-    crate = lab.ROOT / 'crates/horizon-assets'
+    crate = lab.ROOT / 'crates/phantom-assets'
     sources = [oracle, helper, Path(__file__), lab.ROOT / 'tools/test_cuboid_model_parity.py', lab.ROOT / 'tools/test_model_resolution_parity.py',
                lab.ROOT / 'tools/lab.py', lab.ROOT / 'tools/test_rust_parity.py', lab.ROOT / 'Cargo.toml',
                lab.ROOT / 'Cargo.lock', crate / 'Cargo.toml', *sorted(crate.rglob('*.rs'))]
@@ -93,7 +93,7 @@ def main():
             subprocess.run(list(map(str, command)), cwd=lab.ROOT, check=True, timeout=3600, stdout=log, stderr=subprocess.STDOUT)
     dependencies = os.pathsep.join(map(str, [jars['client'], *client_libraries()]))
     run(['javac', '--release', lock['minecraft']['java_major'], '-proc:none','-sourcepath',str(lab.ROOT/'mods/horizon/src/test/java'), '-cp', dependencies, '-d', classes, oracle, helper], 'compile-java')
-    run(['cargo', 'build', '--locked', '-p', 'horizon-assets', '--example', 'model_baking_fixture'], 'compile-rust')
+    run(['cargo', 'build', '--locked', '-p', 'phantom-assets', '--example', 'model_baking_fixture'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--no-deps', '--format-version', '1'], cwd=lab.ROOT))
     binary = Path(metadata['target_directory']) / 'debug/examples' / ('model_baking_fixture.exe' if os.name == 'nt' else 'model_baking_fixture')
     run([binary, inputs, build / 'rust.jsonl'], 'rust')

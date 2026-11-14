@@ -3,7 +3,7 @@
 
 Each game gets its own fake Discord IPC server (a Unix socket in a scratch folder, pointed to by
 HORIZON_DISCORD_IPC_DIR) that answers the handshake with READY and records every SET_ACTIVITY.
-The game goes title -> world -> Nether -> quit through horizon-ctl, and the activities must say
+The game goes title -> world -> Nether -> quit through phantom-ctl, and the activities must say
 "In the menus", "Singleplayer" in the Overworld, then the Nether, and be cleared on quit:
 
     single     single player on its server thread
@@ -17,7 +17,7 @@ The game goes title -> world -> Nether -> quit through horizon-ctl, and the acti
     python3 tools/discord_presence_e2e.py --check lan --bin-dir target/fast
 
 macOS and Linux (Discord's Windows pipes aren't faked here). Games render offscreen, have no audio
-and use scratch homes (lab.game_env). Needs the prepared resources in .local/horizon-client.
+and use scratch homes (lab.game_env). Needs the prepared resources in .local/phantom-client.
 """
 import argparse
 import json
@@ -123,10 +123,10 @@ def shows(details, state=None):
 
 
 class Game:
-    """One game started by horizon-ctl in a scratch home, with its own fake Discord."""
+    """One game started by phantom-ctl in a scratch home, with its own fake Discord."""
 
     def __init__(self, bins, name, args=(), extras=None, discord_running=True):
-        self.ctl = bins / 'horizon-ctl'
+        self.ctl = bins / 'phantom-ctl'
         self.home = Path(tempfile.mkdtemp(prefix=f'hzdp-{name}-'))
         if extras:
             (self.home / 'horizon-extras.txt').write_text(extras)
@@ -136,7 +136,7 @@ class Game:
             self.discord.start()
         extra = {'HORIZON_HOME': self.home, 'HORIZON_TELEMETRY_URL': 'off', 'HORIZON_DISCORD_IPC_DIR': self.discord.dir}
         self.env = lab.game_env(**extra)
-        self.ctl_run('launch', '--offscreen', '--game', str(bins / 'horizon-client'), '--resources',
+        self.ctl_run('launch', '--offscreen', '--game', str(bins / 'phantom-client'), '--resources',
                      str(lab.RESOURCES.resolve()), *args)
 
     def ctl_run(self, *words, timeout=600):
@@ -145,7 +145,7 @@ class Game:
         out = r.stdout.strip().splitlines()
         reply = json.loads(out[-1]) if out else {'error': r.stderr.strip()}
         if r.returncode or 'error' in reply:
-            raise AssertionError(f'horizon-ctl {" ".join(words)}: exit {r.returncode}: {reply}')
+            raise AssertionError(f'phantom-ctl {" ".join(words)}: exit {r.returncode}: {reply}')
         return reply
 
     def quit(self):
@@ -251,14 +251,14 @@ CHECKS = {'single': single, 'lan': lan, 'setting': setting, 'late': late}
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--check', choices=[*CHECKS, 'all'], default='all')
-    parser.add_argument('--bin-dir', help='prebuilt horizon-client and horizon-ctl (default: build with the fast profile)')
+    parser.add_argument('--bin-dir', help='prebuilt phantom-client and phantom-ctl (default: build with the fast profile)')
     args = parser.parse_args()
     if sys.platform == 'win32':
         sys.exit('the fake Discord is a Unix socket: macOS or Linux only')
     if args.bin_dir:
         bins = Path(args.bin_dir).resolve()
     else:
-        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib', '--bins'],
+        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib', '--bins'],
                        cwd=ROOT, check=True)
         meta = json.loads(subprocess.run(['cargo', 'metadata', '--format-version', '1', '--no-deps'], cwd=ROOT,
                                          capture_output=True, text=True, check=True).stdout)

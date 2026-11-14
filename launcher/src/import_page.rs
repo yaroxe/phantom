@@ -1,6 +1,6 @@
 //! Files dropped anywhere on the window (`horizon_launcher::import`): a shared instance becomes
 //! a new instance, a Java modpack goes to the Modpacks import, a resource or shader pack into
-//! the selected instance, a game build (a `horizon-client` program, or an archive or an Actions
+//! the selected instance, a game build (a `phantom-client` program, or an archive or an Actions
 //! artifact holding one) installed as its own version. The Packs section and the world rows take
 //! their own drops first.
 use super::*;

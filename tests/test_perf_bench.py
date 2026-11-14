@@ -95,7 +95,7 @@ class PerfBenchStatsTests(unittest.TestCase):
         self.assertEqual(s["histogram"][-1], 1, "1000 ms and over")
 
     def test_same_figures_as_horizon_bench(self):
-        # crates/horizon-bench's frame_figures_and_histogram test, value for value.
+        # crates/phantom-bench's frame_figures_and_histogram test, value for value.
         s = frames("flight", 0, [2.0] * 998 + [20.0, 1500.0])
         self.assertEqual((s["seconds"], s["low_1pct_fps"], s["low_01pct_fps"]), (3.516, 6.51, 0.667))
         self.assertEqual((s["histogram"][2], s["histogram"][13], s["histogram"][23]), (998, 1, 1))
@@ -231,7 +231,7 @@ class PortabilityTests(unittest.TestCase):
         run = {"startup": {"title_s": 1.0, "world_s": 5.0}, "memory": {}, "load_before": None,
                "scenes": {"village": {"load_s": 2.0, "frame_ms": [5.0] * 100, "meshes_load": 10}}}
         args = argparse.Namespace(offscreen=False, settle=2.0, label="x")
-        r = pb.report(args, 8, [run], {"name": "horizon-client"})
+        r = pb.report(args, 8, [run], {"name": "phantom-client"})
         self.assertNotIn("load_avg_1m", r["conditions"])
         self.assertEqual(r["metrics"]["fps.village.avg_fps"]["mean"], 200.0)
         self.assertEqual(pb.report(args, 8, [dict(run, load_before=1.25)], {})["conditions"]["load_avg_1m"], 1.25)

@@ -486,9 +486,9 @@ const LAUNCHER_BINARY: &str = if cfg!(windows) {
 };
 
 pub(crate) const CLIENT: &str = if cfg!(windows) {
-    "horizon-client.exe"
+    "phantom-client.exe"
 } else {
-    "horizon-client"
+    "phantom-client"
 };
 
 /// The agent `url` is fetched with: the launcher's own user agent, through the player's proxy when
@@ -752,7 +752,7 @@ fn game_releases_with(
     asset: Option<&str>,
     fallback: Option<&str>,
 ) -> Vec<Release> {
-    let keep = |tag: &str| is_game_tag(tag) || horizon_release_sign::is_nightly(tag);
+    let keep = |tag: &str| is_game_tag(tag) || phantom_release_sign::is_nightly(tag);
     let mut out = parse_releases(list, asset, keep);
     if fallback.is_some() {
         // The same releases in the same order: only the asset looked for differs.
@@ -763,10 +763,10 @@ fn game_releases_with(
         }
     }
     for r in &mut out {
-        if horizon_release_sign::is_nightly(&r.tag) {
+        if phantom_release_sign::is_nightly(&r.tag) {
             let version = crate::nightly::version_of(r);
             let tag = std::mem::replace(&mut r.tag, version);
-            r.prerelease = tag != horizon_release_sign::NIGHTLY;
+            r.prerelease = tag != phantom_release_sign::NIGHTLY;
             r.nightly = Some(tag);
         }
     }
@@ -1050,7 +1050,7 @@ pub fn game_mod_api_level() -> Option<u32> {
 }
 
 /// A game version's mod API level, read once from the mark its program carries
-/// (`horizon_mods::api_level::MARK`). A program from before the mark serves level 0, the
+/// (`phantom_mods::api_level::MARK`). A program from before the mark serves level 0, the
 /// contract of Horizon 0.2.67 and 0.2.68.
 pub fn mod_api_level(tag: &str) -> u32 {
     static LEVELS: Mutex<Vec<(String, u32)>> = Mutex::new(Vec::new());
@@ -1066,7 +1066,7 @@ pub fn mod_api_level(tag: &str) -> u32 {
 /// The mod API level in the game program at `path`: its mark's, else 0.
 fn program_mod_api_level(path: &Path) -> u32 {
     let program = fs::read(path).unwrap_or_default();
-    horizon_mods::api_level::read_mark(&program).unwrap_or(0)
+    phantom_mods::api_level::read_mark(&program).unwrap_or(0)
 }
 
 /// Installed versions, newest tag first.
@@ -1107,7 +1107,7 @@ fn signed_digest(tag: &str, asset: &str) -> Result<String, String> {
     crate::signed::digest(
         tag,
         asset,
-        &horizon_release_sign::trusted_keys(),
+        &phantom_release_sign::trusted_keys(),
         fetch_small,
     )
 }
@@ -1163,7 +1163,7 @@ fn write_checked(
     progress: &impl Fn(f32),
 ) -> Result<(), String> {
     let mut file = fs::File::create(to).map_err(|e| e.to_string())?;
-    let mut hash = horizon_release_sign::Sha256::default();
+    let mut hash = phantom_release_sign::Sha256::default();
     let (mut done, mut buf) = (0u64, vec![0u8; 1 << 16]);
     loop {
         let n = reader
@@ -1177,7 +1177,7 @@ fn write_checked(
         done += n as u64;
         progress((done as f32 / size.max(1) as f32).min(1.0) * 0.9);
     }
-    horizon_release_sign::check(name, sha256, &hash.hex())
+    phantom_release_sign::check(name, sha256, &hash.hex())
 }
 
 fn unpack(archive: &Path, url: &str, to: &Path) -> Result<(), String> {
@@ -1219,7 +1219,7 @@ pub fn install(release: &Release, progress: impl Fn(f32)) -> Result<(), String> 
         // served under its own GitHub tag. A title that doesn't parse strictly is refused: nothing
         // signs GitHub's publication time.
         Some(github_tag) => {
-            let version = horizon_release_sign::nightly_title_version(&release.name)
+            let version = phantom_release_sign::nightly_title_version(&release.name)
                 .filter(|v| *v == release.tag)
                 .ok_or_else(|| {
                     crate::i18n::trf(
@@ -1232,7 +1232,7 @@ pub fn install(release: &Release, progress: impl Fn(f32)) -> Result<(), String> 
                 github_tag,
                 &version,
                 asset,
-                &horizon_release_sign::trusted_keys(),
+                &phantom_release_sign::trusted_keys(),
                 fetch_small,
             )?
         }
@@ -1388,7 +1388,7 @@ fn read_json(path: &Path) -> Option<serde_json::Value> {
 fn game_version_at(dir: &Path) -> String {
     read_json(&dir.join("research-lock.json"))
         .and_then(|v| v["minecraft"]["version"].as_str().map(String::from))
-        .unwrap_or_else(|| horizon_core::VANILLA_VERSION.into())
+        .unwrap_or_else(|| phantom_core::VANILLA_VERSION.into())
 }
 
 pub fn resources(tag: &str) -> PathBuf {
@@ -1396,7 +1396,7 @@ pub fn resources(tag: &str) -> PathBuf {
 }
 
 fn resources_at(dir: &Path) -> PathBuf {
-    dir.join(".local/horizon-client").join(game_version_at(dir))
+    dir.join(".local/phantom-client").join(game_version_at(dir))
 }
 
 const RESOURCES_MANIFEST: &str = "horizon-resources.json";
@@ -1508,7 +1508,7 @@ pub fn has_sounds(tag: &str) -> bool {
 }
 
 fn sounds_in(resources: &Path) -> bool {
-    // What the game's sound registry reads (horizon-client sound_events.rs).
+    // What the game's sound registry reads (phantom-client sound_events.rs).
     resources.join("assets/minecraft/sounds.json").is_file()
 }
 
@@ -1531,7 +1531,7 @@ pub fn resources_summary(prepared: bool, sounds: bool, version: &str) -> String 
 
 /// Whether the resources `from` prepared are the ones preparing `to` would make: both pin the same
 /// Minecraft jars (research-lock.json) and their preparers make the same output. A preparer
-/// declares what it makes with `OUTPUT_VERSION` (crates/horizon-prepare/src/lib.rs, whose sources
+/// declares what it makes with `OUTPUT_VERSION` (crates/phantom-prepare/src/lib.rs, whose sources
 /// ship in the release folder), bumped by hand when the output changes and checked by CI
 /// (tools/prepare_output.py), so a release that changes the preparer's code but not its output
 /// keeps the resources. Preparers from before the number are known by their sources
@@ -1620,11 +1620,11 @@ const LEGACY_EXPORTERS: [&str; 18] = [
 ];
 
 /// A version folder's preparer as the launchers before `OUTPUT_VERSION` compared it: the digest
-/// of its sources (`horizon_prepare::sources_sha256`) and of the exporters it ran, line endings
+/// of its sources (`phantom_prepare::sources_sha256`) and of the exporters it ran, line endings
 /// as checked out ignored.
 fn legacy_fingerprint(dir: &Path) -> Option<String> {
     use sha2::Digest;
-    let sources = horizon_prepare::sources_sha256(&dir.join(PREPARER_CRATE))?;
+    let sources = phantom_prepare::sources_sha256(&dir.join(PREPARER_CRATE))?;
     let mut hash = sha2::Sha256::new();
     hash.update(sources.as_bytes());
     for name in LEGACY_EXPORTERS {
@@ -1644,7 +1644,7 @@ fn legacy_fingerprint(dir: &Path) -> Option<String> {
 /// ones `LEGACY_OUTPUT_VERSIONS` knows. The manifest records the hashes of the vanilla exporters
 /// the resources were made with (mods/horizon/src/test/java/.../parity), and the preparer writes
 /// every file and the manifest's `schema`, so both need the same preparer and the same exporter
-/// sources. The preparer is crates/horizon-prepare and tools/prepare_native_client.py (the
+/// sources. The preparer is crates/phantom-prepare and tools/prepare_native_client.py (the
 /// Python preparer of older versions, a wrapper of the binary since); a file only one of the two
 /// versions has is a different preparer. The helpers the Python preparer imported (lab.py and
 /// the test_*_parity.py modules) change between releases in how they find and check the
@@ -1691,7 +1691,7 @@ fn same_preparer(from: &Path, to: &Path, manifest: &serde_json::Value) -> bool {
 }
 
 /// Where a version folder keeps the preparer's sources (the release package copies them).
-const PREPARER_CRATE: &str = "crates/horizon-prepare";
+const PREPARER_CRATE: &str = "crates/phantom-prepare";
 
 /// The files under `dir/relative`, as paths relative to `dir`.
 fn files_under(dir: &Path, relative: &Path) -> Vec<PathBuf> {
@@ -1725,7 +1725,7 @@ pub(crate) fn copy_dir_except(from: &Path, to: &Path, skip: Option<&Path>) -> st
                 copy_dir_except(&entry.path(), &target, skip)?;
             }
         } else {
-            horizon_prepare::clone_or_copy(&entry.path(), &target)?;
+            phantom_prepare::clone_or_copy(&entry.path(), &target)?;
         }
     }
     Ok(())
@@ -1875,13 +1875,13 @@ fn complete_reports(versions: &Path, tag: &str) -> bool {
 }
 
 /// What a prepared version may lack that the launcher adds without preparing again, each copied
-/// from the player's own Minecraft asset store as `horizon-prepare <kind>` does: what the
-/// player misses without it, its kind (`horizon_prepare::missing_extras`, the same check as
-/// `horizon-prepare --check`), and the copy.
+/// from the player's own Minecraft asset store as `phantom-prepare <kind>` does: what the
+/// player misses without it, its kind (`phantom_prepare::missing_extras`, the same check as
+/// `phantom-prepare --check`), and the copy.
 type Completion = (
     &'static str,
     &'static str,
-    fn(&Path, Option<&Path>, horizon_prepare::Log) -> Result<PathBuf, String>,
+    fn(&Path, Option<&Path>, phantom_prepare::Log) -> Result<PathBuf, String>,
 );
 
 const COMPLETIONS: [Completion; 5] = [
@@ -1889,15 +1889,15 @@ const COMPLETIONS: [Completion; 5] = [
     (
         "Programmer Art and High Contrast",
         "packs",
-        horizon_prepare::packs,
+        phantom_prepare::packs,
     ),
     // A preparation that could not read the asset store keeps the client jar's 1x1 grey
     // placeholders, its English alone, and no sounds (#1867: Prism Launcher installs prepared
     // since 0.2.48).
-    ("The title panorama", "panorama", horizon_prepare::panorama),
-    ("The Unifont glyphs", "fonts", horizon_prepare::fonts),
-    ("The languages", "languages", horizon_prepare::languages),
-    ("The sounds", "sounds", horizon_prepare::sounds),
+    ("The title panorama", "panorama", phantom_prepare::panorama),
+    ("The Unifont glyphs", "fonts", phantom_prepare::fonts),
+    ("The languages", "languages", phantom_prepare::languages),
+    ("The sounds", "sounds", phantom_prepare::sounds),
 ];
 
 /// Adds what a prepared version lacks of `COMPLETIONS`: a new version reuses the resources of the
@@ -1919,7 +1919,7 @@ fn refill_own_store(tag: &str) {
     let own = data_dir().join("minecraft");
     let resources = resources_at(&versions_dir().join(tag));
     if !own.join("assets/indexes").is_dir()
-        || !horizon_prepare::missing_extras(&resources)
+        || !phantom_prepare::missing_extras(&resources)
             .iter()
             .any(|(kind, _)| matches!(*kind, "languages" | "sounds"))
         || ASKED.swap(true, std::sync::atomic::Ordering::Relaxed)
@@ -1960,7 +1960,7 @@ fn complete_assets_in(
         if !resources.join(RESOURCES_MANIFEST).exists() {
             return Vec::new();
         }
-        let missing = horizon_prepare::missing_extras(&resources);
+        let missing = phantom_prepare::missing_extras(&resources);
         COMPLETIONS
             .iter()
             .filter(|(_, kind, _)| missing.iter().any(|(m, _)| m == kind))
@@ -2001,7 +2001,7 @@ fn complete_assets_in(
 fn minecraft_folders() -> Vec<PathBuf> {
     let mut folders: Vec<PathBuf> = Settings::load().minecraft_dir.into_iter().collect();
     folders.extend([
-        horizon_prepare::artifacts::minecraft_dir(None),
+        phantom_prepare::artifacts::minecraft_dir(None),
         data_dir().join("linked-minecraft"),
         data_dir().join("minecraft"),
     ]);
@@ -2051,19 +2051,19 @@ fn python() -> Option<&'static str> {
 
 /// How a version's resources are prepared.
 pub enum Preparer {
-    /// horizon-prepare, linked into the launcher: the version ships the same preparer sources.
-    InProcess(horizon_prepare::Options),
-    /// The version's own preparer: its horizon-prepare binary when its sources differ from the
+    /// phantom-prepare, linked into the launcher: the version ships the same preparer sources.
+    InProcess(phantom_prepare::Options),
+    /// The version's own preparer: its phantom-prepare binary when its sources differ from the
     /// launcher's (a newer or older release), or the Python script of versions made before it.
     Process(Command),
 }
 
-/// The version's horizon-prepare binary, when it ships one.
+/// The version's phantom-prepare binary, when it ships one.
 fn preparer_binary(dir: &Path) -> Option<PathBuf> {
     let binary = dir.join(if cfg!(windows) {
-        "horizon-prepare.exe"
+        "phantom-prepare.exe"
     } else {
-        "horizon-prepare"
+        "phantom-prepare"
     });
     binary.is_file().then_some(binary)
 }
@@ -2087,7 +2087,7 @@ fn download_for_owner(
         &mut accounts,
     );
     if let Err(e) = accounts.save() {
-        log(format!("Horizon: the accounts are not saved: {e}"));
+        log(format!("Phantom: the accounts are not saved: {e}"));
     }
     download_for(pins, dir, pass, !accounts.accounts.is_empty(), fetch, log)
 }
@@ -2268,9 +2268,9 @@ fn java(
     log: &dyn Fn(String),
 ) -> Result<PathBuf, String> {
     let find = if compiler {
-        horizon_prepare::java::find
+        phantom_prepare::java::find
     } else {
-        horizon_prepare::java::find_runtime
+        phantom_prepare::java::find_runtime
     };
     if let Ok(jdk) = find(major, &[]) {
         return Ok(jdk.home());
@@ -2278,7 +2278,7 @@ fn java(
     let mut runtimes: Vec<PathBuf> = Vec::new();
     for home in games
         .iter()
-        .flat_map(|game| horizon_prepare::java::minecraft_runtimes(&game.join("runtime")))
+        .flat_map(|game| phantom_prepare::java::minecraft_runtimes(&game.join("runtime")))
     {
         if !runtimes.contains(&home) {
             runtimes.push(home);
@@ -2377,7 +2377,7 @@ pub enum PrepareStep {
     Files,
     Java,
     Sounds,
-    /// horizon-prepare's own work on those files.
+    /// phantom-prepare's own work on those files.
     Prepare,
 }
 
@@ -2407,7 +2407,7 @@ pub fn set_prepare_step(step: PrepareStep) {
 
 /// Checks what the preparation needs and picks how to run it. PLAY.txt describes the same
 /// steps: the player's own launcher install, the server jar from that version's own json, and
-/// Java (and Python, for versions before horizon-prepare). Also returns the Minecraft folder
+/// Java (and Python, for versions before phantom-prepare). Also returns the Minecraft folder
 /// to prepare from: `minecraft`, or the files another launcher keeps, linked into the official
 /// launcher's layout (sources.rs).
 pub fn preparer(
@@ -2419,7 +2419,7 @@ pub fn preparer(
     set_prepare_step(PrepareStep::Files);
     let version = game_version(tag);
     let dir = version_dir(tag);
-    let reused = horizon_prepare::artifacts::reuse_imported(&dir, &|line| log(line.to_string()))?;
+    let reused = phantom_prepare::artifacts::reuse_imported(&dir, &|line| log(line.to_string()))?;
     let chosen = minecraft.to_path_buf();
     // Resolved even when the game files are reused: the assets still come from the install.
     let minecraft = {
@@ -2474,7 +2474,7 @@ pub fn preparer(
             "This version prepares with Python: Python 3.10 or newer is needed. Install it, or pick a newer version.",
         )?),
     };
-    // The Java the version pins, found as horizon-prepare finds it, so a missing one is
+    // The Java the version pins, found as phantom-prepare finds it, so a missing one is
     // reported (or downloaded) before the server jar is downloaded. Versions from before
     // java_major ran Java 25.
     let major = read_json(&dir.join("research-lock.json"))
@@ -2491,7 +2491,7 @@ pub fn preparer(
     set_prepare_step(PrepareStep::Java);
     let java_home = java(
         major,
-        !horizon_prepare::exporters::available(&dir),
+        !phantom_prepare::exporters::available(&dir),
         &games,
         &manifest,
         log,
@@ -2519,10 +2519,10 @@ pub fn preparer(
             .map_err(|e| e.to_string())?;
     }
     if let Some(binary) = binary {
-        if horizon_prepare::sources_sha256(&dir.join(PREPARER_CRATE)).as_deref()
-            == Some(horizon_prepare::SOURCES_SHA256)
+        if phantom_prepare::sources_sha256(&dir.join(PREPARER_CRATE)).as_deref()
+            == Some(phantom_prepare::SOURCES_SHA256)
         {
-            let options = horizon_prepare::Options {
+            let options = phantom_prepare::Options {
                 root: dir,
                 import: !reused,
                 minecraft_dir: Some(minecraft.clone()),
@@ -2554,19 +2554,19 @@ pub fn preparer(
 }
 
 /// Copies the pinned version's sounds from the player's own launcher install into the version's
-/// resources (`horizon-prepare sounds`), each line to `log`. Sound is optional, so a launcher
+/// resources (`phantom-prepare sounds`), each line to `log`. Sound is optional, so a launcher
 /// install without them is a line in the log, never a failed preparation. The version's own
 /// preparer does it when it is not the launcher's and knows how; versions from before it read
 /// the sounds where the launcher's preparer puts them.
 pub fn sounds(tag: &str, minecraft: &Path, log: &dyn Fn(String)) {
     let dir = version_dir(tag);
-    let own = horizon_prepare::sources_sha256(&dir.join(PREPARER_CRATE)).as_deref()
-        == Some(horizon_prepare::SOURCES_SHA256);
+    let own = phantom_prepare::sources_sha256(&dir.join(PREPARER_CRATE)).as_deref()
+        == Some(phantom_prepare::SOURCES_SHA256);
     let binary = preparer_binary(&dir).filter(|binary| {
         !own && crate::process::command(binary)
             .arg("--help")
             .output()
-            .is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains("horizon-prepare sounds"))
+            .is_ok_and(|o| String::from_utf8_lossy(&o.stdout).contains("phantom-prepare sounds"))
     });
     set_prepare_step(PrepareStep::Sounds);
     log("Copying the sounds from your Minecraft install".into());
@@ -2591,7 +2591,7 @@ pub fn sounds(tag: &str, minecraft: &Path, log: &dyn Fn(String)) {
                 }
             }),
         None => std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            horizon_prepare::sounds(&dir, Some(minecraft), &|line| log(line.to_string()))
+            phantom_prepare::sounds(&dir, Some(minecraft), &|line| log(line.to_string()))
         }))
         .unwrap_or_else(|_| Err("The sound copy stopped unexpectedly".into()))
         .map(|_| ()),
@@ -2604,11 +2604,11 @@ pub fn sounds(tag: &str, minecraft: &Path, log: &dyn Fn(String)) {
 /// Runs `Preparer::InProcess` on this thread, each progress line to `log`. A panic is an
 /// error like any other, so the window never waits on a preparation that died.
 pub fn prepare_in_process(
-    options: &horizon_prepare::Options,
+    options: &phantom_prepare::Options,
     log: &dyn Fn(String),
 ) -> Result<(), String> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        horizon_prepare::prepare(options, &|line| log(line.to_string()))
+        phantom_prepare::prepare(options, &|line| log(line.to_string()))
     }))
     .unwrap_or_else(|_| Err("The preparation stopped unexpectedly".into()))
     .map(|_| ())
@@ -2631,15 +2631,15 @@ pub fn game_home() -> PathBuf {
         .join("horizon")
 }
 
-/// Whether No AI is on: every AI feature hidden and off (`horizon_core::no_ai`, kept in the
+/// Whether No AI is on: every AI feature hidden and off (`phantom_core::no_ai`, kept in the
 /// game's `horizon-extras.txt` so the game reads the same switch).
 pub fn no_ai() -> bool {
-    horizon_core::no_ai::is_on(&game_home())
+    phantom_core::no_ai::is_on(&game_home())
 }
 
 /// Turns No AI on or off for the launcher and the game.
 pub fn set_no_ai(on: bool) -> Result<(), String> {
-    horizon_core::no_ai::set(&game_home(), on).map_err(|e| format!("Could not save No AI: {e}"))
+    phantom_core::no_ai::set(&game_home(), on).map_err(|e| format!("Could not save No AI: {e}"))
 }
 
 // ----- Logs and crash reports ---------------------------------------------------------------------
@@ -2706,7 +2706,7 @@ pub fn crash_summary(report: &str) -> Option<String> {
 }
 
 /// The line the game prints when it has drawn its first frame.
-pub const GAME_FIRST_FRAME: &str = "Horizon: first frame";
+pub const GAME_FIRST_FRAME: &str = "Phantom: first frame";
 
 /// Whether a game's output ends in a crash while its Vulkan renderer started: an adapter line
 /// (`Horizon renderer: <GPU> (Vulkan, <type>)`) and no first frame. A native crash in a graphics
@@ -2898,7 +2898,7 @@ pub fn client_command(tag: &str) -> Command {
         cmd.env("HORIZON_LAUNCHER_EXE", exe);
     }
     // PipeWire remembers volume and mute per application name. The game's own name is
-    // "PipeWire ALSA [horizon-client]", shared with development and test runs, where
+    // "PipeWire ALSA [phantom-client]", shared with development and test runs, where
     // muting it once left every later game silent: played from here it is "Horizon".
     if std::env::var_os("PIPEWIRE_PROPS").is_none() {
         cmd.env(
@@ -3100,7 +3100,7 @@ pub fn minecraft_dir(requested: Option<PathBuf>) -> Result<PathBuf, String> {
     Ok(requested
         .or(Settings::load().minecraft_dir)
         .or_else(default_minecraft_dir)
-        .unwrap_or_else(|| horizon_prepare::artifacts::minecraft_dir(None)))
+        .unwrap_or_else(|| phantom_prepare::artifacts::minecraft_dir(None)))
 }
 
 /// The server folder: the one given, the one chosen in the launcher, or `server/` in the data folder.
@@ -3168,10 +3168,10 @@ pub fn client_as(tag: &str, who: Option<&account::Player>) -> Result<Command, St
 
 /// Start the game straight into a friend's world: `--server friend:CODE`.
 pub fn join_friend(cmd: &mut Command, code: &str) -> Result<(), String> {
-    horizon_friends::invite::parse_detailed(code).map_err(|e| e.to_string())?;
+    phantom_friends::invite::parse_detailed(code).map_err(|e| e.to_string())?;
     let code: String = code.chars().filter(|c| !c.is_whitespace()).collect();
     cmd.arg("--server")
-        .arg(format!("{}{code}", horizon_friends::ADDRESS_PREFIX));
+        .arg(format!("{}{code}", phantom_friends::ADDRESS_PREFIX));
     Ok(())
 }
 
@@ -3822,7 +3822,7 @@ fn process_alive(pid: u32) -> bool {
 
 fn file_sha256(path: &Path) -> Result<String, String> {
     let mut file = fs::File::open(path).map_err(|e| e.to_string())?;
-    let mut hash = horizon_release_sign::Sha256::default();
+    let mut hash = phantom_release_sign::Sha256::default();
     let mut buf = vec![0u8; 1 << 16];
     loop {
         let n = file.read(&mut buf).map_err(|e| e.to_string())?;
@@ -3853,7 +3853,7 @@ pub fn place_checked(
         .map(|ending| stage.join(format!("download{ending}")))
         .find(|path| path.is_file())
         .ok_or_else(not_staged)?;
-    horizon_release_sign::check(&staged.tag, &staged.sha256, &file_sha256(&archive)?)?;
+    phantom_release_sign::check(&staged.tag, &staged.sha256, &file_sha256(&archive)?)?;
     let payload = if staged.payload == archive {
         archive
     } else {
@@ -4539,13 +4539,13 @@ impl Settings {
     pub fn glass_tint(&self) -> f32 {
         self.glass
             .filter(|v| v.is_finite())
-            .map_or(horizon_theme::glass::TINT, |v| v.clamp(0., 16.) / 100.)
+            .map_or(phantom_theme::glass::TINT, |v| v.clamp(0., 16.) / 100.)
     }
     /// The plates' blur in px (0 to 48).
     pub fn glass_blur(&self) -> f32 {
         self.blur
             .filter(|v| v.is_finite())
-            .map_or(horizon_theme::glass::BLUR, |v| v.clamp(0., 48.))
+            .map_or(phantom_theme::glass::BLUR, |v| v.clamp(0., 48.))
     }
     /// Whether the cheaper scene is on ([`performance`](Self::performance)).
     pub fn performance(&self) -> bool {
@@ -5308,7 +5308,7 @@ pub fn {f}("
     #[test]
     fn a_crash_after_the_vulkan_adapter_line_and_before_the_first_frame_is_a_start_crash() {
         let start = [
-            "Horizon: resources loaded in 11.3s; 35723 block states, 1658 items, 67 biomes",
+            "Phantom: resources loaded in 11.3s; 35723 block states, 1658 items, 67 biomes",
             "Horizon renderer: Intel(R) HD Graphics 530 (Vulkan, IntegratedGpu)",
         ];
         assert!(vulkan_start_crashed(start));
@@ -5316,7 +5316,7 @@ pub fn {f}("
         let step = [start[1], "Horizon renderer: creating the pipelines"];
         assert!(vulkan_start_crashed(step));
         // A crash after the first frame is the game's, not the renderer start's.
-        let later = [start[1], "Horizon: first frame after 812 ms"];
+        let later = [start[1], "Phantom: first frame after 812 ms"];
         assert!(!vulkan_start_crashed(later));
         // Already on DirectX 12, or no renderer yet: nothing to switch.
         let dx12 = ["Horizon renderer: Intel(R) HD Graphics 530 (Dx12, IntegratedGpu)"];
@@ -5900,8 +5900,8 @@ pub fn {f}("
         let dir = scratch("save-checked");
         let to = dir.join("download.zip");
         let bytes: &[u8] = b"the launcher";
-        let right = horizon_release_sign::sha256_hex(bytes);
-        let wrong = horizon_release_sign::sha256_hex(b"something else");
+        let right = phantom_release_sign::sha256_hex(bytes);
+        let wrong = phantom_release_sign::sha256_hex(b"something else");
         fs::write(&to, b"finished earlier").unwrap();
 
         assert!(save_checked(bytes, 0, "asset", &wrong, &to, &|_: f32| {}).is_err());
@@ -6401,12 +6401,12 @@ pub fn {f}("
                 serde_json::json!({"schema": 7, "collision_exporters_sha256": {collision: "x"}});
             write(
                 tag,
-                &format!(".local/horizon-client/{minecraft}/{RESOURCES_MANIFEST}"),
+                &format!(".local/phantom-client/{minecraft}/{RESOURCES_MANIFEST}"),
                 &manifest.to_string(),
             );
             write(
                 tag,
-                &format!(".local/horizon-client/{minecraft}/worldgen/biomes.json"),
+                &format!(".local/phantom-client/{minecraft}/worldgen/biomes.json"),
                 "{}",
             );
         };
@@ -6425,7 +6425,7 @@ pub fn {f}("
         assert!(resources_at(&versions.join("v2026.10.13.1"))
             .join("worldgen/biomes.json")
             .exists());
-        let left: Vec<_> = fs::read_dir(versions.join("v2026.10.13.1/.local/horizon-client"))
+        let left: Vec<_> = fs::read_dir(versions.join("v2026.10.13.1/.local/phantom-client"))
             .unwrap()
             .flatten()
             .map(|e| e.file_name())
@@ -6457,9 +6457,9 @@ pub fn {f}("
         assert!(!is_prepared("v2026.10.15") && !is_prepared("v2026.10.16"));
         assert!(reuse_prepared_in(&versions).is_empty());
 
-        // Versions with horizon-prepare: its sources are the preparer, so the same sources
+        // Versions with phantom-prepare: its sources are the preparer, so the same sources
         // reuse each other's resources, and a change or a version without them prepares again.
-        let crate_file = "crates/horizon-prepare/src/lib.rs";
+        let crate_file = "crates/phantom-prepare/src/lib.rs";
         release("v2026.10.18", "26.3");
         write("v2026.10.18", crate_file, "rust preparer");
         assert_eq!(reuse_prepared(&versions, "v2026.10.18"), None);
@@ -6488,14 +6488,14 @@ pub fn {f}("
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, text).unwrap();
         };
-        let lib = "crates/horizon-prepare/src/lib.rs";
+        let lib = "crates/phantom-prepare/src/lib.rs";
         // A preparer with its sources (as releases ship them) and the exporters it runs.
         let release = |tag: &str, code: &str| {
             write(tag, COMPLETE, "");
             let lock = serde_json::json!({"minecraft": {"version": "26.3", "client_sha1": "c", "server_sha1": "s"}});
             write(tag, "research-lock.json", &lock.to_string());
-            write(tag, "crates/horizon-prepare/Cargo.toml", "[package]");
-            write(tag, "crates/horizon-prepare/build.rs", "fn main() {}");
+            write(tag, "crates/phantom-prepare/Cargo.toml", "[package]");
+            write(tag, "crates/phantom-prepare/build.rs", "fn main() {}");
             write(tag, lib, code);
             for name in LEGACY_EXPORTERS {
                 write(
@@ -6508,10 +6508,10 @@ pub fn {f}("
         let prepared = |tag: &str| {
             write(
                 tag,
-                &format!(".local/horizon-client/26.3/{RESOURCES_MANIFEST}"),
+                &format!(".local/phantom-client/26.3/{RESOURCES_MANIFEST}"),
                 r#"{"schema": 7}"#,
             );
-            write(tag, ".local/horizon-client/26.3/facts.json", tag);
+            write(tag, ".local/phantom-client/26.3/facts.json", tag);
         };
         let facts = |tag: &str| {
             fs::read_to_string(resources_at(&versions.join(tag)).join("facts.json")).ok()
@@ -6590,7 +6590,7 @@ pub fn {f}("
             write(tag, "research-lock.json", &lock.to_string());
             write(
                 tag,
-                &format!(".local/horizon-client/26.3/{RESOURCES_MANIFEST}"),
+                &format!(".local/phantom-client/26.3/{RESOURCES_MANIFEST}"),
                 "{}",
             );
         };
@@ -6651,7 +6651,7 @@ pub fn {f}("
             data.push(n);
             data
         };
-        let mut assets: Vec<(String, Vec<u8>)> = horizon_prepare::BUILT_IN_PACKS
+        let mut assets: Vec<(String, Vec<u8>)> = phantom_prepare::BUILT_IN_PACKS
             .iter()
             .map(|name| (name.to_string(), name.as_bytes().to_vec()))
             .collect();
@@ -7054,7 +7054,7 @@ pub fn {f}("
         let start = std::time::SystemTime::now() - std::time::Duration::from_secs(2);
         assert!(crash_report_in_since(&dir, start).is_none());
         fs::create_dir_all(&dir).unwrap();
-        let report = "---- Horizon Crash Report ----\n// Details below.\n\nTime: 2026-10-14 09:05:07\nDescription: Unexpected error\n\npanicked at src/game.rs:10:5:\nboom\n\t0: horizon_client::game::frame\n";
+        let report = "---- Horizon Crash Report ----\n// Details below.\n\nTime: 2026-10-14 09:05:07\nDescription: Unexpected error\n\npanicked at src/game.rs:10:5:\nboom\n\t0: phantom_client::game::frame\n";
         fs::write(dir.join("crash-2026-10-14_09.05.07-client.txt"), report).unwrap();
         fs::write(dir.join("notes.txt"), "x").unwrap();
         assert_eq!(

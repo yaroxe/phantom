@@ -1,0 +1,16 @@
+[package]
+name = "phantom-command"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Commands (Brigadier): the vanilla command tree, argument types, selectors, parsing, suggestions and the network form of the tree"
+
+[dependencies]
+phantom-client-core = { path = "../phantom-client-core" }
+phantom-core = { path = "../phantom-core" }
+phantom-protocol = { path = "../phantom-protocol" }
+phantom-world = { path = "../phantom-world" }
+
+[lints]
+workspace = true

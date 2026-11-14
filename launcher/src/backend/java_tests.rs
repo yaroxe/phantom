@@ -36,7 +36,7 @@ fn selected_jdk_reaches_external_preparers() {
         |bin: &Path, name: &str| bin.join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
     let probe = executable(&root, "probe");
     let source = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../crates/horizon-prepare/tests/support/java_probe.rs");
+        .join("../crates/phantom-prepare/tests/support/java_probe.rs");
     let output = crate::process::command("rustc")
         .arg(source)
         .arg("-o")

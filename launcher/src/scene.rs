@@ -831,7 +831,7 @@ impl Scene {
             last: None,
             waking: false,
             tint: None,
-            blur: horizon_theme::glass::BLUR,
+            blur: phantom_theme::glass::BLUR,
             backdrop_for: None,
             baking: false,
             fast: false,
@@ -1074,7 +1074,7 @@ impl Render for Scene {
             .left_0()
             .size_full()
             .overflow_hidden()
-            .bg(gpui::rgb(horizon_theme::glass::PAGE))
+            .bg(gpui::rgb(phantom_theme::glass::PAGE))
             .child(layer(baked.sky.clone(), None))
             .child(
                 div()
@@ -1568,7 +1568,7 @@ mod tests {
         // Luminance is kept, darks stay dark and a grey tint makes the scene grey.
         let lum = |c: [f64; 3]| 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
         let night = rgb(SKY[1]);
-        let teal = rgb(horizon_theme::glass::mix_oklab(0x0f766e, 0x767676, 0.58));
+        let teal = rgb(phantom_theme::glass::mix_oklab(0x0f766e, 0x767676, 0.58));
         assert!((lum(color_blend(night, teal)) - lum(night)).abs() < 1e-9);
         let grey = color_blend(rgb(SUN[0]), [0.4; 3]);
         assert!(grey[0] == grey[1] && grey[1] == grey[2]);

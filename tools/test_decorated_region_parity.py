@@ -6,7 +6,7 @@ neighbours, so where trees, ore blobs, sculk patches and geodes end up (and
 whether a geode cuts through a stronghold room) depends on which chunk is
 decorated first. test_chunk_generation_parity.py decorates row-major; this
 harness decorates every site in the order vanilla's chunk scheduler uses
-around a player standing in the site's chunk (horizon_world's
+around a player standing in the site's chunk (phantom_world's
 decoration_order::vanilla_order, which the game's streamer follows), on both
 sides, and compares every block state, quart biome, block entity and
 scheduled tick of the whole decorated area: the square of chunks whose 3x3

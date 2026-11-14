@@ -84,7 +84,7 @@ def body(item, report, diff, store_path, limit=25):
     if item.get("harnesses"):
         lines.append("Harnesses that prove it: " + ", ".join(f"`{h}`" for h in item["harnesses"][:limit]))
     if item.get("files"):
-        lines.append("Horizon: " + ", ".join(f"`{f}`" for f in item["files"][:limit])
+        lines.append("Phantom: " + ", ".join(f"`{f}`" for f in item["files"][:limit])
                      + (f" (+{len(item['files']) - limit})" if len(item["files"]) > limit else ""))
     classes = item.get("classes")
     if isinstance(classes, dict):

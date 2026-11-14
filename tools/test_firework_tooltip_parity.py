@@ -143,7 +143,7 @@ def edge_cases():
 def cases(build):
     rng = random.Random(0x46495245)
     path = build / 'cases.txt'
-    resources = lab.LOCAL / 'horizon-client' / '26.3'
+    resources = lab.LOCAL / 'phantom-client' / '26.3'
     lines = [stack(rng) for _ in range(COUNT)]
     if '--no-edges' not in sys.argv:
         lines += edge_cases()
@@ -157,6 +157,6 @@ if __name__ == '__main__':
         'Firework rocket and star tooltip lines: flight duration (every 0..255), explosions (counted runs up to 256), '
         'colours and fade lists to 32 entries, trail, twinkle, defaults, tooltip_display, both components on one stack '
         'and firework components on non-rocket/non-star items',
-        sources=[lab.ROOT / 'crates/horizon-items/src/enchant.rs',
-                 lab.ROOT / 'crates/horizon-client/src/item_tooltip.rs', lab.ROOT / 'crates/horizon-items/src/item_data.rs',
-                 lab.ROOT / 'crates/horizon-client-render/src/particles.rs'])
+        sources=[lab.ROOT / 'crates/phantom-items/src/enchant.rs',
+                 lab.ROOT / 'crates/phantom-client/src/item_tooltip.rs', lab.ROOT / 'crates/phantom-items/src/item_data.rs',
+                 lab.ROOT / 'crates/phantom-client-render/src/particles.rs'])

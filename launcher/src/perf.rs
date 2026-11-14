@@ -13,7 +13,7 @@ use std::sync::mpsc::{self, Receiver, TryRecvError};
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
-use horizon_bench::{App, Frames, Hardware, Kind, Report};
+use phantom_bench::{App, Frames, Hardware, Kind, Report};
 
 /// The first thing `main` does; every start time counts from here.
 pub fn process_started() -> Instant {
@@ -51,8 +51,8 @@ impl Machine {
     fn detect() -> Self {
         Self {
             hardware: Hardware::detect(),
-            power: horizon_bench::power_source().map(str::to_owned),
-            load_average: horizon_bench::load_average(),
+            power: phantom_bench::power_source().map(str::to_owned),
+            load_average: phantom_bench::load_average(),
         }
     }
 }
@@ -136,7 +136,7 @@ impl Perf {
         if self.saved.elapsed() < Duration::from_secs(5) {
             return;
         }
-        if let Some(rss) = horizon_bench::rss_bytes(std::process::id()) {
+        if let Some(rss) = phantom_bench::rss_bytes(std::process::id()) {
             self.values
                 .entry("launcher.rss_mb".into())
                 .or_default()
@@ -156,7 +156,7 @@ impl Perf {
         self.report.frames = Frames::of("ui", 0, &self.ui_frames, &[], &[])
             .into_iter()
             .collect();
-        self.report.created = horizon_bench::utc_now();
+        self.report.created = phantom_bench::utc_now();
         &self.report
     }
 
@@ -277,14 +277,14 @@ impl Bench {
         let Some((rested, cpu)) = self.idle_cpu else {
             self.idle_cpu = Some((
                 Instant::now(),
-                horizon_bench::cpu_seconds(pid).unwrap_or(0.0),
+                phantom_bench::cpu_seconds(pid).unwrap_or(0.0),
             ));
             return Step::Wait;
         };
         if rested.elapsed() < IDLE {
             return Step::Wait;
         }
-        let cpu_idle_pct = horizon_bench::cpu_seconds(pid)
+        let cpu_idle_pct = phantom_bench::cpu_seconds(pid)
             .map(|now| 100.0 * (now - cpu) / rested.elapsed().as_secs_f64());
         let epoch_ms = |at: Instant| {
             let ago = at.elapsed();
@@ -302,7 +302,7 @@ impl Bench {
             "first_frame_epoch_ms": epoch_ms(first),
             "ui_ms": ui,
             "scroll_ms": scroll,
-            "rss_mb": horizon_bench::rss_bytes(pid).map(|b| b as f64 / f64::from(1 << 20)),
+            "rss_mb": phantom_bench::rss_bytes(pid).map(|b| b as f64 / f64::from(1 << 20)),
             "cpu_idle_pct": cpu_idle_pct,
         });
         let _ = std::fs::write(&self.out, result.to_string());
@@ -317,8 +317,8 @@ pub fn benchmark(repeats: usize) -> Result<PathBuf, String> {
     let mut report = Report::new(Kind::Launcher, app());
     report.conditions.scenario = Some("benchmark".into());
     report.conditions.repeats = Some(repeats as u32);
-    report.conditions.power = horizon_bench::power_source().map(str::to_owned);
-    report.conditions.load_avg_1m = horizon_bench::load_average();
+    report.conditions.power = phantom_bench::power_source().map(str::to_owned);
+    report.conditions.load_avg_1m = phantom_bench::load_average();
     let (mut starts, mut rss, mut cpu) = (Vec::new(), Vec::new(), Vec::new());
     let scratch =
         std::env::temp_dir().join(format!("horizon-launcher-bench-{}", std::process::id()));
@@ -408,12 +408,12 @@ pub fn benchmark(repeats: usize) -> Result<PathBuf, String> {
     }
     // Kept for upload only if the player allows benchmark uploads (the outbox checks).
     if let Ok(data) = serde_json::to_value(report.for_upload()) {
-        let item = horizon_telemetry::Item::new(
-            horizon_telemetry::Source::Launcher,
+        let item = phantom_telemetry::Item::new(
+            phantom_telemetry::Source::Launcher,
             crate::backend::VERSION,
-            horizon_telemetry::Payload::Benchmark(data),
+            phantom_telemetry::Payload::Benchmark(data),
         );
-        let _ = horizon_telemetry::outbox::push(&crate::backend::game_home(), &item);
+        let _ = phantom_telemetry::outbox::push(&crate::backend::game_home(), &item);
     }
     report
         .write_to(&crate::backend::data_dir().join("benchmarks"))

@@ -47,9 +47,9 @@ def main():
     tested_sources = base.source_hashes([
         Path(__file__), source,
         lab.ROOT / "mods/horizon/src/test/java/dev/horizonlab/parity/ParityData.java",
-        lab.ROOT / "crates/horizon-client/src/game/maps.rs",
-        lab.ROOT / "crates/horizon-client/src/game/maps/save_tests.rs",
-        lab.ROOT / "crates/horizon-client/Cargo.toml",
+        lab.ROOT / "crates/phantom-client/src/game/maps.rs",
+        lab.ROOT / "crates/phantom-client/src/game/maps/save_tests.rs",
+        lab.ROOT / "crates/phantom-client/Cargo.toml",
         lab.ROOT / "Cargo.toml", lab.ROOT / "Cargo.lock"])
     classes = out / "classes"
     classes.mkdir(exist_ok=True)
@@ -74,7 +74,7 @@ def main():
     rust = out / "rust.txt"
     rust.unlink(missing_ok=True)
     env = dict(os.environ, HORIZON_MAP_SAVE_CASES=str(inputs), HORIZON_MAP_SAVE_OUTPUT=str(rust))
-    run(["cargo", "test", "-p", "horizon-client", "--lib",
+    run(["cargo", "test", "-p", "phantom-client", "--lib",
          "game::maps::save_tests::saved_map_codec_fixture", "--", "--ignored", "--exact"],
         "rust", env)
     actual = rust.read_text(encoding="utf-8").splitlines()

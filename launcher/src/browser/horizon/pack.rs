@@ -1,12 +1,12 @@
 //! Horizon modpacks from the registry (`.hpack`, docs/api/mod-index.md), each played as its own
 //! profile: `horizon-packs/<id>/` in the game's home holds the pack's file, `pack.json` (what
 //! was installed) and `home/`, the profile's game folder: its saves, its options, and the pack's
-//! mods in `home/horizon-mods/`, each downloaded and checked against the index like any
+//! mods in `home/phantom-mods/`, each downloaded and checked against the index like any
 //! registry mod, turned on or off as the pack says. The pack's overrides (settings, resource
 //! packs, a mod's saved settings) are copied in once, when it is installed.
 use super::{fetch, index, install_version, local, newest, Index};
 use crate::browser::{java, FileRef};
-use horizon_mods::{index as idx, modpack::Modpack};
+use phantom_mods::{index as idx, modpack::Modpack};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -204,7 +204,7 @@ mod tests {
     /// [`registry`] with the pack at `pack_version`.
     fn registry_at(dir: &Path, pack_version: &str, on: bool, extra: &str) -> Index {
         let hmod_src = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../crates/horizon-mods/tests/index/coords_hud-0.1.0.hmod");
+            .join("../crates/phantom-mods/tests/index/coords_hud-0.1.0.hmod");
         let hmod = dir.join("coords_hud-0.1.0.hmod");
         fs::copy(hmod_src, &hmod).unwrap();
         let hmod_sha = idx::sha256_file(&hmod).unwrap();
@@ -270,7 +270,7 @@ mod tests {
         let pack = install_in(&index, true, "cozy", &packs, &|_, _| {}).unwrap();
         assert_eq!(pack.mods, ["coords_hud 0.1.0"]);
         let home = home(&packs.join("cozy"));
-        assert!(home.join("horizon-mods/coords_hud.hmod").is_file());
+        assert!(home.join("phantom-mods/coords_hud.hmod").is_file());
         assert!(
             !java::is_enabled(&home, "coords_hud"),
             "the pack turns it off"

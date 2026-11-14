@@ -205,7 +205,7 @@ def main():
     lock,jars,libraries=base.verify_artifacts()
     oracle=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaBlockSurvivalOracle.java'
     helpers=[oracle.with_name(name+'.java') for name in ['VanillaBlockPropertiesOracle','VanillaBlockSupportOracle','VanillaBlockStateCodecOracle','VanillaCollisionOracle','VanillaHeightmapOracle']]
-    sources=[oracle,*helpers,lab.ROOT/'tools/test_worldgen_parity.py',Path(__file__),lab.ROOT/'tools/test_rust_parity.py',lab.ROOT/'tools/lab.py',lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',lab.ROOT/'crates/horizon-core/Cargo.toml',lab.ROOT/'crates/horizon-world/Cargo.toml',*sorted((lab.ROOT/'crates/horizon-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/horizon-world/src').rglob('*.rs')),lab.ROOT/'crates/horizon-world/examples/probe/block_survival_fixture.rs']
+    sources=[oracle,*helpers,lab.ROOT/'tools/test_worldgen_parity.py',Path(__file__),lab.ROOT/'tools/test_rust_parity.py',lab.ROOT/'tools/lab.py',lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',lab.ROOT/'crates/phantom-core/Cargo.toml',lab.ROOT/'crates/phantom-world/Cargo.toml',*sorted((lab.ROOT/'crates/phantom-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/phantom-world/src').rglob('*.rs')),lab.ROOT/'crates/phantom-world/examples/probe/block_survival_fixture.rs']
     tested_sources=base.source_hashes(sources)
     environment={'minecraft':lock['minecraft']['version'],'manifest_sha1':lock['minecraft']['manifest_sha1'],'platform':platform.platform(),'java':subprocess.check_output(['java','--version'],text=True).splitlines()[0],'rustc':subprocess.check_output(['rustc','--version'],text=True).strip(),'dependencies':{str(path):lab.digest(path,'sha256') for path in [*jars.values(),*libraries]}}
     checkpoint=load_checkpoint(checkpoint_path,tested_sources,environment) if args.resume else None
@@ -236,7 +236,7 @@ def main():
                 output.write(json.dumps(fixture,separators=(',',':'))+'\n');fixture_count+=1
         fixture_paths=[inputs,build/'survival-extra-definitions.json',build/'fluid-tags.json',build/'survival-placement-classes.json',build/'survival-support-tags.json',build/'facts.json',build/'survival-classes.json',build/'survival-rules.json',build/'tags.json',build/'block-registry.nbt',build/'cached-collision.nbt',build/'block-properties.nbt',build/'cached-support.nbt']
         tested_fixtures=base.source_hashes(fixture_paths)
-        run(['cargo','build','--release','-p','horizon-world','--example','world_probe'],'compile-rust')
+        run(['cargo','build','--release','-p','phantom-world','--example','world_probe'],'compile-rust')
         metadata=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1'],cwd=lab.ROOT,text=True))
         binary=Path(metadata['target_directory'])/'release/examples'/('world_probe.exe' if os.name=='nt' else 'world_probe')
         base.ensure_sources_unchanged(sources,tested_sources)

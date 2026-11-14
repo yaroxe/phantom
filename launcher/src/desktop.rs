@@ -93,7 +93,7 @@ pub fn launcher_entry(exe: &Path) -> String {
          StartupWMClass=horizon-launcher\n",
         quote(exe),
         exe.display(),
-        minecraft = horizon_core::VANILLA_VERSION,
+        minecraft = phantom_core::VANILLA_VERSION,
     )
 }
 

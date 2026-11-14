@@ -33,7 +33,7 @@ def main():
         raise SystemExit("vanilla mount-control fixture did not cover 32 cases / four controllers")
     env["HORIZON_MOUNT_CONTROL_REFERENCE"] = str(reference)
     env["HORIZON_TEST_RESOURCES"] = os.environ.get("HORIZON_TEST_RESOURCES", str(lab.RESOURCES))
-    subprocess.run(["cargo", "test", "-p", "horizon-client", "--lib",
+    subprocess.run(["cargo", "test", "-p", "phantom-client", "--lib",
                     "game::remote_vehicles::tests::steering_mount_control_matches_vanilla",
                     "--", "--exact", "--ignored"], cwd=lab.ROOT, env=env, check=True)
     print("mount control: 32 vanilla cases match; four controllers predict forward movement and send MoveVehicle")

@@ -9,7 +9,7 @@ EntitySelector.pushableBy predicate (collision rules), Entity.isInvisibleTo
 (name tag visibility, with a stand-in client for the viewer, camera and F1) on
 stand-in entities, for every combination of two teams' options, the three
 entities' teams (none, either team) and the flags involved.
-`examples/probe/team_rules_fixture` answers from `horizon_client::scoreboard`.
+`examples/probe/team_rules_fixture` answers from `phantom_client::scoreboard`.
 
   test_team_rules_parity.py [--count N]
 """
@@ -84,7 +84,7 @@ def main():
          PARITY / 'VanillaTeamRulesOracle.java'], 'compile-java')
     run(['java', '-Xmx1G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaTeamRulesOracle',
          inputs, build / 'vanilla.jsonl'], 'vanilla')
-    run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client-lib', '--example', 'client_probe'], 'compile-rust')
+    run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client-lib', '--example', 'client_probe'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT, text=True))
     binary = Path(metadata['target_directory']) / 'fast/examples' / ('client_probe.exe' if os.name=='nt' else 'client_probe')
     run([binary, 'team_rules_fixture',inputs, build / 'rust.jsonl'], 'rust')

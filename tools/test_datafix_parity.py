@@ -9,8 +9,8 @@ generated automatically when missing), two upgrades run on a copy:
   vanilla  VanillaDataFixOracle: FileFixerUpper, then DataFixers on level.dat, every
            chunk, entity chunk and POI chunk, player, saved data, advancements and
            statistics file, exactly as 26.3 does when it opens the world
-  horizon  the `datafix_world` probe of horizon-world, which does the same with
-           horizon_world::datafix
+  horizon  the `datafix_world` probe of phantom-world, which does the same with
+           phantom_world::datafix
 
 Then every file is compared: region files chunk by chunk, NBT files and JSON
 files value by value (compound and object key order does not matter). The only
@@ -44,9 +44,9 @@ PARITY_SHARDS = 6
 # What the datafix_world probe can reach, checked by tools/parity.py: it reruns
 # this harness only when these sources (or the harness, oracle and data) change.
 PARITY_RUST_SCOPE = [
-    'crates/horizon-world/src/datafix/', 'crates/horizon-world/src/nbt.rs', 'crates/horizon-world/src/region.rs',
-    'crates/horizon-world/src/compression.rs', 'crates/horizon-core/src/position.rs', 'crates/horizon-core/src/position/',
-    'crates/horizon-core/src/geometry/', 'crates/horizon-core/src/version.rs',
+    'crates/phantom-world/src/datafix/', 'crates/phantom-world/src/nbt.rs', 'crates/phantom-world/src/region.rs',
+    'crates/phantom-world/src/compression.rs', 'crates/phantom-core/src/position.rs', 'crates/phantom-core/src/position/',
+    'crates/phantom-core/src/geometry/', 'crates/phantom-core/src/version.rs',
 ]
 
 IGNORED = {
@@ -72,7 +72,7 @@ def java_classpath():
 
 
 def build_rust():
-    subprocess.run(['cargo', 'build', '--locked', '--release', '-p', 'horizon-world', '--example', 'world_probe'],
+    subprocess.run(['cargo', 'build', '--locked', '--release', '-p', 'phantom-world', '--example', 'world_probe'],
                    cwd=ROOT, check=True)
     meta = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--no-deps', '--format-version', '1'],
                                               cwd=ROOT))
@@ -207,7 +207,7 @@ def main():
     p.add_argument('versions', nargs='*')
     p.add_argument('--keep', action='store_true')
     p.add_argument('--vanilla-only', action='store_true', help='only run the oracle')
-    p.add_argument('--binary', help='a prebuilt horizon-world probe binary')
+    p.add_argument('--binary', help='a prebuilt phantom-world probe binary')
     p.add_argument('--band', type=int, metavar='TARGET', help='check the data fixes up to this DataVersion only (not the '
                    'file fixes), on the sample worlds saved before it, for developing the fixes of a range of versions')
     args = p.parse_args()

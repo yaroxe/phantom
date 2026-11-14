@@ -38,9 +38,9 @@ def pinned_version():
 
 VERSION = pinned_version()
 # The pinned version's imported jars, libraries and sources (tools/lab.py prepare), and the resources
-# horizon-prepare made from them.
+# phantom-prepare made from them.
 GAME = LOCAL / "minecraft" / VERSION
-RESOURCES = LOCAL / "horizon-client" / VERSION
+RESOURCES = LOCAL / "phantom-client" / VERSION
 
 
 def version_info(client_jar=None):
@@ -71,7 +71,7 @@ def _remove_scratch_dirs():
 
 
 def game_env(base=None, **extra):
-    """The environment for every run of the game, the launcher or horizon-ctl from a tool or a harness: no audio,
+    """The environment for every run of the game, the launcher or phantom-ctl from a tool or a harness: no audio,
     no Discord presence, and fresh scratch folders for the game's home (logs, saves, options), the launcher's home and the XDG folders,
     so a run never writes into a real player's folders (the game falls back to them when HORIZON_HOME is unset).
     A folder the caller already has in `base` (default os.environ) or passes in `extra` is kept. The scratch folders

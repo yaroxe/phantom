@@ -24,7 +24,7 @@ SECTIONS = 24
 
 
 def make_cases(build):
-    resources = lab.LOCAL / 'horizon-client' / '26.3'
+    resources = lab.LOCAL / 'phantom-client' / '26.3'
     states = json.loads((resources / 'gameplay-facts.json').read_text())['states']
     ticking = [s['id'] for s in states if s['random_ticks']]
     still = [s['id'] for s in states if not s['random_ticks']]
@@ -65,9 +65,9 @@ if __name__ == '__main__':
         'Which sections of a chunk random-tick (block and fluid counts over loads, sets and removals, not the palette) '
         'and the positions tickChunk draws in them, with each position\'s block and fluid random-tick flags. The '
         'blocks\' random-tick behaviour itself is test_random_tick_parity\'s.',
-        sources=[lab.ROOT / 'crates/horizon-client/src/random_tick_sections.rs',
-                 lab.ROOT / 'crates/horizon-client-render/src/chunk.rs',
-                 lab.ROOT / 'crates/horizon-core/src/paletted.rs',
-                 lab.ROOT / 'crates/horizon-world/src/level/tick.rs',
-                 lab.ROOT / 'crates/horizon-world/src/level/ticks.rs'],
+        sources=[lab.ROOT / 'crates/phantom-client/src/random_tick_sections.rs',
+                 lab.ROOT / 'crates/phantom-client-render/src/chunk.rs',
+                 lab.ROOT / 'crates/phantom-core/src/paletted.rs',
+                 lab.ROOT / 'crates/phantom-world/src/level/tick.rs',
+                 lab.ROOT / 'crates/phantom-world/src/level/ticks.rs'],
         expected_lines=COUNT)

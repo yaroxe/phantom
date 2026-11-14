@@ -364,7 +364,7 @@ mod tests {
         let staged = Staged {
             tag: TAG.into(),
             payload,
-            sha256: horizon_release_sign::sha256_hex(&archive),
+            sha256: phantom_release_sign::sha256_hex(&archive),
         };
         (work, stage, staged)
     }
@@ -451,14 +451,14 @@ mod tests {
         fs::write(&image, NEW_LAUNCHER).unwrap();
         let mut appimage = Staged {
             payload: image,
-            sha256: horizon_release_sign::sha256_hex(NEW_LAUNCHER),
+            sha256: phantom_release_sign::sha256_hex(NEW_LAUNCHER),
             ..staged
         };
         let (result, placed) = placed_by(OLD, &appimage, &work);
         assert_eq!(result, Ok(()));
         assert_eq!(placed.as_deref(), Some(NEW_LAUNCHER));
 
-        appimage.sha256 = horizon_release_sign::sha256_hex(b"another AppImage");
+        appimage.sha256 = phantom_release_sign::sha256_hex(b"another AppImage");
         let (result, placed) = placed_by(OLD, &appimage, &work);
         assert!(result.is_err());
         assert_eq!(placed, None);

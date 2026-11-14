@@ -66,7 +66,7 @@ def main():
     oracle=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaServerPlayerCombatOracle.java'
     helper=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaEntityAttributeOracle.java'
     health_helper=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaPlayerHealthOracle.java'
-    sources=[oracle,helper,health_helper,Path(__file__),lab.ROOT/'tools/test_rust_parity.py',lab.ROOT/'tools/test_player_hurt_parity.py',lab.ROOT/'tools/lab.py',lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',lab.ROOT/'crates/horizon-core/Cargo.toml',lab.ROOT/'crates/horizon-world/Cargo.toml',*sorted((lab.ROOT/'crates/horizon-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/horizon-world/src').rglob('*.rs')),lab.ROOT/'crates/horizon-world/examples/probe/server_player_combat_fixture.rs']
+    sources=[oracle,helper,health_helper,Path(__file__),lab.ROOT/'tools/test_rust_parity.py',lab.ROOT/'tools/test_player_hurt_parity.py',lab.ROOT/'tools/lab.py',lab.ROOT/'Cargo.toml',lab.ROOT/'Cargo.lock',lab.ROOT/'crates/phantom-core/Cargo.toml',lab.ROOT/'crates/phantom-world/Cargo.toml',*sorted((lab.ROOT/'crates/phantom-core/src').rglob('*.rs')),*sorted((lab.ROOT/'crates/phantom-world/src').rglob('*.rs')),lab.ROOT/'crates/phantom-world/examples/probe/server_player_combat_fixture.rs']
     tested_sources=base.source_hashes(sources)
     classes=build/'classes';classes.mkdir(exist_ok=True)
     def run(command,name):
@@ -77,7 +77,7 @@ def main():
         run(['java','-Xmx512M','-cp',os.pathsep.join([str(classes),str(jars[side]),dependency_path]),'dev.horizonlab.parity.VanillaServerPlayerCombatOracle',mode,path],side+'-'+mode)
     java('server','export',build);states=json.loads((build/'catalog.json').read_text());fixtures=list(corpus(states));inputs=build/'inputs.txt';inputs.write_text(''.join(json.dumps(value,separators=(',',':'))+'\n' for value in fixtures),encoding='utf-8')
     fixture_paths=[inputs,build/'catalog.json',build/'ids.json',build/'slots.json',build/'head.json'];tested_fixtures=base.source_hashes(fixture_paths)
-    run(['cargo','build','--release','-p','horizon-world','--example','world_probe'],'compile-rust')
+    run(['cargo','build','--release','-p','phantom-world','--example','world_probe'],'compile-rust')
     metadata=json.loads(subprocess.check_output(['cargo','metadata','--no-deps','--format-version','1'],cwd=lab.ROOT,text=True))
     binary=Path(metadata['target_directory'])/'release/examples'/('world_probe.exe' if os.name=='nt' else 'world_probe')
     run([binary,'server_player_combat_fixture',build],'rust')

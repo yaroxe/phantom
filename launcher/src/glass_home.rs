@@ -4,7 +4,7 @@
 use super::*;
 use crate::glass_ui::{self as ui, white};
 use gpui::deferred;
-use horizon_theme::glass::{fill, ink, radius};
+use phantom_theme::glass::{fill, ink, radius};
 use std::time::Instant;
 
 /// Play, the version and the big icons are this tall (`h-14`).
@@ -119,7 +119,7 @@ impl Launcher {
                 .h(px(32.))
                 .px(px(12.))
                 .rounded(px(radius::CONTROL))
-                .font_family(horizon_theme::glass::FONT)
+                .font_family(phantom_theme::glass::FONT)
                 .text_size(px(13.))
                 .line_height(px(18.))
                 .child(icon)
@@ -200,7 +200,7 @@ impl Launcher {
                 div()
                     .min_w_0()
                     .truncate()
-                    .font_family(horizon_theme::glass::DISPLAY_FONT)
+                    .font_family(phantom_theme::glass::DISPLAY_FONT)
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_size(px(64.))
                     .line_height(px(64.))
@@ -367,7 +367,7 @@ impl Launcher {
                 .justify_center()
                 .gap(px(10.))
                 .pr(px(40.))
-                .font_family(horizon_theme::glass::FONT)
+                .font_family(phantom_theme::glass::FONT)
                 .text_size(px(18.))
                 .font_weight(FontWeight::SEMIBOLD)
                 .child(ui::icon(icon, 20., glyph))
@@ -393,7 +393,7 @@ impl Launcher {
                         .justify_center()
                         .pr(px(40.))
                         .text_color(on_accent)
-                        .font_family(horizon_theme::glass::FONT)
+                        .font_family(phantom_theme::glass::FONT)
                         .text_size(px(16.))
                         .font_weight(FontWeight::SEMIBOLD)
                         .child(match progress {
@@ -833,7 +833,7 @@ impl Launcher {
             .pr(px(pr))
             .rounded(px(radius::LARGE))
             .bg(white(if focused { 0.09 } else { 0.06 }))
-            .font_family(horizon_theme::glass::FONT)
+            .font_family(phantom_theme::glass::FONT)
             .text_size(px(14.))
             .text_color(white(ink::FULL))
             .cursor_text()
@@ -873,7 +873,7 @@ impl Launcher {
                 cx.notify();
             }));
         let field = line_edit::mouse(field, cx, |this| &mut this.friend_code);
-        let valid = horizon_friends::invite::parse(self.friend_code.text()).is_some();
+        let valid = phantom_friends::invite::parse(self.friend_code.text()).is_some();
         let can = valid && (tag.is_empty() || self.can_start(tag));
         let join = ui::quiet("join-friend", join_label, 40., &t);
         let join = if can {

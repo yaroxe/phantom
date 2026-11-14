@@ -416,10 +416,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-horizon-mod"
+name = "cargo-phantom-mod"
 version = "0.1.0"
 dependencies = [
- "horizon-mods",
+ "phantom-mods",
  "serde_json",
  "zip",
 ]
@@ -1397,582 +1397,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
 dependencies = [
  "digest",
-]
-
-[[package]]
-name = "horizon-anticheat"
-version = "0.1.0"
-dependencies = [
- "serde",
- "toml",
-]
-
-[[package]]
-name = "horizon-assets"
-version = "0.1.0"
-dependencies = [
- "horizon-core",
- "log",
- "png",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-bench"
-version = "0.1.0"
-dependencies = [
- "horizon-telemetry",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-bots"
-version = "0.1.0"
-dependencies = [
- "horizon-protocol",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-chat-filter"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "toml",
-]
-
-[[package]]
-name = "horizon-client"
-version = "0.1.0"
-dependencies = [
- "ab_glyph",
- "bytemuck",
- "chrono",
- "crc32fast",
- "dunce",
- "flate2",
- "fs4",
- "gilrs",
- "glam",
- "horizon-anticheat",
- "horizon-assets",
- "horizon-bench",
- "horizon-chat-filter",
- "horizon-client-core",
- "horizon-client-input",
- "horizon-client-lib",
- "horizon-client-render",
- "horizon-command",
- "horizon-core",
- "horizon-cosmetics",
- "horizon-dualsense",
- "horizon-friends",
- "horizon-hdr",
- "horizon-items",
- "horizon-mod-api-gen",
- "horizon-mods",
- "horizon-narrator",
- "horizon-optifine",
- "horizon-protocol",
- "horizon-server-files",
- "horizon-shader-api",
- "horizon-shaders",
- "horizon-telemetry",
- "horizon-theme",
- "horizon-threads",
- "horizon-world",
- "log",
- "miniz_oxide 0.8.9",
- "naga",
- "objc2 0.6.5",
- "objc2-app-kit 0.3.2",
- "objc2-foundation 0.3.2",
- "open",
- "png",
- "pollster",
- "rayon",
- "rustix 1.1.5",
- "serde",
- "serde_json",
- "sha1",
- "sha2",
- "toml",
- "unicode-bidi",
- "ureq",
- "wgpu",
- "winit",
- "winresource",
- "zip",
-]
-
-[[package]]
-name = "horizon-client-core"
-version = "0.1.0"
-dependencies = [
- "horizon-core",
- "horizon-world",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-client-input"
-version = "0.1.0"
-dependencies = [
- "arboard",
- "horizon-client-core",
- "horizon-dualsense",
- "horizon-theme",
- "png",
- "winit",
-]
-
-[[package]]
-name = "horizon-client-lib"
-version = "0.1.0"
-dependencies = [
- "ab_glyph",
- "bytemuck",
- "chrono",
- "crc32fast",
- "flate2",
- "fs4",
- "getrandom 0.3.4",
- "gilrs",
- "glam",
- "horizon-anticheat",
- "horizon-assets",
- "horizon-bench",
- "horizon-chat-filter",
- "horizon-client-core",
- "horizon-client-input",
- "horizon-client-render",
- "horizon-command",
- "horizon-core",
- "horizon-cosmetics",
- "horizon-dualsense",
- "horizon-friends",
- "horizon-hdr",
- "horizon-items",
- "horizon-mcp",
- "horizon-mods",
- "horizon-narrator",
- "horizon-optifine",
- "horizon-protocol",
- "horizon-server-files",
- "horizon-shader-api",
- "horizon-shaders",
- "horizon-telemetry",
- "horizon-theme",
- "horizon-threads",
- "horizon-world",
- "log",
- "miniz_oxide 0.8.9",
- "mio",
- "naga",
- "objc2 0.6.5",
- "objc2-app-kit 0.3.2",
- "objc2-foundation 0.3.2",
- "open",
- "png",
- "pollster",
- "rustix 1.1.5",
- "serde",
- "serde_json",
- "sha1",
- "sha2",
- "unicode-bidi",
- "ureq",
- "wgpu",
- "winit",
- "xxhash-rust",
- "zip",
-]
-
-[[package]]
-name = "horizon-client-render"
-version = "0.1.0"
-dependencies = [
- "ab_glyph",
- "base64 0.22.1",
- "bytemuck",
- "chrono",
- "cpal",
- "flate2",
- "glam",
- "half",
- "horizon-assets",
- "horizon-bench",
- "horizon-client-core",
- "horizon-client-input",
- "horizon-command",
- "horizon-core",
- "horizon-cosmetics",
- "horizon-hdr",
- "horizon-items",
- "horizon-mod-api-gen",
- "horizon-narrator",
- "horizon-optifine",
- "horizon-protocol",
- "horizon-shader-api",
- "horizon-shaders",
- "horizon-telemetry",
- "horizon-theme",
- "horizon-threads",
- "horizon-world",
- "image-webp",
- "log",
- "lz4_flex",
- "miniz_oxide 0.8.9",
- "naga",
- "png",
- "pollster",
- "rustix 1.1.5",
- "serde",
- "serde_json",
- "sha1",
- "sha2",
- "smallvec",
- "symphonia",
- "unicode-bidi",
- "ureq",
- "wgpu",
- "winit",
- "zip",
- "zune-jpeg",
-]
-
-[[package]]
-name = "horizon-command"
-version = "0.1.0"
-dependencies = [
- "horizon-client-core",
- "horizon-core",
- "horizon-protocol",
- "horizon-world",
-]
-
-[[package]]
-name = "horizon-core"
-version = "0.1.0"
-dependencies = [
- "libm",
-]
-
-[[package]]
-name = "horizon-cosmetics"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "glam",
- "png",
- "serde",
- "serde_json",
- "ureq",
-]
-
-[[package]]
-name = "horizon-dualsense"
-version = "0.1.0"
-dependencies = [
- "cpal",
- "hidapi",
- "log",
-]
-
-[[package]]
-name = "horizon-friends"
-version = "0.1.0"
-dependencies = [
- "chacha20poly1305",
- "getrandom 0.3.4",
- "hkdf",
- "if-addrs",
- "serde",
- "serde_json",
- "sha2",
- "socket2 0.6.5",
- "spake2",
-]
-
-[[package]]
-name = "horizon-hdr"
-version = "0.1.0"
-dependencies = [
- "ash",
- "wayland-backend",
- "wayland-client",
- "wayland-protocols",
- "wgpu",
-]
-
-[[package]]
-name = "horizon-items"
-version = "0.1.0"
-dependencies = [
- "horizon-client-core",
- "horizon-core",
- "horizon-world",
- "log",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-mcp"
-version = "0.1.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
-name = "horizon-mod-api-gen"
-version = "0.1.0"
-dependencies = [
- "heck",
- "quote",
- "serde",
- "serde_json",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "horizon-mod-api-gen-tests"
-version = "0.1.0"
-dependencies = [
- "horizon-mod-api-gen",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-mod-deps"
-version = "0.1.0"
-dependencies = [
- "gif",
- "mysql",
- "quinn",
- "redis",
- "rusqlite",
- "rusty-opus",
- "snap",
- "tungstenite",
- "yaml-rust2",
-]
-
-[[package]]
-name = "horizon-mods"
-version = "0.1.0"
-dependencies = [
- "horizon-shader-api",
- "log",
- "minisign-verify",
- "serde",
- "serde_json",
- "sha2",
- "toml",
- "wasmparser",
- "zip",
-]
-
-[[package]]
-name = "horizon-narrator"
-version = "0.1.0"
-dependencies = [
- "libloading",
- "log",
- "objc2 0.6.5",
- "objc2-app-kit 0.3.2",
- "objc2-foundation 0.3.2",
- "windows 0.62.2",
-]
-
-[[package]]
-name = "horizon-optifine"
-version = "0.1.0"
-dependencies = [
- "horizon-bench",
- "horizon-core",
- "log",
- "regex",
-]
-
-[[package]]
-name = "horizon-polytone"
-version = "0.1.0"
-dependencies = [
- "regex",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-port-pack"
-version = "0.1.0"
-dependencies = [
- "horizon-mods",
- "serde",
- "serde_json",
- "sha1",
- "toml",
- "ureq",
- "zip",
-]
-
-[[package]]
-name = "horizon-prepare"
-version = "0.1.0"
-dependencies = [
- "crc32fast",
- "libc",
- "regex",
- "sha1",
- "sha2",
- "zip",
-]
-
-[[package]]
-name = "horizon-protocol"
-version = "0.1.0"
-dependencies = [
- "aes",
- "flate2",
- "getrandom 0.3.4",
- "horizon-core",
- "horizon-world",
- "ipconfig",
- "log",
- "serde_json",
- "sha1",
- "sha2",
- "socket2 0.5.10",
-]
-
-[[package]]
-name = "horizon-relay"
-version = "0.1.0"
-dependencies = [
- "getrandom 0.3.4",
- "horizon-friends",
- "serde_json",
-]
-
-[[package]]
-name = "horizon-release-sign"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "ring",
-]
-
-[[package]]
-name = "horizon-server"
-version = "0.1.0"
-dependencies = [
- "ab_glyph",
- "base64 0.22.1",
- "chrono",
- "getrandom 0.3.4",
- "horizon-anticheat",
- "horizon-bench",
- "horizon-chat-filter",
- "horizon-core",
- "horizon-mcp",
- "horizon-release-sign",
- "horizon-server-files",
- "horizon-world",
- "libc",
- "p12-keystore",
- "png",
- "rcgen",
- "rustls",
- "serde",
- "serde_json",
- "sha1",
- "sha2",
- "toml",
- "toml_edit",
- "ureq",
- "windows-sys 0.61.2",
- "zip",
-]
-
-[[package]]
-name = "horizon-server-files"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "horizon-core",
- "horizon-protocol",
- "horizon-world",
- "log",
- "ureq",
-]
-
-[[package]]
-name = "horizon-shader-api"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "naga",
- "png",
- "serde",
- "serde_json",
- "sha2",
- "toml",
- "zip",
-]
-
-[[package]]
-name = "horizon-shaders"
-version = "0.1.0"
-dependencies = [
- "half",
- "horizon-core",
- "naga",
- "png",
- "zip",
-]
-
-[[package]]
-name = "horizon-telemetry"
-version = "0.1.0"
-dependencies = [
- "getrandom 0.3.4",
- "ruzstd",
- "serde",
- "serde_json",
- "ureq",
-]
-
-[[package]]
-name = "horizon-theme"
-version = "0.1.0"
-
-[[package]]
-name = "horizon-threads"
-version = "0.1.0"
-dependencies = [
- "libc",
- "libmimalloc-sys",
- "mimalloc",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "horizon-world"
-version = "0.1.0"
-dependencies = [
- "flate2",
- "horizon-core",
- "libm",
- "log",
- "lz4_flex",
- "postcard",
- "serde",
- "serde_json",
- "sha2",
- "xxhash-rust",
 ]
 
 [[package]]
@@ -3267,6 +2691,582 @@ dependencies = [
  "fixedbitset",
  "hashbrown 0.15.5",
  "indexmap",
+]
+
+[[package]]
+name = "phantom-anticheat"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "toml",
+]
+
+[[package]]
+name = "phantom-assets"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "phantom-core",
+ "png",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-bench"
+version = "0.1.0"
+dependencies = [
+ "phantom-telemetry",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-bots"
+version = "0.1.0"
+dependencies = [
+ "phantom-protocol",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-chat-filter"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml",
+]
+
+[[package]]
+name = "phantom-client"
+version = "0.1.0"
+dependencies = [
+ "ab_glyph",
+ "bytemuck",
+ "chrono",
+ "crc32fast",
+ "dunce",
+ "flate2",
+ "fs4",
+ "gilrs",
+ "glam",
+ "log",
+ "miniz_oxide 0.8.9",
+ "naga",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "open",
+ "phantom-anticheat",
+ "phantom-assets",
+ "phantom-bench",
+ "phantom-chat-filter",
+ "phantom-client-core",
+ "phantom-client-input",
+ "phantom-client-lib",
+ "phantom-client-render",
+ "phantom-command",
+ "phantom-core",
+ "phantom-cosmetics",
+ "phantom-dualsense",
+ "phantom-friends",
+ "phantom-hdr",
+ "phantom-items",
+ "phantom-mod-api-gen",
+ "phantom-mods",
+ "phantom-narrator",
+ "phantom-optifine",
+ "phantom-protocol",
+ "phantom-server-files",
+ "phantom-shader-api",
+ "phantom-shaders",
+ "phantom-telemetry",
+ "phantom-theme",
+ "phantom-threads",
+ "phantom-world",
+ "png",
+ "pollster",
+ "rayon",
+ "rustix 1.1.5",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "toml",
+ "unicode-bidi",
+ "ureq",
+ "wgpu",
+ "winit",
+ "winresource",
+ "zip",
+]
+
+[[package]]
+name = "phantom-client-core"
+version = "0.1.0"
+dependencies = [
+ "phantom-core",
+ "phantom-world",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-client-input"
+version = "0.1.0"
+dependencies = [
+ "arboard",
+ "phantom-client-core",
+ "phantom-dualsense",
+ "phantom-theme",
+ "png",
+ "winit",
+]
+
+[[package]]
+name = "phantom-client-lib"
+version = "0.1.0"
+dependencies = [
+ "ab_glyph",
+ "bytemuck",
+ "chrono",
+ "crc32fast",
+ "flate2",
+ "fs4",
+ "getrandom 0.3.4",
+ "gilrs",
+ "glam",
+ "log",
+ "miniz_oxide 0.8.9",
+ "mio",
+ "naga",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "open",
+ "phantom-anticheat",
+ "phantom-assets",
+ "phantom-bench",
+ "phantom-chat-filter",
+ "phantom-client-core",
+ "phantom-client-input",
+ "phantom-client-render",
+ "phantom-command",
+ "phantom-core",
+ "phantom-cosmetics",
+ "phantom-dualsense",
+ "phantom-friends",
+ "phantom-hdr",
+ "phantom-items",
+ "phantom-mcp",
+ "phantom-mods",
+ "phantom-narrator",
+ "phantom-optifine",
+ "phantom-protocol",
+ "phantom-server-files",
+ "phantom-shader-api",
+ "phantom-shaders",
+ "phantom-telemetry",
+ "phantom-theme",
+ "phantom-threads",
+ "phantom-world",
+ "png",
+ "pollster",
+ "rustix 1.1.5",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "unicode-bidi",
+ "ureq",
+ "wgpu",
+ "winit",
+ "xxhash-rust",
+ "zip",
+]
+
+[[package]]
+name = "phantom-client-render"
+version = "0.1.0"
+dependencies = [
+ "ab_glyph",
+ "base64 0.22.1",
+ "bytemuck",
+ "chrono",
+ "cpal",
+ "flate2",
+ "glam",
+ "half",
+ "image-webp",
+ "log",
+ "lz4_flex",
+ "miniz_oxide 0.8.9",
+ "naga",
+ "phantom-assets",
+ "phantom-bench",
+ "phantom-client-core",
+ "phantom-client-input",
+ "phantom-command",
+ "phantom-core",
+ "phantom-cosmetics",
+ "phantom-hdr",
+ "phantom-items",
+ "phantom-mod-api-gen",
+ "phantom-narrator",
+ "phantom-optifine",
+ "phantom-protocol",
+ "phantom-shader-api",
+ "phantom-shaders",
+ "phantom-telemetry",
+ "phantom-theme",
+ "phantom-threads",
+ "phantom-world",
+ "png",
+ "pollster",
+ "rustix 1.1.5",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "smallvec",
+ "symphonia",
+ "unicode-bidi",
+ "ureq",
+ "wgpu",
+ "winit",
+ "zip",
+ "zune-jpeg",
+]
+
+[[package]]
+name = "phantom-command"
+version = "0.1.0"
+dependencies = [
+ "phantom-client-core",
+ "phantom-core",
+ "phantom-protocol",
+ "phantom-world",
+]
+
+[[package]]
+name = "phantom-core"
+version = "0.1.0"
+dependencies = [
+ "libm",
+]
+
+[[package]]
+name = "phantom-cosmetics"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "glam",
+ "png",
+ "serde",
+ "serde_json",
+ "ureq",
+]
+
+[[package]]
+name = "phantom-dualsense"
+version = "0.1.0"
+dependencies = [
+ "cpal",
+ "hidapi",
+ "log",
+]
+
+[[package]]
+name = "phantom-friends"
+version = "0.1.0"
+dependencies = [
+ "chacha20poly1305",
+ "getrandom 0.3.4",
+ "hkdf",
+ "if-addrs",
+ "serde",
+ "serde_json",
+ "sha2",
+ "socket2 0.6.5",
+ "spake2",
+]
+
+[[package]]
+name = "phantom-hdr"
+version = "0.1.0"
+dependencies = [
+ "ash",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "wgpu",
+]
+
+[[package]]
+name = "phantom-items"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "phantom-client-core",
+ "phantom-core",
+ "phantom-world",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-mcp"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-mod-api-gen"
+version = "0.1.0"
+dependencies = [
+ "heck",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "phantom-mod-api-gen-tests"
+version = "0.1.0"
+dependencies = [
+ "phantom-mod-api-gen",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-mod-deps"
+version = "0.1.0"
+dependencies = [
+ "gif",
+ "mysql",
+ "quinn",
+ "redis",
+ "rusqlite",
+ "rusty-opus",
+ "snap",
+ "tungstenite",
+ "yaml-rust2",
+]
+
+[[package]]
+name = "phantom-mods"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "minisign-verify",
+ "phantom-shader-api",
+ "serde",
+ "serde_json",
+ "sha2",
+ "toml",
+ "wasmparser",
+ "zip",
+]
+
+[[package]]
+name = "phantom-narrator"
+version = "0.1.0"
+dependencies = [
+ "libloading",
+ "log",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "windows 0.62.2",
+]
+
+[[package]]
+name = "phantom-optifine"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "phantom-bench",
+ "phantom-core",
+ "regex",
+]
+
+[[package]]
+name = "phantom-polytone"
+version = "0.1.0"
+dependencies = [
+ "regex",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-port-pack"
+version = "0.1.0"
+dependencies = [
+ "phantom-mods",
+ "serde",
+ "serde_json",
+ "sha1",
+ "toml",
+ "ureq",
+ "zip",
+]
+
+[[package]]
+name = "phantom-prepare"
+version = "0.1.0"
+dependencies = [
+ "crc32fast",
+ "libc",
+ "regex",
+ "sha1",
+ "sha2",
+ "zip",
+]
+
+[[package]]
+name = "phantom-protocol"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "flate2",
+ "getrandom 0.3.4",
+ "ipconfig",
+ "log",
+ "phantom-core",
+ "phantom-world",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "socket2 0.5.10",
+]
+
+[[package]]
+name = "phantom-relay"
+version = "0.1.0"
+dependencies = [
+ "getrandom 0.3.4",
+ "phantom-friends",
+ "serde_json",
+]
+
+[[package]]
+name = "phantom-release-sign"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "ring",
+]
+
+[[package]]
+name = "phantom-server"
+version = "0.1.0"
+dependencies = [
+ "ab_glyph",
+ "base64 0.22.1",
+ "chrono",
+ "getrandom 0.3.4",
+ "libc",
+ "p12-keystore",
+ "phantom-anticheat",
+ "phantom-bench",
+ "phantom-chat-filter",
+ "phantom-core",
+ "phantom-mcp",
+ "phantom-release-sign",
+ "phantom-server-files",
+ "phantom-world",
+ "png",
+ "rcgen",
+ "rustls",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2",
+ "toml",
+ "toml_edit",
+ "ureq",
+ "windows-sys 0.61.2",
+ "zip",
+]
+
+[[package]]
+name = "phantom-server-files"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "log",
+ "phantom-core",
+ "phantom-protocol",
+ "phantom-world",
+ "ureq",
+]
+
+[[package]]
+name = "phantom-shader-api"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "naga",
+ "png",
+ "serde",
+ "serde_json",
+ "sha2",
+ "toml",
+ "zip",
+]
+
+[[package]]
+name = "phantom-shaders"
+version = "0.1.0"
+dependencies = [
+ "half",
+ "naga",
+ "phantom-core",
+ "png",
+ "zip",
+]
+
+[[package]]
+name = "phantom-telemetry"
+version = "0.1.0"
+dependencies = [
+ "getrandom 0.3.4",
+ "ruzstd",
+ "serde",
+ "serde_json",
+ "ureq",
+]
+
+[[package]]
+name = "phantom-theme"
+version = "0.1.0"
+
+[[package]]
+name = "phantom-threads"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "libmimalloc-sys",
+ "mimalloc",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "phantom-world"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "libm",
+ "log",
+ "lz4_flex",
+ "phantom-core",
+ "postcard",
+ "serde",
+ "serde_json",
+ "sha2",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -5647,8 +5647,8 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 name = "xtask"
 version = "0.1.0"
 dependencies = [
- "horizon-mod-api-gen",
- "horizon-theme",
+ "phantom-mod-api-gen",
+ "phantom-theme",
 ]
 
 [[package]]

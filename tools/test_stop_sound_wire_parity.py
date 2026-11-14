@@ -16,12 +16,12 @@ def main():
     lock,jars,libraries=base.verify_artifacts()
     cp=os.pathsep.join(map(str,[jars['server'],*libraries])); classes=build/'classes';classes.mkdir(exist_ok=True)
     source=lab.ROOT/'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaStopSoundWireOracle.java'
-    sources=[source,lab.ROOT/'crates/horizon-protocol/src/packets/play.rs',lab.ROOT/'crates/horizon-client/src/game/remote.rs']
+    sources=[source,lab.ROOT/'crates/phantom-protocol/src/packets/play.rs',lab.ROOT/'crates/phantom-client/src/game/remote.rs']
     tested=base.source_hashes(sources)
     run=lambda cmd,name:harness.run_logged(cmd,build,name)
     run(['javac','--release',lock['minecraft']['java_major'],'-proc:none','-cp',cp,'-d',classes,source],'compile-java')
     run(['java','-cp',str(classes)+os.pathsep+cp,'dev.horizonlab.parity.VanillaStopSoundWireOracle',build/'java.jsonl'],'java')
-    run(['cargo','build','-p','horizon-protocol','--example','stop_sound_probe'],'compile-rust')
+    run(['cargo','build','-p','phantom-protocol','--example','stop_sound_probe'],'compile-rust')
     run([lab.cargo_target()/'debug/examples/stop_sound_probe',build/'java.jsonl',build/'rust.jsonl'],'rust')
     java=[json.loads(x) for x in (build/'java.jsonl').read_text().splitlines()]
     rust=[json.loads(x) for x in (build/'rust.jsonl').read_text().splitlines()]

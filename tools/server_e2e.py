@@ -2,7 +2,7 @@
 """Horizon's client on a vanilla 26.3 dedicated server, end to end.
 
 A vanilla server (the pinned server jar, offline mode, a flat world) and one Horizon game joined to it,
-driven by horizon-ctl. The server's console does what a server or its plugins do; the checks read what
+driven by phantom-ctl. The server's console does what a server or its plugins do; the checks read what
 the game shows and what reaches the server (its console and, for custom click actions, its debug log).
 
     python3 tools/server_e2e.py --bin-dir target/fast             # every check
@@ -471,7 +471,7 @@ def run(bins, out, checks):
     server = Server(['java', '-Xmx2g', f'-Dlog4j.configurationFile={work / "log4j2.xml"}', '-cp', classpath,
                      'net.minecraft.server.Main', 'nogui'], directory, 'vanilla')
     proxy = PacketProxy(port) if 'book_menu' in checks or 'dialog_close' in checks else None
-    game = Game('client', bins / 'horizon-ctl', lab.RESOURCES.resolve())
+    game = Game('client', bins / 'phantom-ctl', lab.RESOURCES.resolve())
     for key in ('XDG_DATA_HOME', 'XDG_CONFIG_HOME', 'HORIZON_LAUNCHER_HOME'):
         game.d.env[key] = str(game.work / key.lower())
     game.d.env['HORIZON_LAUNCHER_NO_SELF_UPDATE'] = '1'
@@ -505,14 +505,14 @@ def run(bins, out, checks):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin-dir', help='prebuilt horizon-client and horizon-ctl (default: build with the fast profile)')
+    parser.add_argument('--bin-dir', help='prebuilt phantom-client and phantom-ctl (default: build with the fast profile)')
     parser.add_argument('--check', action='append', choices=list(CHECKS), help='run only these checks (repeatable)')
     parser.add_argument('--out', default=str(ROOT / '.local/server-e2e'), help='screenshots and logs go here')
     args = parser.parse_args()
     if args.bin_dir:
         bins = Path(args.bin_dir).resolve()
     else:
-        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'horizon-client', '-p', 'horizon-client-lib', '--bins'],
+        subprocess.run(['cargo', 'build', '--locked', '--profile', 'fast', '-p', 'phantom-client', '-p', 'phantom-client-lib', '--bins'],
                        cwd=ROOT, check=True)
         bins = ROOT / 'target/fast'
     out = Path(args.out)

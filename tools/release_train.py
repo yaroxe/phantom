@@ -68,16 +68,16 @@ GAME_PATHS = ["crates/", "xtask/", "packaging/", "Cargo.toml", "Cargo.lock", "re
 # Every crate the launcher builds in (cargo metadata --manifest-path launcher/Cargo.toml: the path packages).
 LAUNCHER_PATHS = [
     "launcher/",
-    "crates/horizon-bench/",
-    "crates/horizon-friends/",
-    "crates/horizon-mcp/",
-    "crates/horizon-mod-api-gen/",
-    "crates/horizon-mods/",
-    "crates/horizon-port-pack/",
-    "crates/horizon-prepare/",
-    "crates/horizon-release-sign/",
-    "crates/horizon-telemetry/",
-    "crates/horizon-theme/",
+    "crates/phantom-bench/",
+    "crates/phantom-friends/",
+    "crates/phantom-mcp/",
+    "crates/phantom-mod-api-gen/",
+    "crates/phantom-mods/",
+    "crates/phantom-port-pack/",
+    "crates/phantom-prepare/",
+    "crates/phantom-release-sign/",
+    "crates/phantom-telemetry/",
+    "crates/phantom-theme/",
     # Its icon, its menu entries and its AppImage are compiled or packaged into a release
     # (launcher/build.rs, src/desktop.rs, packaging/linux/appimage.sh).
     "packaging/icons/",
@@ -116,9 +116,9 @@ def gh_json(*arguments):
 
 
 def exporters():
-    """The exporter and oracle sources horizon-prepare compiles: those its sources name."""
+    """The exporter and oracle sources phantom-prepare compiles: those its sources name."""
     names = set()
-    for source in (ROOT / "crates" / "horizon-prepare" / "src").glob("*.rs"):
+    for source in (ROOT / "crates" / "phantom-prepare" / "src").glob("*.rs"):
         names.update(re.findall(r'"([A-Z]\w+\.java)"', source.read_text()))
     return {EXPORTERS + name for name in names}
 
@@ -389,7 +389,7 @@ def line_intro(kind, version, previous):
             + ". Releases used to be named after the day they came out; from now on they count up from "
             f"{line}.0, and the launcher's too. The launcher installs it by itself once it has updated itself. A server "
             "installed with install.sh that still says it is up to date takes it with "
-            f"`horizon-server update --version {version}`.")
+            f"`phantom-server update --version {version}`.")
 
 
 def notes(kind, version, prs, issues, previous=None):

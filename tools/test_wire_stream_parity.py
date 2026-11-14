@@ -25,7 +25,7 @@ never reach a server that isn't the player's own.
 Horizon runs `--headless` (no window or GPU: the ticks are what it sends from); the vanilla client runs on the
 virtual screen (`vscreen`) on Linux, from the logged-in session on macOS. Every game and server here runs in fresh temporary folders (HORIZON_HOME,
 HORIZON_LAUNCHER_HOME, XDG_*), with no audio and no self-update. Needs .local (the vanilla jars and prepared
-resources) and a built horizon-client and horizon-ctl (--bin DIR, default the parity target's fast build).
+resources) and a built phantom-client and phantom-ctl (--bin DIR, default the parity target's fast build).
 """
 import argparse
 import json
@@ -72,7 +72,7 @@ TARGET = ('summon minecraft:husk {x} {y} {z} {{NoAI:1b,Silent:1b,PersistenceRequ
 PRELUDE = 10
 # Client ticks between a reset's last teleport and the scenario: the player lands and stands still.
 SETTLE = 40
-# The Legacy client's horizon-extras.txt (crates/horizon-client-render/src/pvp.rs): the 1.8.9 feel, its
+# The Legacy client's horizon-extras.txt (crates/phantom-client-render/src/pvp.rs): the 1.8.9 feel, its
 # indicator and sounds, and the 1.8 rules, which only a world the player hosts may use.
 LEGACY_EXTRAS = 'combatFeel:legacy\ncombatIndicator:true\ncombatSounds:true\ncombatRules:true\n'
 # The clients --clients may name: the first is the reference, the second must send what it sends.
@@ -176,7 +176,7 @@ SCENARIOS = {
 
 
 def horizon_lines(lines):
-    """A scenario's lines for horizon-ctl: menu slot ids become its inventory indices (hotbar 0-8, main 9-35)."""
+    """A scenario's lines for phantom-ctl: menu slot ids become its inventory indices (hotbar 0-8, main 9-35)."""
     out = []
     for line in lines:
         w = line.split()
@@ -280,14 +280,14 @@ class HeadlessGame(Game):
         for d in ('home', 'launcher', 'data', 'config'):
             (work / d).mkdir(parents=True)
         if extras:
-            # The game folder is the home here (Game runs horizon-ctl there): extras sit next to options.txt.
+            # The game folder is the home here (Game runs phantom-ctl there): extras sit next to options.txt.
             (self.home / 'horizon-extras.txt').write_text(extras)
         self.env = lab.game_env(HORIZON_HOME=self.home, HORIZON_LAUNCHER_HOME=work / 'launcher',
                                 XDG_DATA_HOME=work / 'data', XDG_CONFIG_HOME=work / 'config',
                                 HORIZON_TELEMETRY_URL='off', HORIZON_TICK_SCRIPT=scripts / 'scenario.json')
-        self.base = [str(bins / 'horizon-ctl'), '--socket', str(work / 'c.sock')]
+        self.base = [str(bins / 'phantom-ctl'), '--socket', str(work / 'c.sock')]
         self.log = self.home / 'logs' / 'latest.log'
-        reply = self('launch', '--game', bins / 'horizon-client', '--headless', '--resources', resources)
+        reply = self('launch', '--game', bins / 'phantom-client', '--headless', '--resources', resources)
         self.pid = reply.get('pid')
 
 
@@ -307,7 +307,7 @@ class HorizonClient:
         deadline = time.time() + timeout
         while not done.exists():
             if time.time() > deadline:
-                raise Failed(f'Horizon: scenario {name} never finished (see horizon-client.log)')
+                raise Failed(f'Phantom: scenario {name} never finished (see phantom-client.log)')
             time.sleep(0.2)
 
     def close(self):
@@ -373,7 +373,7 @@ def run(args, out):
     lock, jars, libraries = base.verify_artifacts()
     deps = os.pathsep.join(map(str, [jars['server'], *libraries]))
     vanilla = ['java', '-Xmx1g', '-cp', deps, 'net.minecraft.server.Main', 'nogui']
-    resources = lab.LOCAL / 'horizon-client' / lab.VERSION
+    resources = lab.LOCAL / 'phantom-client' / lab.VERSION
     work = Path(tempfile.mkdtemp(prefix='hz-wire-stream-'))
     print(f'scratch: {work}')
     for var, sub in (('HORIZON_HOME', 'home'), ('HORIZON_LAUNCHER_HOME', 'launcher'), ('XDG_DATA_HOME', 'data'),
@@ -474,7 +474,7 @@ def compare(captures, scenarios):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin', default=str(lab.cargo_target() / 'fast'), help='horizon-client and horizon-ctl')
+    parser.add_argument('--bin', default=str(lab.cargo_target() / 'fast'), help='phantom-client and phantom-ctl')
     parser.add_argument('--out', default=str(lab.LOCAL / 'wire-stream-parity'))
     parser.add_argument('--scenarios', default=','.join(SCENARIOS), type=lambda s: s.split(','))
     parser.add_argument('--clients', default='vanilla,horizon', type=lambda s: s.split(','),

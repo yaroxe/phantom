@@ -4,7 +4,7 @@ use horizon_launcher::{
     i18n::{self, Language},
     modpacks::Imported,
 };
-use horizon_port_pack::{
+use phantom_port_pack::{
     fetch::Fetched,
     import::Pack,
     report::{self, Row, Status},
@@ -82,7 +82,7 @@ fn the_headline_says_what_coverage_md_says() {
 #[test]
 fn row_explanations_keep_the_coverage_reports_english_and_dependency_counts() {
     use horizon_launcher::modpacks::row_plain;
-    use horizon_port_pack::inventory::Record;
+    use phantom_port_pack::inventory::Record;
     i18n::set(Language::English);
     let records: Vec<_> = [
         ("base", "content", "machines", vec![]),

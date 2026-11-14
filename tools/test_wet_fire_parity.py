@@ -56,14 +56,14 @@ def main():
     classes.mkdir(exist_ok=True)
     dependencies = os.pathsep.join(map(str, [jars["server"], *libraries]))
     source = lab.ROOT / "mods/horizon/src/test/java/dev/horizonlab/parity/VanillaWetFireOracle.java"
-    sources = [Path(__file__), source, lab.ROOT / "crates/horizon-client/src/mobs/ai.rs",
-               lab.ROOT / "crates/horizon-client/src/mobs/wet_fire_tests.rs"]
+    sources = [Path(__file__), source, lab.ROOT / "crates/phantom-client/src/mobs/ai.rs",
+               lab.ROOT / "crates/phantom-client/src/mobs/wet_fire_tests.rs"]
     hashes = base.source_hashes(sources)
     oracle_harness.run_logged(["javac", "--release", lock["minecraft"]["java_major"],
         "-proc:none", "-sourcepath", lab.ROOT / "mods/horizon/src/test/java", "-cp",
         dependencies, "-d", classes, source], build, "compile-java")
     oracle_harness.java_run(build, classes, dependencies, "VanillaWetFireOracle", [], "vanilla")
-    oracle_harness.run_logged(["cargo", "test", "--locked", "-p", "horizon-client-lib", "--lib",
+    oracle_harness.run_logged(["cargo", "test", "--locked", "-p", "phantom-client-lib", "--lib",
         "wet_fire_damage_and_extinguishing_follow_the_full_mob_tick", "--", "--ignored", "--nocapture"],
         build, "rust", env=dict(lab.game_env(), HORIZON_TEST_RESOURCES=str(resources)))
     expected = vanilla_rows((build / "vanilla.log").read_text())

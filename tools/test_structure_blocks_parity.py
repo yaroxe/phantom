@@ -7,7 +7,7 @@ start of a mod world, its blocks (`blocks`, the start's box) and every position 
 
 Horizon side: the chunk_dump probe generates the chunks around each start in full (terrain, structures,
 features) twice: from the 26.3 resources (the no-mod world) and from those resources with the mods carried
-by `horizon-port-pack carry` (the mod world), as test_structure_layout_parity.py builds them. In the mod
+by `phantom-port-pack carry` (the mod world), as test_structure_layout_parity.py builds them. In the mod
 world each start whose pieces are all jigsaw pieces is the oracle's own (HORIZON_SAVED_STARTS): the blocks
 are checked whatever the layout (Lithostitched lays out jigsaws its own way, spec-lithostitched OPEN-L5), and
 test_structure_layout_parity.py checks layouts apart.

@@ -9,7 +9,7 @@ use glass_instance::{
 use horizon_launcher::instances::{self, Instance, Plays, Unkept};
 use horizon_launcher::loaders::Loader;
 use horizon_launcher::minecraft_versions::Kind as VersionKind;
-use horizon_theme::glass::{fill, ink, radius};
+use phantom_theme::glass::{fill, ink, radius};
 use new_instance::{NewKind, VersionList};
 use servers_page::Field;
 
@@ -41,7 +41,7 @@ impl Launcher {
                     .px(px(12.))
                     .rounded(px(radius::CONTROL))
                     .cursor_pointer()
-                    .font_family(horizon_theme::glass::FONT)
+                    .font_family(phantom_theme::glass::FONT)
                     .text_size(px(13.))
                     .when(on, |d| {
                         d.bg(white(fill::BUTTON_HOVER))
@@ -261,7 +261,7 @@ impl Launcher {
         if lines.is_empty() {
             return None;
         }
-        let warn = ui::color(horizon_theme::glass::WARN);
+        let warn = ui::color(phantom_theme::glass::WARN);
         Some(
             div()
                 .flex()

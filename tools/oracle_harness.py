@@ -17,7 +17,7 @@ except ImportError:
 
 def run_logged(command, build, name, timeout=900, **kwargs):
     with (build / (name + '.log')).open('w') as log:
-        runner = run_game if Path(command[0]).name == 'horizon-client' else subprocess.run
+        runner = run_game if Path(command[0]).name == 'phantom-client' else subprocess.run
         runner([str(c) for c in command], cwd=lab.ROOT, check=True, timeout=timeout,
                        stdout=log, stderr=subprocess.STDOUT, **kwargs)
 
@@ -34,8 +34,8 @@ def compile_oracle(build, oracle_name, jars, libraries, java_major):
 
 
 def build_probe(build, example):
-    """Build the horizon-client probe binary; returns the command that runs probe `example`."""
-    run_logged(['cargo', 'build', '--locked', '-p', 'horizon-client-lib', '--example', 'client_probe'],
+    """Build the phantom-client probe binary; returns the command that runs probe `example`."""
+    run_logged(['cargo', 'build', '--locked', '-p', 'phantom-client-lib', '--example', 'client_probe'],
                build, 'compile-rust-' + example, env=dict(os.environ, CARGO_BUILD_JOBS='3'))
     import json
     metadata = json.loads(subprocess.check_output(
@@ -67,8 +67,8 @@ def differential(name, oracle, probe, make_input, scope, sources=(), expected_li
     oracle_path = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity' / (oracle + '.java')
     all_sources = [Path(__file__).resolve(), lab.ROOT / 'tools/oracle_harness.py', lab.ROOT / 'tools/test_rust_parity.py',
                    lab.ROOT / 'tools/lab.py', oracle_path, lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock',
-                   lab.ROOT / 'crates/horizon-client/Cargo.toml', lab.ROOT / 'crates/horizon-client/src/lib.rs',
-                   lab.ROOT / f'crates/horizon-client/examples/probe/{probe}.rs', *map(Path, sources)]
+                   lab.ROOT / 'crates/phantom-client/Cargo.toml', lab.ROOT / 'crates/phantom-client/src/lib.rs',
+                   lab.ROOT / f'crates/phantom-client/examples/probe/{probe}.rs', *map(Path, sources)]
     tested = base.source_hashes(all_sources)
     input_path, units = make_input(build)
     input_hash = lab.digest(input_path, 'sha256') if input_path.is_file() else None

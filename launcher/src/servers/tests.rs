@@ -54,13 +54,13 @@ fn create_asks_init_and_config_set() {
 fn programs_are_laid_out_as_install_sh_does() {
     let root = scratch("runtime");
     let version = root.join("versions/v1");
-    fs::create_dir_all(version.join(".local/horizon-client/26.3")).unwrap();
+    fs::create_dir_all(version.join(".local/phantom-client/26.3")).unwrap();
     fs::write(version.join(PROGRAM), "server").unwrap();
-    fs::write(version.join("horizon-client"), "game").unwrap();
+    fs::write(version.join("phantom-client"), "game").unwrap();
     fs::write(version.join(".installed"), "").unwrap();
     crate::game_app::ensure(&version).unwrap();
     fs::write(
-        version.join(".local/horizon-client/26.3/horizon-resources.json"),
+        version.join(".local/phantom-client/26.3/horizon-resources.json"),
         "{}",
     )
     .unwrap();
@@ -73,13 +73,13 @@ fn programs_are_laid_out_as_install_sh_does() {
     assert!(!rt.join("releases/v1/.installed").exists());
     // The game's macOS bundle is the launcher's, not the server's.
     assert!(!rt.join("releases/v1/Horizon.app").exists());
-    // The release finds the game files where horizon-server looks: .local beside it.
+    // The release finds the game files where phantom-server looks: .local beside it.
     assert!(rt
-        .join("current/.local/horizon-client/26.3/horizon-resources.json")
+        .join("current/.local/phantom-client/26.3/horizon-resources.json")
         .is_file());
     // Again with newer game files: only they change, swapped in whole.
     fs::write(
-        version.join(".local/horizon-client/26.3/horizon-resources.json"),
+        version.join(".local/phantom-client/26.3/horizon-resources.json"),
         "{\"new\":1}",
     )
     .unwrap();
@@ -103,7 +103,7 @@ fn problems_say_what_to_do() {
     assert!(port.message.contains("already used"), "{}", port.message);
     assert!(matches!(port.fix, Some(Fix::UsePort(p)) if p > 25565));
     let files = Problem::explain_with(
-        "horizon-server: no prepared game files. Horizon reads them from",
+        "phantom-server: no prepared game files. Horizon reads them from",
         "",
         &dir,
     );
@@ -114,7 +114,7 @@ fn problems_say_what_to_do() {
         &dir,
     );
     assert_eq!(reports.fix, Some(Fix::Prepare));
-    let other = Problem::explain_with("horizon-server: a server is already running in x", "", &dir);
+    let other = Problem::explain_with("phantom-server: a server is already running in x", "", &dir);
     assert_eq!(other, Problem::plain("A server is already running in x"));
     fs::remove_dir_all(&dir).unwrap();
 }

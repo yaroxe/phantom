@@ -4,7 +4,7 @@
     python3 tools/pad_parity_e2e.py                 # every case
     python3 tools/pad_parity_e2e.py --only drop_stack
 
-Each case starts its own isolated integrated-server game through horizon-ctl (fresh scratch homes from
+Each case starts its own isolated integrated-server game through phantom-ctl (fresh scratch homes from
 `lab.game_env`), does one thing with the keyboard and the same thing with the virtual pad, and compares
 what the player can observe (item counts, files written). The keyboard result is the reference; a case
 whose keyboard side fails is reported as such, not as a controller failure.
@@ -16,8 +16,8 @@ Cases:
 - gameplay_drop: Q in play throws one and Ctrl+Q the rest; the pad's drop button tapped and held must too.
 - screenshot: key.screenshot bound to the pad takes a screenshot as F2 does.
 
-Needs built fast binaries (`cargo build --profile fast -p horizon-client -p horizon-client-lib --bins`)
-and prepared resources in .local/horizon-client/26.3. Exit status 0 when every case matches.
+Needs built fast binaries (`cargo build --profile fast -p phantom-client -p phantom-client-lib --bins`)
+and prepared resources in .local/phantom-client/26.3. Exit status 0 when every case matches.
 """
 import argparse
 import json
@@ -183,9 +183,9 @@ CASES = {
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--game', type=Path, default=lab.cargo_target() / f'fast/horizon-client{EXE}')
-    parser.add_argument('--ctl', type=Path, default=lab.cargo_target() / f'fast/horizon-ctl{EXE}')
-    parser.add_argument('--resources', type=Path, default=ROOT / '.local/horizon-client/26.3')
+    parser.add_argument('--game', type=Path, default=lab.cargo_target() / f'fast/phantom-client{EXE}')
+    parser.add_argument('--ctl', type=Path, default=lab.cargo_target() / f'fast/phantom-ctl{EXE}')
+    parser.add_argument('--resources', type=Path, default=ROOT / '.local/phantom-client/26.3')
     parser.add_argument('--only', nargs='*', choices=sorted(CASES), help='run only these cases')
     args = parser.parse_args()
     args.game, args.ctl, args.resources = args.game.resolve(), args.ctl.resolve(), args.resources.resolve()

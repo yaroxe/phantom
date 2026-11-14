@@ -9,7 +9,7 @@ and clicks (on the suggestion list, on the input). The Java oracle
 (VanillaChatScreenOracle) drives a real ChatScreen, whose CommandSuggestions
 parse with vanilla's client command tree and ask the server's dispatcher
 for the suggestions a node leaves to it; examples/probe/chat_screen_fixture runs
-horizon_client::chat::ChatScreen on Horizon's dispatcher. After the actions
+phantom_client::chat::ChatScreen on Horizon's dispatcher. After the actions
 the input's value, cursor, selection and scroll and the screen's GUI calls
 (the input background, the EditBox with its argument colouring, cursor,
 selection and suggestion text, then the suggestion list or the usage lines)
@@ -148,7 +148,7 @@ def main():
     java = ['java', '-Xmx2G', '-cp', str(classes) + os.pathsep + dependencies]
     run([*java, 'dev.horizonlab.parity.VanillaCommandParseOracle', 'registries', build], 'registries')
     run([*java, 'dev.horizonlab.parity.VanillaChatScreenOracle', inputs, build / 'vanilla.jsonl'], 'vanilla')
-    lib.cargo_example('horizon-client', 'chat_screen_fixture', lib.RESOURCES, build / 'registries.json', inputs, build / 'rust.jsonl')
+    lib.cargo_example('phantom-client', 'chat_screen_fixture', lib.RESOURCES, build / 'registries.json', inputs, build / 'rust.jsonl')
     vanilla = [json.loads(l) for l in (build / 'vanilla.jsonl').read_text().splitlines()]
     rust = [json.loads(l) for l in (build / 'rust.jsonl').read_text().splitlines()]
     assert len(vanilla) == len(rust) == len(chosen), (len(vanilla), len(rust), len(chosen))

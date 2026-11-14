@@ -6,7 +6,7 @@ another (boats and minecarts first, then bolts, bobbers, tridents, rockets, item
 TNT). #6509 says to change the cross-kind order only once a harness shows where vanilla differs; this is that harness,
 and it changes nothing. It measures, it does not fix.
 
-A vanilla dedicated server and Horizon's (`horizon-client --dedicated --nogui`) each serve the same flat world with
+A vanilla dedicated server and Horizon's (`phantom-client --dedicated --nogui`) each serve the same flat world with
 nobody on it. Every case is a small cell of two kinds, 10 blocks or more from the next cell and inside force-loaded
 (ticking) chunks, summoned by console in one order and then the other (`a-first`, `b-first`: the ids rise with the join).
 Ticking is frozen and stepped one tick at a time; after each tick the Pos and Motion (and Health, fuse, orb value,
@@ -411,19 +411,19 @@ def main():
     build = lab.LOCAL / NAME
     build.mkdir(parents=True, exist_ok=True)
     (build / 'report.json').unlink(missing_ok=True)
-    subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], cwd=lab.ROOT,
+    subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], cwd=lab.ROOT,
                    check=True, capture_output=True)
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'],
                                                   cwd=lab.ROOT, text=True))
-    binary = Path(metadata['target_directory']) / 'fast' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+    binary = Path(metadata['target_directory']) / 'fast' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     dependencies = os.pathsep.join(map(str, [jars['server'], *libraries]))
     vanilla_server = ['java', '-Xmx2g', '-Duser.timezone=UTC', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [binary, '--resources', lab.LOCAL / 'horizon-client/26.3', '--dedicated', '--nogui']
+    phantom_server = [binary, '--resources', lab.LOCAL / 'phantom-client/26.3', '--dedicated', '--nogui']
 
     all_cells = cells()
     world = generate_world(vanilla_server, build)
     vanilla = run_side('vanilla', vanilla_server, build, world, all_cells)
-    horizon = run_side('horizon', horizon_server, build, world, all_cells)
+    horizon = run_side('horizon', phantom_server, build, world, all_cells)
     if noise:
         again = run_side('vanilla2', vanilla_server, build, world, all_cells)
         itself = sum(compare(a, b)[0] > 0 for a, b in zip(values(vanilla).values(), values(again).values()))

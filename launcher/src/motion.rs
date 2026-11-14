@@ -5,7 +5,7 @@
 //! ([`crate::sky::motion`]) nothing moves: everything is drawn where it ends. Menus open at once:
 //! an animation inside a `deferred` menu kept its first frame (invisible) under GPUI Fast.
 use gpui::{px, Animation, AnimationExt, AnyElement, Div, ElementId, IntoElement, Styled};
-use horizon_theme as tokens;
+use phantom_theme as tokens;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::time::Instant;

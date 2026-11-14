@@ -325,7 +325,7 @@ pub(super) fn post_builds(stage: &Path) -> Result<Vec<PostBuild>, String> {
                 serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
             match steps
                 .iter()
-                .find(|s| !horizon_mods::index::valid_id(&s.mod_id))
+                .find(|s| !phantom_mods::index::valid_id(&s.mod_id))
             {
                 Some(bad) => Err(format!(
                     "{}: invalid mod id {:?}",
@@ -468,7 +468,7 @@ mod tests {
 version = 4
 
 [[package]]
-name = "horizon-client"
+name = "phantom-client"
 version = "0.1.0"
 
 [[package]]

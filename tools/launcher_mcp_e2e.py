@@ -2,7 +2,7 @@
 """End-to-end check of the launcher's MCP playing the game through its game_* tools.
 
 A scratch launcher home gets one "installed" version made of this checkout's builds
-(horizon-client and horizon-ctl) and the prepared resources in .local/horizon-client. An MCP
+(phantom-client and phantom-ctl) and the prepared resources in .local/phantom-client. An MCP
 client then talks to `horizon-launcher mcp` alone. It first plays a game started from its window with
 Agent Control on, and a game on the launcher's own endpoint wins over it. Then every CLI command is
 listed as a tool of the same name (versions, settings, mods_search...), a destructive one needs confirm,
@@ -203,7 +203,7 @@ def no_ai_scenario(launcher, env, home):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--bin-dir', required=True, help='horizon-client and horizon-ctl built from this checkout')
+    parser.add_argument('--bin-dir', required=True, help='phantom-client and phantom-ctl built from this checkout')
     parser.add_argument('--launcher', required=True, help='a horizon-launcher binary')
     parser.add_argument('--out', default=str(ROOT / '.local/launcher-mcp-e2e'), help='the screenshot goes here')
     args = parser.parse_args()
@@ -215,13 +215,13 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix='hzlm-'))
     version = work / 'launcher/versions' / TAG
-    (version / '.local/horizon-client').mkdir(parents=True)
+    (version / '.local/phantom-client').mkdir(parents=True)
     suffix = '.exe' if sys.platform == 'win32' else ''
-    for name in ['horizon-client', 'horizon-ctl']:
+    for name in ['phantom-client', 'phantom-ctl']:
         # Linking a file on Windows needs Developer Mode or an administrator; a hard link needs neither.
         link = os.link if sys.platform == 'win32' else os.symlink
         link(bins / (name + suffix), version / (name + suffix))
-    lab.link_dir(resources, version / '.local/horizon-client' / lab.VERSION)
+    lab.link_dir(resources, version / '.local/phantom-client' / lab.VERSION)
     (version / '.installed').write_text('')
     (work / 'home').mkdir()
     # The game's default endpoint, this run's: a player's game with Agent Control on stays out of it.
@@ -229,7 +229,7 @@ def main():
                        HORIZON_CONTROL=work / 'default.sock')
     m = Mcp(Path(args.launcher).resolve(), env)
     try:
-        summary = window_game_scenario(m, bins / ('horizon-client' + suffix), resources, work)
+        summary = window_game_scenario(m, bins / ('phantom-client' + suffix), resources, work)
         summary.update(scenario(m, out))
         summary.update(no_ai_scenario(Path(args.launcher).resolve(), env, work / 'home'))
         print(f'[launcher-mcp] PASS: {summary}')

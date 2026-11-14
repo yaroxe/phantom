@@ -4,7 +4,7 @@
 (a) The code alone: a host Horizon opens a world and shares it (`friends
 host`) with no relay anywhere; a guest Horizon joins with the full invite
 code (`connect friend:CODE`) by dialling the endpoints in it. (b) A
-self-hosted relay run locally (`horizon-relay`): the host also gets a short
+self-hosted relay run locally (`phantom-relay`): the host also gets a short
 code from it, and a guest started with HORIZON_FRIENDS_PATH=relay joins with
 the short code through it. Each time both sides must see the other's chat
 line, the other moving, a block the host places and the block the guest
@@ -13,7 +13,7 @@ why it can't join. `--baseline` first runs the same checks over plain LAN.
 The router is never asked to open a port (HORIZON_FRIENDS_UPNP=0) and STUN
 is off: nothing leaves the machine.
 
-    python3 tools/test_friends.py --client target/fast/horizon-client --relay target/fast/horizon-relay
+    python3 tools/test_friends.py --client target/fast/phantom-client --relay target/fast/phantom-relay
 
 The host runs on its integrated server thread (the window is a client of it).
 
@@ -367,7 +367,7 @@ def one_side(args, work):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--client', type=Path, required=True)
-    parser.add_argument('--relay', type=Path, help='horizon-relay binary (started on a free local port)')
+    parser.add_argument('--relay', type=Path, help='phantom-relay binary (started on a free local port)')
     parser.add_argument('--relay-url', help='--role: a relay already running elsewhere, HOST:PORT')
     parser.add_argument('--resources', type=Path, default=lab.RESOURCES)
     parser.add_argument('--role', choices=['host', 'guest'])

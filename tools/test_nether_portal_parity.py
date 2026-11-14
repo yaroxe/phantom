@@ -9,7 +9,7 @@ a world border, sometimes tight enough to clamp the exit. Vanilla runs
 update oracle (`VanillaPortalOracle`): `PortalForcer.findClosestPortalPosition`
 over the destination's portal points of interest, `createPortal` when there is
 none, `BlockUtil.getLargestRectangleAround`, `PortalShape.getRelativePosition`
-and `findCollisionFreePosition`. Horizon runs `horizon_world::level::portal_travel`
+and `findCollisionFreePosition`. Horizon runs `phantom_world::level::portal_travel`
 (`portal_travel_fixture`). Both print the entity's size, the blocks the
 destination changed, and the arrival position (bits) and yaw.
 """
@@ -25,7 +25,7 @@ except ImportError:
     import test_dispenser_parity as d
     import test_rust_parity as base
 
-PARITY_RUST_SCOPE = ['crates/horizon-world/', 'crates/horizon-core/']
+PARITY_RUST_SCOPE = ['crates/phantom-world/', 'crates/phantom-core/']
 
 # EntityType dimensions (width, height) of the travellers.
 ENTITIES = {'minecraft:item': (0.25, 0.25), 'minecraft:zombie': (0.6, 1.95), 'minecraft:skeleton': (0.6, 1.99),
@@ -132,7 +132,7 @@ def main():
         args.count = 1500
     lock, jars, libraries = base.verify_artifacts()
     facts = h.load_facts()
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     work = lab.LOCAL / 'nether-portal-parity'
     work.mkdir(parents=True, exist_ok=True)
     all_cases = list(cases(facts, args.count, args.seed))
@@ -145,7 +145,7 @@ def main():
            '-cp', dependencies, '-d', str(classes), str(java_root / 'dev/horizonlab/parity/VanillaPortalOracle.java')])
     h.run(['java', '-Xmx3G', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.VanillaPortalOracle',
            str(resources), str(work / 'cases.jsonl'), str(work / 'native.txt')])
-    h.run(['cargo', 'run', '-q', '--release', '-p', 'horizon-world', '--example', 'world_probe', '--',
+    h.run(['cargo', 'run', '-q', '--release', '-p', 'phantom-world', '--example', 'world_probe', '--',
            'portal_travel_fixture', str(resources), str(work / 'cases.jsonl'), str(work / 'rust.txt')], cwd=lab.ROOT)
     native = h.split_cases((work / 'native.txt').read_text(), ())
     rust = h.split_cases((work / 'rust.txt').read_text(), ())

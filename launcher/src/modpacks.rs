@@ -2,13 +2,13 @@
 //! show what Horizon runs of it, port that on this computer from the player's own downloads, and
 //! play it as a profile of its own (docs/modpacks.md).
 //!
-//! Each pack lives in `ports/<slug>/` in the game's home: the work folder `horizon-port-pack`
+//! Each pack lives in `ports/<slug>/` in the game's home: the work folder `phantom-port-pack`
 //! writes (pack.json, inventory, the jars, the carried-over mods, the coverage report) and
 //! `home/`, the profile's own saves and options. Nothing is uploaded or shared: mod jars are
 //! often All Rights Reserved, so the ports stay on the player's machine.
 use crate::backend;
 use crate::browser::horizon::pack as horizon_pack;
-use horizon_port_pack::{
+use phantom_port_pack::{
     fetch::{Fetched, How},
     import::Pack,
     pipeline::{self, Log},
@@ -94,7 +94,7 @@ impl Imported {
         parts.join("  ·  ")
     }
     /// The plain headline above the numbers, in the launcher's language: how much of the pack
-    /// comes over and what does not. The same lines as `horizon_port_pack::report::Summary::lines`
+    /// comes over and what does not. The same lines as `phantom_port_pack::report::Summary::lines`
     /// (a test keeps the English equal); none for a pack with no mod to port.
     pub fn headline(&self) -> Vec<String> {
         use crate::i18n::{tr, trf};
@@ -206,7 +206,7 @@ pub fn row_plain(row: &Row) -> String {
 pub fn load(work: &Path) -> Result<Imported, String> {
     let pack: Pack = pipeline::read_json(&work.join("pack.json"))?;
     let rows: Vec<Row> = pipeline::read_json(&work.join("coverage.json")).unwrap_or_default();
-    let records: Vec<horizon_port_pack::inventory::Record> =
+    let records: Vec<phantom_port_pack::inventory::Record> =
         pipeline::read_json(&work.join("inventory.json")).unwrap_or_default();
     let (mods, mut left_off) = pipeline::loadable(&carried(work));
     let fetched = Fetched::load(work);
@@ -296,7 +296,7 @@ pub fn carried(work: &Path) -> Vec<PathBuf> {
 /// metadata (Modrinth answers by file hash; nothing is downloaded yet). Importing the same pack
 /// again keeps the jars and ports it already has.
 pub fn import(path: &Path, log: Log) -> Result<Imported, String> {
-    let pack = horizon_port_pack::import::import(path)?;
+    let pack = phantom_port_pack::import::import(path)?;
     let name = if pack.name.is_empty() || pack.name == "modlist" {
         path.file_stem()
             .map(|s| s.to_string_lossy().into_owned())
@@ -434,7 +434,7 @@ mod tests {
 
     #[test]
     fn jars_only_curseforge_serves_are_left_off_as_coming_soon() {
-        use horizon_port_pack::fetch::Outcome;
+        use phantom_port_pack::fetch::Outcome;
         let work = std::env::temp_dir().join(format!("horizon-launcher-cf-{}", std::process::id()));
         let _ = fs::remove_dir_all(&work);
         fs::create_dir_all(&work).unwrap();
@@ -552,7 +552,7 @@ mod tests {
         ));
         fs::create_dir_all(&root).unwrap();
         let pack = Pack {
-            files: vec![horizon_port_pack::import::PackFile {
+            files: vec![phantom_port_pack::import::PackFile {
                 path: "resourcepacks/look.zip".into(),
                 ..Default::default()
             }],
@@ -577,7 +577,7 @@ mod tests {
         ));
         fs::create_dir_all(&root).unwrap();
         pipeline::write_json(&root.join("pack.json"), &Pack::default()).unwrap();
-        let record = |key: &str| horizon_port_pack::inventory::Record {
+        let record = |key: &str| phantom_port_pack::inventory::Record {
             key: key.into(),
             class: "content".into(),
             tier: "data".into(),

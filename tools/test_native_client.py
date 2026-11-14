@@ -39,22 +39,22 @@ def main():
     if args.prepare:
         subprocess.run([sys.executable, str(lab.ROOT / 'tools/prepare_native_client.py'),
                         '--prepare'], cwd=lab.ROOT, check=True)
-    root = lab.LOCAL / 'horizon-client'
+    root = lab.LOCAL / 'phantom-client'
     root.mkdir(parents=True, exist_ok=True)
     report = root / 'startup-smoke.json'
     report.unlink(missing_ok=True)
     resources = resource_fingerprint(root / lab.VERSION)
     sources = [lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock', Path(__file__).resolve(),
-               lab.ROOT / 'crates/horizon-client/Cargo.toml', lab.ROOT / 'crates/horizon-assets/Cargo.toml',
-               *sorted((lab.ROOT / 'crates/horizon-client/src').rglob('*')),
-               lab.ROOT / 'crates/horizon-client-render/Cargo.toml',
-               *sorted((lab.ROOT / 'crates/horizon-client-render/src').rglob('*')),
-               *sorted((lab.ROOT / 'crates/horizon-assets/src').rglob('*.rs'))]
+               lab.ROOT / 'crates/phantom-client/Cargo.toml', lab.ROOT / 'crates/phantom-assets/Cargo.toml',
+               *sorted((lab.ROOT / 'crates/phantom-client/src').rglob('*')),
+               lab.ROOT / 'crates/phantom-client-render/Cargo.toml',
+               *sorted((lab.ROOT / 'crates/phantom-client-render/src').rglob('*')),
+               *sorted((lab.ROOT / 'crates/phantom-assets/src').rglob('*.rs'))]
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaGallerySelectionOracle.java'
     helper = oracle.with_name('VanillaCuboidModelOracle.java')
     heightmap = oracle.with_name('VanillaHeightmapOracle.java')
     sources += [oracle, helper, heightmap, lab.ROOT/'tools/test_model_baking_parity.py', lab.ROOT/'tools/test_rust_parity.py', lab.ROOT/'tools/lab.py', lab.ROOT/'tools/prepare_native_client.py']
-    for crate in ['horizon-core', 'horizon-world']:
+    for crate in ['phantom-core', 'phantom-world']:
         sources += [lab.ROOT/'crates'/crate/'Cargo.toml', *sorted((lab.ROOT/'crates'/crate/'src').rglob('*.rs'))]
     tested_sources = {
         str(path.relative_to(lab.ROOT)): lab.digest(path, 'sha256')
@@ -62,13 +62,13 @@ def main():
         if path.is_file()
     }
     environment = dict(os.environ, RUSTUP_TOOLCHAIN='stable')
-    subprocess.run(['cargo', 'build', '--locked', '-p', 'horizon-client'],
+    subprocess.run(['cargo', 'build', '--locked', '-p', 'phantom-client'],
                    cwd=lab.ROOT, env=environment, check=True, timeout=3600)
     metadata = json.loads(subprocess.check_output(
         ['cargo', 'metadata', '--locked', '--no-deps', '--format-version', '1'],
         cwd=lab.ROOT, env=environment))
     executable = Path(metadata['target_directory']) / 'debug' / (
-        'horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+        'phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     command = (['vscreen', 'run'] if args.vscreen else []) + [
         str(executable), '--radius', '1', '--frames', '30',
         '--smoke-report', str(report), '--timeout-seconds', '60']

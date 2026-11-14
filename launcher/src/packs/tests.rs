@@ -45,7 +45,7 @@ fn home(name: &str) -> PathBuf {
     zip_file(&rp.join("Zed.zip"), &[("pack.mcmeta", META)]);
     let sp = home.join("shaderpacks");
     fs::create_dir_all(sp.join("warm")).unwrap();
-    fs::write(sp.join("warm/horizon-shaders.toml"), SHADER_META).unwrap();
+    fs::write(sp.join("warm/phantom-shaders.toml"), SHADER_META).unwrap();
     zip_file(&sp.join("Classic.zip"), &[("shaders/final.fsh", b"")]);
     fs::write(sp.join("notes.txt"), b"").unwrap();
     fs::write(
@@ -193,8 +193,8 @@ fn native_shader_choice_follows_the_manifest_after_rename() {
     assert!(find(&home, Kind::Shader, "renamed").unwrap().enabled);
     fs::create_dir_all(home.join("shaderpacks/a-copy")).unwrap();
     fs::copy(
-        home.join("shaderpacks/renamed/horizon-shaders.toml"),
-        home.join("shaderpacks/a-copy/horizon-shaders.toml"),
+        home.join("shaderpacks/renamed/phantom-shaders.toml"),
+        home.join("shaderpacks/a-copy/phantom-shaders.toml"),
     )
     .unwrap();
     let listed = list(&home, Kind::Shader);

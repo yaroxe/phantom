@@ -207,12 +207,12 @@ def main():
     build.mkdir(parents=True, exist_ok=True)
     dependencies, classes = compile_bot(build)
     vanilla_server = ['java', '-Xmx2g', '-Duser.timezone=UTC', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [args.bin_dir.resolve() / 'horizon-client', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
+    phantom_server = [args.bin_dir.resolve() / 'phantom-client', '--resources', lab.RESOURCES, '--dedicated', '--nogui']
     client = ['java', '-Xmx1g', '-Duser.timezone=UTC', '-cp', str(classes) + os.pathsep + dependencies,
               'dev.horizonlab.parity.VanillaProtocolClient']
     world = generate_world(vanilla_server, build)
     results = {}
-    for label, command in (('vanilla', vanilla_server), ('horizon', horizon_server)):
+    for label, command in (('vanilla', vanilla_server), ('horizon', phantom_server)):
         if label in (args.side or ['vanilla', 'horizon']):
             results[label] = run_side(label, command, client, build, world, args.vehicle, out)
             print(f'{label}: table {out / (label + ".table")}, client {out / (label + "-ride.txt")}')

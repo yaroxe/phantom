@@ -8,8 +8,8 @@ publish = false
 description = "Repository tasks: cargo run -p xtask -- package BINARY OUTDIR | tokens"
 
 [dependencies]
-horizon-mod-api-gen = { path = "../crates/horizon-mod-api-gen" }
-horizon-theme = { path = "../crates/horizon-theme" }
+phantom-mod-api-gen = { path = "../crates/phantom-mod-api-gen" }
+phantom-theme = { path = "../crates/phantom-theme" }
 
 [lints]
 workspace = true

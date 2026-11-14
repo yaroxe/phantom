@@ -88,7 +88,7 @@ def client_command(java, heap, game_dir, natives, assets, jvm=(), game=()):
     import lab
     values = {'library_directory': str(home / 'libraries'), 'classpath_separator': os.pathsep,
               'version_name': f'neoforge-{NEOFORGE}', 'natives_directory': str(natives),
-              'launcher_name': 'horizon-bench', 'launcher_version': '1'}
+              'launcher_name': 'phantom-bench', 'launcher_version': '1'}
     expand = lambda s: s.replace('${', '{').format(**values)
     command = [str(java), f'-Xmx{heap}']
     for argument in base['arguments']['jvm']:
@@ -111,7 +111,7 @@ def client_command(java, heap, game_dir, natives, assets, jvm=(), game=()):
 
 def build_bench(home):
     """The NeoForge benchmark driver (mods/horizon/src/neoforge-bench), against the client."""
-    return build(home, ROOT / 'mods/horizon/src/neoforge-bench', 'horizon-bench-neoforge.jar', client_classpath(home))
+    return build(home, ROOT / 'mods/horizon/src/neoforge-bench', 'phantom-bench-neoforge.jar', client_classpath(home))
 
 
 def client_classpath(home):

@@ -32,9 +32,9 @@ def main():
         XDG_DATA_HOME=str(work / "data"),
         XDG_CONFIG_HOME=str(work / "config"),
     )
-    subprocess.run(["cargo", "build", "--profile", "fast", "-p", "horizon-client", "--bin", "horizon-client"],
+    subprocess.run(["cargo", "build", "--profile", "fast", "-p", "phantom-client", "--bin", "phantom-client"],
                    cwd=lab.ROOT, env=env, check=True)
-    binary = lab.cargo_target() / "fast" / ("horizon-client.exe" if os.name == "nt" else "horizon-client")
+    binary = lab.cargo_target() / "fast" / ("phantom-client.exe" if os.name == "nt" else "phantom-client")
     subprocess.run([sys.executable, str(lab.ROOT / "tools/test_command_exec_parity.py"),
                     "--only", "scoreboard", "--allow-gaps", "--binary", str(binary), "--work-dir", str(work)],
                    cwd=lab.ROOT, env=env, check=True)
@@ -84,7 +84,7 @@ def main():
     env["HORIZON_FISHING_RESOURCES"] = str(lab.RESOURCES)
     env["HORIZON_FISHING_REFERENCE"] = str(work / "fishing-reference.json")
     env["HORIZON_FISHING_CAST_REFERENCE"] = str(work / "fishing-casts-reference.json")
-    subprocess.run(["cargo", "test", "--profile", "fast", "-p", "horizon-client", "--lib",
+    subprocess.run(["cargo", "test", "--profile", "fast", "-p", "phantom-client", "--lib",
                     "game::fishing::tests::fishing_retrieve_reference", "--", "--exact", "--ignored"],
                    cwd=lab.ROOT, env=env, check=True)
     print("fishing: ground prediction, bobbing, seeded catch timers, loot and XP match vanilla")

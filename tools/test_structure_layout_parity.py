@@ -18,7 +18,7 @@ The oracle's game is 1.21.1 and Horizon's 26.3. KNOWN lists the starts where 26.
 pieces equal Horizon's there; they are reported, not failed.
 
 Mod profiles compare the mod world's `pieces` instead, through the path players' packs take: the mod jars
-(`.local/structure-oracle/jars/`, or HORIZON_STRUCTURE_JARS) are carried by `horizon-port-pack carry` into
+(`.local/structure-oracle/jars/`, or HORIZON_STRUCTURE_JARS) are carried by `phantom-port-pack carry` into
 a fresh work folder, and an overlay of the 26.3 resources adds the carried structures, sets, pools,
 processor lists, biome tags and templates. The jars are the player's; nothing of them enters the
 repository. A profile whose oracle run added a data pack of the spec team's own (`lithostitched-probe`)
@@ -121,7 +121,7 @@ def expected_piece(saved):
     return piece
 
 
-# horizon-port-pack's jar census (inventory.json); the carry does not read it.
+# phantom-port-pack's jar census (inventory.json); the carry does not read it.
 CENSUS = ['blockstates', 'item_models', 'recipes', 'loot_tables', 'tags', 'worldgen', 'structures', 'languages',
           'textures', 'sounds', 'classes', 'mixin_configs']
 
@@ -140,7 +140,7 @@ def pack_jar(work, mod, profile):
 
 
 def carry(profile, mods, carried, packs=None):
-    """`horizon-port-pack carry` of the profile's mods and packs; the carried mods' data folders."""
+    """`phantom-port-pack carry` of the profile's mods and packs; the carried mods' data folders."""
     work = lab.LOCAL / 'structure-layout' / profile / 'work'
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
@@ -153,11 +153,11 @@ def carry(profile, mods, carried, packs=None):
                          'census': dict.fromkeys(CENSUS, 0)}}
                for key, jar in mods.items()]
     (work / 'inventory.json').write_text(json.dumps(records))
-    subprocess.run(['cargo', 'run', '--release', '-q', '-p', 'horizon-port-pack', '--', 'carry', str(work),
+    subprocess.run(['cargo', 'run', '--release', '-q', '-p', 'phantom-port-pack', '--', 'carry', str(work),
                     '--resources', str(lab.RESOURCES), *carried], check=True, cwd=lab.ROOT, stdout=subprocess.DEVNULL)
     data = [work / 'mods' / key / 'carry' / 'data' for key in carried]
     if not all(d.is_dir() for d in data):
-        raise SystemExit(f'horizon-port-pack carried nothing into {work / "mods"}')
+        raise SystemExit(f'phantom-port-pack carried nothing into {work / "mods"}')
     return data
 
 
@@ -216,7 +216,7 @@ def overlay(profile, data_dirs):
 
 
 def probe_binary():
-    subprocess.run(['cargo', 'build', '--release', '-q', '-p', 'horizon-world', '--example', 'world_probe'], check=True, cwd=lab.ROOT)
+    subprocess.run(['cargo', 'build', '--release', '-q', '-p', 'phantom-world', '--example', 'world_probe'], check=True, cwd=lab.ROOT)
     name = 'world_probe.exe' if os.name == 'nt' else 'world_probe'
     return lab.cargo_target() / 'release/examples' / name
 

@@ -37,8 +37,8 @@ First-use costs (pipelines compiled in the frame) block the render thread in the
 shader compiler: the frame's wall time grows, its CPU time hardly. The driver's shader cache hides them
 after the first run on a machine: give the game a resources folder whose shaders differ to see them cold.
 
-One game per render distance, from a fresh world (seed 1234, creative), driven over horizon-ctl.
-The game runs with HORIZON_SPIKES so each slow frame logs its timed spans; the report keeps the
+One game per render distance, from a fresh world (seed 1234, creative), driven over phantom-ctl.
+The game runs with PHANTOM_SPIKES so each slow frame logs its timed spans; the report keeps the
 slowest frames' span lines next to each scenario's figures.
 
     python3 tools/pacing_bench.py --build target/fast --label main --distances 32
@@ -426,7 +426,7 @@ def launch(args, distance, tag):
         options.write_text(text.replace("enableVsync:false\n", "enableVsync:true\n"))
     sock = Path("/tmp") / f"horizon-pacing-{os.getpid()}{tag}.sock"
     sock.unlink(missing_ok=True)
-    client = Path(args.build).resolve() / "horizon-client"
+    client = Path(args.build).resolve() / "phantom-client"
     command = [str(client), "--resources", str(Path(args.resources).resolve()), "--control-socket", str(sock),
                "--no-pause", "--weather", "clear", "--time", "6000"]
     if args.size:
@@ -434,7 +434,7 @@ def launch(args, distance, tag):
         command += ["--width", width, "--height", height]
     if args.offscreen:
         command.append("--offscreen")
-    env = lab.game_env(HORIZON_TELEMETRY_URL="off", HORIZON_SPIKES=str(args.spike_ms))
+    env = lab.game_env(HORIZON_TELEMETRY_URL="off", PHANTOM_SPIKES=str(args.spike_ms))
     for kv in args.env:
         k, _, v = kv.partition("=")
         env[k] = v
@@ -460,7 +460,7 @@ def dedicated_server(args, distance, directory):
     (directory / "server.properties").write_text("".join(f"{k}={v}\n" for k, v in properties.items()),
                                                  encoding="iso-8859-1")
     (directory / "eula.txt").write_text("eula=true\n")
-    binary = Path(args.build).resolve() / "horizon-client"
+    binary = Path(args.build).resolve() / "phantom-client"
     server = Server([binary, "--resources", Path(args.resources).resolve(), "--dedicated", "--nogui"],
                     directory, "server")
     server.wait_for(r"Done \(", 900)
@@ -563,11 +563,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--label", default="horizon")
     parser.add_argument("--build", default=str(lab.ROOT / "target/fast"))
-    parser.add_argument("--resources", default=str(lab.ROOT / ".local/horizon-client/26.3"))
+    parser.add_argument("--resources", default=str(lab.ROOT / ".local/phantom-client/26.3"))
     parser.add_argument("--distances", default="32")
     parser.add_argument("--scenarios", default=",".join(SCENARIOS))
     parser.add_argument("--timeout", type=float, default=600)
-    parser.add_argument("--spike-ms", type=float, default=20.0, help="HORIZON_SPIKES threshold (CPU ms)")
+    parser.add_argument("--spike-ms", type=float, default=20.0, help="PHANTOM_SPIKES threshold (CPU ms)")
     parser.add_argument("--offscreen", action="store_true")
     parser.add_argument("--max-fps", type=int, help="frame cap (options.txt maxFps; default 260 = none): measures "
                         "the frame limiter's pacing, and at a player's 60 each frame takes in more streamed work")

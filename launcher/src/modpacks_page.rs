@@ -3,7 +3,7 @@
 use super::*;
 use horizon_launcher::browser::horizon::pack as horizon_pack;
 use horizon_launcher::modpacks::{self, Imported};
-use horizon_port_pack::report::Status;
+use phantom_port_pack::report::Status;
 use std::path::PathBuf;
 
 /// The report's filter: every row, or one status.
@@ -453,7 +453,7 @@ impl Launcher {
         if !can_play {
             notes.push(tr("Playing needs a prepared Horizon version (Play page).").into());
         }
-        let mut rows: Vec<&horizon_port_pack::report::Row> = p
+        let mut rows: Vec<&phantom_port_pack::report::Row> = p
             .rows
             .iter()
             .filter(|r| self.pack_filter.is_none_or(|s| r.status == s))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The locator bar on a dedicated server, against vanilla's, seen by vanilla clients.
 
-A vanilla dedicated server and Horizon's (`horizon-client --dedicated --nogui`) each serve a copy of one flat
+A vanilla dedicated server and Horizon's (`phantom-client --dedicated --nogui`) each serve a copy of one flat
 world vanilla generated first (players appear at its spawn), with the same server.properties (offline,
 creative, view distance 4) and two operators. LocatorBarClient, two
 players made of vanilla's protocol code (any byte vanilla would not read is an error), joins Alice and then
@@ -259,16 +259,16 @@ def sides(name, binary=None):
                     lab.ROOT / 'mods/horizon/src/test/java', '-cp', dependencies, '-d', classes, oracle],
                    cwd=lab.ROOT, check=True, capture_output=True)
     if binary is None:
-        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], cwd=lab.ROOT,
+        subprocess.run(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], cwd=lab.ROOT,
                        check=True, capture_output=True)
         import json
         metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--no-deps', '--format-version', '1'],
                                                       cwd=lab.ROOT, text=True))
-        binary = Path(metadata['target_directory']) / 'fast' / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+        binary = Path(metadata['target_directory']) / 'fast' / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     vanilla_server = ['java', '-Xmx2g', '-Duser.timezone=UTC', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [binary, '--resources', lab.LOCAL / 'horizon-client/26.3', '--dedicated', '--nogui']
+    phantom_server = [binary, '--resources', lab.LOCAL / 'phantom-client/26.3', '--dedicated', '--nogui']
     client = ['java', '-Xmx1g', '-cp', str(classes) + os.pathsep + dependencies, 'dev.horizonlab.parity.LocatorBarClient']
-    return lock, build, vanilla_server, horizon_server, client
+    return lock, build, vanilla_server, phantom_server, client
 
 
 # How many times one_player runs vanilla's side before giving up on a run its `check` rejects.
@@ -280,7 +280,7 @@ def one_player(name, script, shown, check, scope, step_seconds=4.0):
     actions) that each last `step_seconds` of the server's time (20 ticks a second). The lines `shown(transcript)` keeps must match vanilla's exactly, and
     `check(vanilla's shown lines, vanilla's transcript)` returns why vanilla's run is no proof (the script did
     not run), or None."""
-    lock, build, vanilla_server, horizon_server, client = sides(name)
+    lock, build, vanilla_server, phantom_server, client = sides(name)
     ticks = round(step_seconds * 20)
 
     def run(label, server_command, world):
@@ -324,7 +324,7 @@ def one_player(name, script, shown, check, scope, step_seconds=4.0):
         print(f'{name}: vanilla run {attempt} of {VANILLA_ATTEMPTS} is no proof ({why})', flush=True)
     else:
         raise AssertionError(f'{why}: the script did not run on vanilla in {VANILLA_ATTEMPTS} runs (see {build})')
-    horizon_all = run('horizon', horizon_server, world)
+    horizon_all = run('horizon', phantom_server, world)
     errors = [l for l in vanilla_all + horizon_all if ' error ' in f' {l} ' or 'disconnected' in l]
     vanilla, horizon = shown(vanilla_all), shown(horizon_all)
     if errors or vanilla != horizon:
@@ -340,11 +340,11 @@ def one_player(name, script, shown, check, scope, step_seconds=4.0):
 
 
 def main():
-    lock, build, vanilla_server, horizon_server, client = sides(NAME)
+    lock, build, vanilla_server, phantom_server, client = sides(NAME)
     report = build / 'report.json'
     world = generate_world(vanilla_server, build)
     vanilla = run_side('vanilla', vanilla_server, client, build, world)
-    horizon = run_side('horizon', horizon_server, client, build, world)
+    horizon = run_side('horizon', phantom_server, client, build, world)
     errors = [l for l in vanilla + horizon if ' error ' in f' {l} ' or 'disconnected' in l]
     vanilla, horizon = shown(vanilla), shown(horizon)
     # Each player's packets in their order; which player's line comes first in a step doesn't matter.

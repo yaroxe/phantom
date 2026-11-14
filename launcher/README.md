@@ -15,7 +15,7 @@ The opening, then Play ([clip](docs/opening.webm)):
 
 - **Versions**: lists the published builds of horizon-rust/horizon (the current Nightly, the last
   week's, then the releases from before), installs the build for this platform into its own
-  folder, and removes it again. **Import a game build…** takes a `horizon-client` you have (one
+  folder, and removes it again. **Import a game build…** takes a `phantom-client` you have (one
   built on your fork's Actions, or the zip holding it) and installs it as `imported-<date>-<sha>`:
   a copy of the selected release or Nightly's folder, game files included, with that program as the
   game. Imported builds are listed apart as unsigned, and no update replaces them.
@@ -34,10 +34,10 @@ The opening, then Play ([clip](docs/opening.webm)):
   fails explicitly instead of silently creating empty data in the default location.
 - **Play**: prepares resources as `PLAY.txt` describes (your launcher's 26.3 install, the
   26.3 server jar from that version's own json, and Java 25) and copies its sounds from your
-  launcher's asset store (`horizon-prepare sounds`; a launcher install without them only
+  launcher's asset store (`phantom-prepare sounds`; a launcher install without them only
   leaves the game silent), then starts the client. Preparing is
-  horizon-prepare: linked into the launcher, used in-process when a version ships the same
-  preparer sources, else that version's own `horizon-prepare`; versions released before it
+  phantom-prepare: linked into the launcher, used in-process when a version ships the same
+  preparer sources, else that version's own `phantom-prepare`; versions released before it
   still prepare with their Python script and need Python 3.10+. Before importing,
   preparation reuses checksum-verified game jars and libraries from the current
   or another installed Horizon version, so the original Minecraft install is
@@ -88,9 +88,9 @@ The opening, then Play ([clip](docs/opening.webm)):
   list with dates and sizes, Restore with a confirmation, Back up automatically, and **Updates**:
   Check for updates, Update now with its automatic rollback, and how many older versions to
   keep). Changes the running game can take apply at once, the others say "Restart to apply".
-  Everything goes through `horizon-server` itself ([docs/hosting.md](../docs/hosting.md)):
+  Everything goes through `phantom-server` itself ([docs/hosting.md](../docs/hosting.md)):
   the launcher copies a prepared version's programs and game files into `server-runtime/` laid
-  out as `install.sh` does, runs `horizon-server init`, `config`, `start`, `backup`, `restore`,
+  out as `install.sh` does, runs `phantom-server init`, `config`, `start`, `backup`, `restore`,
   `update` and `service` there, and talks to a running server through its control API. Problems
   are said in plain words, with a button when there's a fix (another port, the game files, the
   EULA).
@@ -122,7 +122,7 @@ The opening, then Play ([clip](docs/opening.webm)):
   their download, the rest is in `overrides/`) or a `.zip` of the game folder's layout, with the
   worlds switched on. It is written to `exports/` in the launcher's data folder (**Show in
   folder**). Only settings (options.txt, horizon-*.txt, servers.dat), resource and shader packs,
-  `horizon-mods/` and `config/` go in: never logs, screenshots, backups, caches or account files;
+  `phantom-mods/` and `config/` go in: never logs, screenshots, backups, caches or account files;
   a world goes without `playerdata/`, `stats/` and `advancements/`, and its level.dat without the
   player's UUID. `horizon-launcher instance export [<instance>] [--format mrpack|zip] [--world
   <w>]… [--out <file>]`.
@@ -341,7 +341,7 @@ Menu entries the launcher writes then start that wrapper, which can
 set `HORIZON_LAUNCHER_NO_SELF_UPDATE=1` to keep launcher updates with the package manager.
 
 Launcher releases are automatic (docs/release-flow.md in the repository): when main changes the
-launcher, `horizon-prepare` or `horizon-theme`, the `launcher` workflow builds Linux, macOS, Windows x64 and
+launcher, `phantom-prepare` or `phantom-theme`, the `launcher` workflow builds Linux, macOS, Windows x64 and
 Windows ARM64 and publishes `launcher-vX.Y.Z` (the next patch, or the next minor after a pull request
 labelled `feature`) with `horizon-launcher-linux-x86_64.tar.gz`,
 `horizon-launcher-linux-x86_64.AppImage`, `horizon-launcher-macos-arm64.zip`,
@@ -431,7 +431,7 @@ and don't set `%ERRORLEVEL%` / `$LASTEXITCODE`. Scripts that need the exit code 
     horizon-launcher servers create [--name N] [--seed S | --copy-world DIR] [--mode M] [--difficulty D]
                      [--max-players N] [--open] [--offline] [--player NAME]... --accept-eula
     horizon-launcher servers set-up [--version <tag>]   copy a prepared version's programs and game files for servers
-    horizon-launcher servers run <server> -- <horizon-server command>   for example: servers run "My server" -- start
+    horizon-launcher servers run <server> -- <phantom-server command>   for example: servers run "My server" -- start
     horizon-launcher servers forget <server>        take it off the list (its folder stays)
     horizon-launcher benchmark [--repeats N]        measure the launcher (see Performance log)
     horizon-launcher data [status]                  what data collection is allowed, the install ID, what waits
@@ -470,15 +470,15 @@ the sign-in finishes in the background). A server started through MCP stops (cle
 with the player's consent.
 
 The same server also plays the game: `play` starts it with a local control socket (`world`,
-`creative`, `join` and `offscreen` are optional), and every `horizon-ctl` tool of the selected
+`creative`, `join` and `offscreen` are optional), and every `phantom-ctl` tool of the selected
 version is offered as `game_<name>`: `game_state`, `game_ui` (every widget of the open screen),
 `game_click`, `game_goto`, `game_break`, `game_inventory`, `game_screenshot` (an image) and the
-rest of [horizon-ctl's commands](../docs/horizon-ctl-commands.md). The launcher runs that
-version's `horizon-ctl mcp` and passes the calls through; while no game runs, they answer with an
+rest of [phantom-ctl's commands](../docs/phantom-ctl-commands.md). The launcher runs that
+version's `phantom-ctl mcp` and passes the calls through; while no game runs, they answer with an
 error saying to call `play`.
 
 `horizon-launcher no-ai on` (the Settings page's No AI switch) hides and turns off every AI
-feature: `mcp` and `agent-config` refuse, the game opens no control socket and `horizon-ctl`
+feature: `mcp` and `agent-config` refuse, the game opens no control socket and `phantom-ctl`
 refuses. Every other command keeps working.
 
 The window, the command line and the MCP server all call the same core, `src/backend.rs`.
@@ -492,8 +492,8 @@ and starts nothing. Settings → Accounts signs in: the launcher shows a code, y
 microsoft.com/link, and the launcher checks that the account owns the game. It asks again at every
 Play, with the token renewal; with no network the last answer stands, and a "doesn't own" blocks
 at once. The account also plays online-mode servers under your own name and skin; offline names
-play LAN and offline-mode servers beside it. The game binary started directly (`horizon-client`,
-`horizon-ctl launch`), the harnesses and the servers don't go through this check. Tokens live in the system keychain (Keychain,
+play LAN and offline-mode servers beside it. The game binary started directly (`phantom-client`,
+`phantom-ctl launch`), the harnesses and the servers don't go through this check. Tokens live in the system keychain (Keychain,
 Credential Manager, or the Secret Service on Linux), never in a log or the command line;
 `accounts.json` in the data folder keeps only names and UUIDs. On Linux without a keychain they go
 to `account-secrets.json` in the data folder, encrypted and readable by you only, and back to the keychain once it
@@ -562,7 +562,7 @@ client starts (`--help`) and that the binaries import only system libraries (Win
     cargo test --lib    # tag separation, version order, update selection, notes as text,
                         # the auto-install default, the links fallback
 
-Geist and Geist Mono (SIL Open Font License, `crates/horizon-theme/fonts/OFL-*.txt`, shared with the game's on-screen keyboard) are
+Geist and Geist Mono (SIL Open Font License, `crates/phantom-theme/fonts/OFL-*.txt`, shared with the game's on-screen keyboard) are
 bundled so the type is the same on every platform.
 
 

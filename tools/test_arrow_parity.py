@@ -222,15 +222,15 @@ def main():
     build.mkdir(exist_ok=True)
     report = build / 'report.json'
     report.unlink(missing_ok=True)
-    resources = lab.LOCAL / 'horizon-client' / lock['minecraft']['version']
+    resources = lab.LOCAL / 'phantom-client' / lock['minecraft']['version']
     resource_hash = client.resource_fingerprint(resources)
     oracle = lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaArrowOracle.java'
     helpers = [oracle.with_name(name + '.java') for name in ['VanillaSceneCollisionOracle', 'VanillaRegistryCollisionScanOracle',
         'VanillaHeightmapOracle', 'VanillaCollisionOracle', 'VanillaBlockStateCodecOracle', 'VanillaSuffocationOracle',
         'VanillaFaceSupportOracle', 'VanillaEntityAttributeOracle', 'VanillaBlockLandingOracle', 'VanillaMovementRegistryOracle', 'VanillaDamageSourceOracle']]
     sources = [Path(__file__), lab.ROOT / 'tools/test_native_client.py', lab.ROOT / 'tools/test_rust_parity.py', lab.ROOT / 'tools/lab.py',
-               oracle, *helpers, lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock', lab.ROOT / 'crates/horizon-client/examples/probe/arrow_probe.rs']
-    for crate in ['horizon-core', 'horizon-world', 'horizon-assets', 'horizon-client', 'horizon-client-render']:
+               oracle, *helpers, lab.ROOT / 'Cargo.toml', lab.ROOT / 'Cargo.lock', lab.ROOT / 'crates/phantom-client/examples/probe/arrow_probe.rs']
+    for crate in ['phantom-core', 'phantom-world', 'phantom-assets', 'phantom-client', 'phantom-client-render']:
         sources += [lab.ROOT / 'crates' / crate / 'Cargo.toml', *sorted((lab.ROOT / 'crates' / crate / 'src').rglob('*.rs'))]
     tested = base.source_hashes(sources)
     def run(command, name):
@@ -246,7 +246,7 @@ def main():
     expected = 3 * operations + len(fixtures)
     (build / 'inputs.txt').write_text(''.join(json.dumps(f, separators=(',', ':')) + '\n' for f in fixtures))
     input_hash = lab.digest(build / 'inputs.txt', 'sha256')
-    run(['cargo', 'build', '--locked', '-p', 'horizon-client-lib', '--example', 'client_probe'], 'compile-rust')
+    run(['cargo', 'build', '--locked', '-p', 'phantom-client-lib', '--example', 'client_probe'], 'compile-rust')
     metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--no-deps', '--format-version', '1'], cwd=lab.ROOT))
     binary = Path(metadata['target_directory']) / 'debug/examples' / ('client_probe.exe' if os.name=='nt' else 'client_probe')
     run([binary, 'arrow_probe',resources, build, '--describe'], 'describe')

@@ -1,25 +1,25 @@
 //! Horizon's own registry (docs/api/mod-index.md): mods, modpacks and resource packs made for
-//! Horizon, reviewed as pull requests in horizon-rust/horizon-mods. One file lists them all,
+//! Horizon, reviewed as pull requests in horizon-rust/phantom-mods. One file lists them all,
 //! `index.json`; every download is checked against it before it reaches the game folder
-//! (`horizon_mods::index::check_file`: size, SHA-256, the author's signature, the file's own
+//! (`phantom_mods::index::check_file`: size, SHA-256, the author's signature, the file's own
 //! manifest), and files the index says were taken down are refused and turned off.
 use super::{
     details::{Details, GitHub, Link},
     download, installed, java, FileRef, Kind, Project, Query, Source, SourceId, Version, GAME,
 };
-use horizon_mods::index::{self, Index, Trust};
+use phantom_mods::index::{self, Index, Trust};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-/// Where the registry publishes its index (GitHub Pages of horizon-rust/horizon-mods).
-pub const INDEX_URL: &str = "https://horizon-rust.github.io/horizon-mods/index.json";
+/// Where the registry publishes its index (GitHub Pages of horizon-rust/phantom-mods).
+pub const INDEX_URL: &str = "https://horizon-rust.github.io/phantom-mods/index.json";
 /// The registry's pages on the website, `<SITE>/<id>`.
 const SITE: &str = "https://playhorizon.dev/mods";
 /// The report form of a project.
-const REPORT: &str = "https://github.com/horizon-rust/horizon-mods/issues/new?template=report.yml";
+const REPORT: &str = "https://github.com/horizon-rust/phantom-mods/issues/new?template=report.yml";
 /// The loader name the browser gives registry versions, so `support` and `pick` know them.
 pub const LOADER: &str = "horizon";
 /// How long a fetched index is used before it is fetched again.
@@ -28,7 +28,7 @@ const FRESH: Duration = Duration::from_secs(600);
 const MAX_INDEX: u64 = 16 << 20;
 /// The last index fetched, kept in the game folder for when the registry can't be reached.
 const CACHE: &str = "mod-browser/horizon-index.json";
-/// Players' ratings of every project (the registry service, crates/horizon-mod-registry).
+/// Players' ratings of every project (the registry service, crates/phantom-mod-registry).
 const RATINGS_URL: &str = "https://playhorizon.dev/api/mods/ratings";
 /// Where a player rates a project: the site's GitHub sign-in, which comes back to its page.
 /// The launcher has no GitHub account of its own.
@@ -705,8 +705,8 @@ fn relative(kind: Kind, id: &str, file_name: &str) -> Result<String, String> {
 
 /// Installs a registry project into the game folder `home`: its newest version for this game that
 /// the game the player runs can load, downloaded into `mod-browser/downloads/`, checked against
-/// the index, then moved into place. A mod is `horizon-mods/<id>.hmod`, turned on in
-/// `horizon-mods.txt`.
+/// the index, then moved into place. A mod is `phantom-mods/<id>.hmod`, turned on in
+/// `phantom-mods.txt`.
 pub fn install(
     project: &Project,
     home: &Path,
@@ -800,7 +800,7 @@ pub fn needs_port(v: &index::Version) -> bool {
     v.file.name.ends_with(".hmod")
         && v.capabilities
             .iter()
-            .any(|c| *c != horizon_mods::Capability::Registries)
+            .any(|c| *c != phantom_mods::Capability::Registries)
 }
 
 /// Whether version `v` calls mod API functions a game serving `level` doesn't have.
@@ -937,7 +937,7 @@ fn stays(native: bool, old: &str) -> bool {
     native && old.ends_with(".hmod")
 }
 
-/// The mod id of an installed mod (`horizon-mods/<id>`, `horizon-mods/<id>.hmod` or
+/// The mod id of an installed mod (`phantom-mods/<id>`, `phantom-mods/<id>.hmod` or
 /// `horizon-native-mods/<id>.hnmod`).
 pub fn mod_id(entry: &installed::Entry) -> Option<&str> {
     if let Some(rest) = entry.file.strip_prefix(crate::native_mods::INSTALLED) {

@@ -13,7 +13,7 @@ A new overworld's spawn comes from two steps (MinecraftServer.setInitialSpawn):
 Origins: VanillaWorldSpawnOracle calls NoiseSpawnFinder.findSpawnPosition and
 getOrigin for every seed; the spawn_origin example asks Horizon's generator.
 World spawns: the pinned vanilla dedicated server creates each world and
-stops; Horizon's (`horizon-client --dedicated --nogui`) creates its own from
+stops; Horizon's (`phantom-client --dedicated --nogui`) creates its own from
 the same server.properties and stops; the `spawn` position of both
 level.dat files is compared.
 
@@ -151,7 +151,7 @@ def main():
     oh.run_logged(['javac', '--release', lock['minecraft']['java_major'], '-proc:none', '-nowarn', '-cp', dependencies,
                    '-d', classes, lab.ROOT / 'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaWorldSpawnOracle.java'],
                   build, 'compile-java')
-    oh.run_logged(['cargo', 'build', '--release', '-p', 'horizon-world', '--example', 'world_probe'], build, 'compile-probe')
+    oh.run_logged(['cargo', 'build', '--release', '-p', 'phantom-world', '--example', 'world_probe'], build, 'compile-probe')
     all_seeds = parity_shard.shard(args.seed or seeds(args.random))
     started = time.time()
 
@@ -164,12 +164,12 @@ def main():
     if args.origins_only:
         sys.exit(1 if origin_diffs else 0)
 
-    oh.run_logged(['cargo', 'build', '--profile', 'fast', '-p', 'horizon-client', '--bin', 'horizon-client'], build,
+    oh.run_logged(['cargo', 'build', '--profile', 'fast', '-p', 'phantom-client', '--bin', 'phantom-client'], build,
                   'compile-rust', timeout=3600)
-    binary = target_dir('fast') / ('horizon-client.exe' if os.name == 'nt' else 'horizon-client')
+    binary = target_dir('fast') / ('phantom-client.exe' if os.name == 'nt' else 'phantom-client')
     # One worker thread: the chunks decorated in a fixed order (see above).
     vanilla_server = ['java', '-Xmx2g', '-Dmax.bg.threads=1', '-cp', dependencies, 'net.minecraft.server.Main', 'nogui']
-    horizon_server = [binary, '--resources', RESOURCES, '--dedicated', '--nogui']
+    phantom_server = [binary, '--resources', RESOURCES, '--dedicated', '--nogui']
     os.environ.update(lab.game_env())
     cached = vanilla_cache(lock, vanilla_server, dependencies)
     reused = []
@@ -189,7 +189,7 @@ def main():
     def one(seed):
         t0 = time.time()
         a = vanilla_spawn(seed)
-        b = world_spawn(horizon_server, build / f'horizon-{seed}', seed, f'horizon-{seed}')
+        b = world_spawn(phantom_server, build / f'horizon-{seed}', seed, f'horizon-{seed}')
         return seed, a, b, time.time() - t0
 
     spawn_diffs = []

@@ -418,7 +418,7 @@ impl Launcher {
     /// runs, else what to do about it.
     pub(super) fn glass_internet(&mut self, port: u16, cx: &mut Context<Self>) -> Div {
         use crate::glass_ui as ui;
-        use horizon_theme::glass::ink;
+        use phantom_theme::glass::ink;
         let t = &self.theme.clone();
         let d = div()
             .flex()

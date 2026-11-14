@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check #1518: mobs and dropped items go through an End gateway.
 
-Build horizon-client and horizon-ctl with the fast profile first, then run:
+Build phantom-client and phantom-ctl with the fast profile first, then run:
   python3 tools/singleplayer_end_cargo_audit.py --case gateway
 Runs singleplayer on its server thread: a cow and a seven-diamond stack stand in a gateway in the End, and both are
 expected to leave it and land at the gateway's exit, the stack with its seven
@@ -53,8 +53,8 @@ def run(bin_dir, resources):
             'HORIZON_HOME', 'HORIZON_LAUNCHER_HOME', 'XDG_DATA_HOME', 'XDG_CONFIG_HOME')})
         home = Path(env['HORIZON_HOME'])
         socket = work / 'game.sock'
-        cli = Cli(bin_dir / 'horizon-ctl', socket, home, env)
-        args = [str(bin_dir / 'horizon-client'), '--resources', str(resources),
+        cli = Cli(bin_dir / 'phantom-ctl', socket, home, env)
+        args = [str(bin_dir / 'phantom-client'), '--resources', str(resources),
                 '--world', 'cargo', '--creative', '--seed', '4242', '--offscreen',
                 '--render-distance', '4', '--control', '--control-socket', str(socket)]
         with (work / 'game.log').open('w') as log:

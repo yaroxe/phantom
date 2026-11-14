@@ -85,7 +85,7 @@ const SHARED: [&str; 9] = [
 ];
 /// What is never copied from an instance's own game folder: logs, the CurseForge app's own
 /// files, and the BlueMap web maps the game asks for tiles around the player
-/// (`horizon_client_render::bluemap::SERVERS_FILE`): only the player names those, never a pack
+/// (`phantom_client_render::bluemap::SERVERS_FILE`): only the player names those, never a pack
 /// the other launcher installed.
 const SKIPPED: [&str; 7] = [
     "logs",
@@ -315,7 +315,7 @@ pub fn curseforge_instances(root: &Path) -> Vec<Found> {
 /// loader Horizon doesn't name, keeps none.
 fn with_curseforge_target(mut found: Found) -> Found {
     let Some((minecraft, loader, version)) =
-        horizon_port_pack::import::curseforge_instance_target(&found.game)
+        phantom_port_pack::import::curseforge_instance_target(&found.game)
     else {
         return found;
     };

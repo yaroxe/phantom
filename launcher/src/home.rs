@@ -395,7 +395,7 @@ impl Launcher {
                 cx.notify();
             }));
         let field = line_edit::mouse(field, cx, |this| &mut this.friend_code);
-        let valid = horizon_friends::invite::parse(self.friend_code.text()).is_some();
+        let valid = phantom_friends::invite::parse(self.friend_code.text()).is_some();
         let mut join =
             action("join-friend", Action::Raised, &t).child(label(tr("Join").to_string()));
         if can_play && valid {

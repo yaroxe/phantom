@@ -59,9 +59,9 @@ def main():
     build.mkdir(parents=True, exist_ok=True)
     report = build / 'report.json'
     report.unlink(missing_ok=True)
-    paths = ['crates/horizon-world/src/snbt_text.rs', 'crates/horizon-world/src/datafix/json.rs',
-             'crates/horizon-world/src/nbt.rs', 'crates/horizon-world/examples/probe/main.rs',
-             'crates/horizon-world/examples/probe/float_text_fixture.rs',
+    paths = ['crates/phantom-world/src/snbt_text.rs', 'crates/phantom-world/src/datafix/json.rs',
+             'crates/phantom-world/src/nbt.rs', 'crates/phantom-world/examples/probe/main.rs',
+             'crates/phantom-world/examples/probe/float_text_fixture.rs',
              'mods/horizon/src/test/java/dev/horizonlab/parity/VanillaFloatTextOracle.java',
              'tools/test_float_text_parity.py']
     sources = [lab.ROOT / path for path in paths]
@@ -72,8 +72,8 @@ def main():
     classes, dependencies, _ = h.compile_oracle(build, 'VanillaFloatTextOracle',
         {'client': jars['server']}, libraries, lock['minecraft']['java_major'])
     h.java_run(build, classes, dependencies, 'VanillaFloatTextOracle', [inputs, build / 'java.txt'], 'java')
-    # The release world_probe every other horizon-world harness builds, so CI reuses it.
-    h.run_logged(['cargo', 'build', '--release', '--locked', '-p', 'horizon-world',
+    # The release world_probe every other phantom-world harness builds, so CI reuses it.
+    h.run_logged(['cargo', 'build', '--release', '--locked', '-p', 'phantom-world',
                   '--example', 'world_probe'], build, 'compile-rust')
     metadata = json.loads(subprocess.check_output(
         ['cargo', 'metadata', '--no-deps', '--format-version', '1'], cwd=lab.ROOT))

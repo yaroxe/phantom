@@ -8,7 +8,7 @@
 //! `Claim::here`, decided by the service), and three switches:
 //! Show my cosmetics (the account's, on the service), Hide
 //! other players' cosmetics and Hide other players' trails and auras (the game's
-//! `horizon-extras.txt`, `horizon_cosmetics::prefs`, also in its settings).
+//! `horizon-extras.txt`, `phantom_cosmetics::prefs`, also in its settings).
 //!
 //! It opens on the outfit kept on disk (`wardrobe::Saved`), so it shows offline and when the
 //! service fails; a change shows at once and waits on disk until the service takes it. The talking
@@ -16,10 +16,10 @@
 use super::*;
 use crate::glass_ui as ui;
 use gpui::RenderImage;
-use horizon_cosmetics::prefs::{self, Others, Prefs};
-use horizon_cosmetics::{Item, Slot, Texture};
+use phantom_cosmetics::prefs::{self, Others, Prefs};
+use phantom_cosmetics::{Item, Slot, Texture};
 use horizon_launcher::wardrobe::{Catalogue, Change, ClaimState, Error, Saved, Service, Session};
-use horizon_theme::glass::{fill, ink, radius};
+use phantom_theme::glass::{fill, ink, radius};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -351,7 +351,7 @@ fn tell_the_game(uuid: &str, saved: &Saved) {
     let home = backend::game_home();
     // Whether it owns a cosmetic: the game shows others' to an owner who chose nothing.
     if let Err(e) = prefs::set_owned(&home, uuid, !me.owned.is_empty()) {
-        eprintln!("Horizon: the cosmetics ownership is not saved: {e}");
+        eprintln!("Phantom: the cosmetics ownership is not saved: {e}");
     }
     if saved
         .pending
@@ -361,7 +361,7 @@ fn tell_the_game(uuid: &str, saved: &Saved) {
         return;
     }
     if let Err(e) = prefs::set_confirmed(&home, uuid, me.visible) {
-        eprintln!("Horizon: the cosmetics confirmation is not saved: {e}");
+        eprintln!("Phantom: the cosmetics confirmation is not saved: {e}");
     }
     let wish = Prefs::load(&home);
     if wish.mine != me.visible {
@@ -370,7 +370,7 @@ fn tell_the_game(uuid: &str, saved: &Saved) {
             ..wish
         };
         if let Err(e) = switches.save(&home) {
-            eprintln!("Horizon: the cosmetics switches are not saved: {e}");
+            eprintln!("Phantom: the cosmetics switches are not saved: {e}");
         }
     }
 }
@@ -433,7 +433,7 @@ impl Launcher {
             };
             trip.result = refresh(&service, &account, &mut trip);
             if let Err(e) = trip.saved.save(&dir(), &account.uuid) {
-                eprintln!("Horizon: the outfit is not saved: {e}");
+                eprintln!("Phantom: the outfit is not saved: {e}");
             }
             trip
         });
@@ -457,7 +457,7 @@ impl Launcher {
             .map(|m| &m.claim)
             .or(self.shop_kept.as_ref());
         horizon_launcher::shop::in_top_bar(
-            horizon_cosmetics::forced(),
+            phantom_cosmetics::forced(),
             self.shop_status.as_ref(),
             own,
         )
@@ -582,12 +582,12 @@ impl Launcher {
                 ..Prefs::load(&home)
             };
             if let Err(e) = switches.save(&home) {
-                eprintln!("Horizon: the cosmetics switches are not saved: {e}");
+                eprintln!("Phantom: the cosmetics switches are not saved: {e}");
             }
         }
         w.saved.change(change);
         if let Err(e) = w.saved.save(&dir(), &w.uuid) {
-            eprintln!("Horizon: the outfit is not saved: {e}");
+            eprintln!("Phantom: the outfit is not saved: {e}");
         }
         self.restyle = true;
         let Some(w) = self.wardrobe.as_mut() else {
@@ -609,7 +609,7 @@ impl Launcher {
         let task = cx.background_executor().spawn(async move {
             let result = Service::live().sync(&session, &mut saved);
             if let Err(e) = saved.save(&dir(), &uuid) {
-                eprintln!("Horizon: the outfit is not saved: {e}");
+                eprintln!("Phantom: the outfit is not saved: {e}");
             }
             Trip {
                 saved,
@@ -650,7 +650,7 @@ impl Launcher {
                 }
             }
             if let Err(e) = saved.save(&dir(), &uuid) {
-                eprintln!("Horizon: the outfit is not saved: {e}");
+                eprintln!("Phantom: the outfit is not saved: {e}");
             }
             let said = match &result {
                 Ok(()) => tr("The Founder Set is yours.").to_string(),
@@ -709,22 +709,22 @@ impl Launcher {
             .collect();
         // The founder set's order: head, shirt, back, name tag.
         let order = |i: &Item| {
-            use horizon_cosmetics::Slot::*;
+            use phantom_cosmetics::Slot::*;
             [Head, Torso, Back, Shoulder, Companion, Trail, Aura, NameTag]
                 .iter()
                 .position(|s| *s == i.slot)
         };
         items.sort_by(|a, b| order(a).cmp(&order(b)).then(a.id.cmp(&b.id)));
         let slot = |i: &Item| match i.slot {
-            horizon_cosmetics::Slot::Head => "head",
-            horizon_cosmetics::Slot::Back => "back",
-            horizon_cosmetics::Slot::Torso => "torso",
-            horizon_cosmetics::Slot::Shoulder => "shoulder",
-            horizon_cosmetics::Slot::NameTag => "name_tag",
-            horizon_cosmetics::Slot::Emote => "emote",
-            horizon_cosmetics::Slot::Companion => "companion",
-            horizon_cosmetics::Slot::Trail => "trail",
-            horizon_cosmetics::Slot::Aura => "aura",
+            phantom_cosmetics::Slot::Head => "head",
+            phantom_cosmetics::Slot::Back => "back",
+            phantom_cosmetics::Slot::Torso => "torso",
+            phantom_cosmetics::Slot::Shoulder => "shoulder",
+            phantom_cosmetics::Slot::NameTag => "name_tag",
+            phantom_cosmetics::Slot::Emote => "emote",
+            phantom_cosmetics::Slot::Companion => "companion",
+            phantom_cosmetics::Slot::Trail => "trail",
+            phantom_cosmetics::Slot::Aura => "aura",
         };
         let state = std::env::var("HORIZON_WARDROBE_STATE").unwrap_or_default();
         let mut equipped = std::collections::BTreeMap::new();
@@ -1047,7 +1047,7 @@ impl Launcher {
             let scale = self.scale;
             self.wardrobe_marks
                 .get_or_bake("horizon", "mark", scale, || {
-                    art::bake(&horizon_cosmetics::mark::texels(), 8, 8, 2., scale)
+                    art::bake(&phantom_cosmetics::mark::texels(), 8, 8, 2., scale)
                 })
                 .clone()
         });
@@ -1425,7 +1425,7 @@ impl Launcher {
             let home = home.clone();
             move |_: &ClickEvent, _: &mut Window, cx: &mut App| {
                 if let Err(e) = prefs.save(&home) {
-                    eprintln!("Horizon: the cosmetics switches are not saved: {e}");
+                    eprintln!("Phantom: the cosmetics switches are not saved: {e}");
                 }
                 cx.refresh_windows();
             }

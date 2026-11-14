@@ -230,7 +230,7 @@ def run(api, cmd: Command, actor: ns.Actor, number: int, url: str, reviewers: ns
     for name in cmd.labels:
         found = api.label(name)
         if found is None:
-            raise Refused(f"There is no label `{safe(name)}` in Horizon: triage doesn't create new ones.")
+            raise Refused(f"There is no label `{safe(name)}` in Phantom: triage doesn't create new ones.")
         if (why := label_refusal(found)):
             raise Refused(why)
         real.append(found)
