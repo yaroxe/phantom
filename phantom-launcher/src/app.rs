@@ -27,6 +27,7 @@ pub enum Tab {
     Builds,
     Mods,
     Servers,
+    Skin,
     Settings,
 }
 
@@ -67,6 +68,9 @@ pub struct App {
     pub server_mgr: crate::server::ServerManager,
     /// resources.tar unpacking: (files done, files total).
     pub unpack: Option<(usize, usize)>,
+    pub skin_front_tex: Option<egui::TextureHandle>,
+    pub skin_side_tex: Option<egui::TextureHandle>,
+    pub skin_preview_dirty: bool,
 }
 
 impl App {
@@ -99,6 +103,9 @@ impl App {
             new_profile_name: String::new(),
             server_mgr: crate::server::ServerManager::new(),
             unpack: None,
+            skin_front_tex: None,
+            skin_side_tex: None,
+            skin_preview_dirty: true,
         }
     }
 
@@ -420,6 +427,7 @@ impl App {
                     (Tab::Builds, "СБОРКИ"),
                     (Tab::Mods, "МОДЫ"),
                     (Tab::Servers, "СЕРВЕРЫ"),
+                    (Tab::Skin, "СКИН"),
                     (Tab::Settings, "НАСТРОЙКИ"),
                 ] {
                     let (r, resp) = ui.allocate_exact_size(vec2(92., 74.), Sense::click());
@@ -451,7 +459,7 @@ impl App {
                     resp.on_hover_cursor(CursorIcon::PointingHand);
                 }
                 // The indicator glides to the active tab instead of jumping.
-                let idx = [Tab::Home, Tab::Builds, Tab::Mods, Tab::Servers, Tab::Settings]
+                let idx = [Tab::Home, Tab::Builds, Tab::Mods, Tab::Servers, Tab::Skin, Tab::Settings]
                     .iter()
                     .position(|x| *x == self.tab)
                     .unwrap_or(0);
@@ -775,6 +783,7 @@ impl eframe::App for App {
                 Tab::Builds => self.builds(ui, t),
                 Tab::Mods => self.mods(ui, t),
                 Tab::Servers => crate::server::render_server_tab(&mut self.server_mgr, &self.cfg, ui, t),
+                Tab::Skin => crate::tabs::skin_tab::render(self, ui, t),
                 Tab::Settings => self.settings(ui, t),
             }
         });
@@ -890,6 +899,14 @@ fn tab_icon(p: &Painter, tab: Tab, c: Pos2, col: Color32) {
                 p.rect_stroke(rect, 0.5, s);
                 p.circle_filled(pos2(c.x + 4.5, c.y + dy), 1.0, col);
             }
+        }
+        Tab::Skin => {
+            // Character head
+            p.rect_stroke(Rect::from_center_size(pos2(c.x, c.y - 3.), vec2(10., 10.)), 1., s);
+            // Character shoulders
+            p.line_segment([pos2(c.x - 7., c.y + 7.), pos2(c.x + 7., c.y + 7.)], s);
+            p.line_segment([pos2(c.x - 7., c.y + 7.), pos2(c.x - 4., c.y + 3.)], s);
+            p.line_segment([pos2(c.x + 7., c.y + 7.), pos2(c.x + 4., c.y + 3.)], s);
         }
         Tab::Settings => {
             p.circle_stroke(c, 8., s);

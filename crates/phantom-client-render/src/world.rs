@@ -385,6 +385,98 @@ impl World {
         }
         Ok(())
     }
+
+    /// Resident storage batch write: groups writes by chunk with a single Arc::make_mut
+    /// and collects dirty sections efficiently, avoiding per-block reallocation spikes.
+    pub fn set_many(
+        &mut self,
+        blocks: impl IntoIterator<Item = (i32, i32, i32, BlockStateId)>,
+    ) {
+        use std::collections::HashMap;
+        let mut by_chunk: HashMap<(i32, i32), Vec<(i32, i32, i32, BlockStateId)>> = HashMap::new();
+        for (x, y, z, state) in blocks {
+            by_chunk.entry((x >> 4, z >> 4)).or_default().push((x, y, z, state));
+        }
+
+        for ((cx, cz), list) in by_chunk {
+            self.chunks.ring_remove(cx, cz);
+            let Some(chunk) = self.chunks.get_mut(&(cx, cz)) else {
+                continue;
+            };
+            let (min_y, sections) = (chunk.min_y(), chunk.sections.len() as i32);
+            let chunk_mut = Arc::make_mut(chunk);
+            let mut any_changed = false;
+
+            for (x, y, z, state) in list {
+                if chunk_mut.section_index(y).is_none() {
+                    continue;
+                }
+                let previous = chunk_mut.set(x & 15, y, z & 15, state.0);
+                if previous != state.0 {
+                    any_changed = true;
+                    self.block_entities
+                        .state_changed((x, y, z), previous, state.0);
+                    let watches = |id: u32| self.watched.get(id as usize).copied().unwrap_or(false);
+                    if watches(previous) || watches(state.0) {
+                        self.watched_writes.push(((x, y, z), previous, state.0));
+                    }
+                    self.revision = self.revision.wrapping_add(1);
+                    if let Some(log) = &mut self.block_log {
+                        log.push((x, y, z));
+                    }
+                    if let Some(writes) = &mut self.path_writes {
+                        writes.push(((x, y, z), previous, state.0));
+                    }
+
+                    let sy = (y - min_y) >> 4;
+                    let local_y = y & 15;
+                    let mark = |dirty: &mut DirtySections, bx: i32, bz: i32| {
+                        dirty.insert((bx >> 4, sy, bz >> 4));
+                        if local_y == 0 && sy > 0 {
+                            dirty.insert((bx >> 4, sy - 1, bz >> 4));
+                        }
+                        if local_y == 15 && sy + 1 < sections {
+                            dirty.insert((bx >> 4, sy + 1, bz >> 4));
+                        }
+                    };
+                    let (bx, bz) = (x & 15, z & 15);
+                    mark(&mut self.dirty_sections, x, z);
+                    if bx == 0 {
+                        mark(&mut self.dirty_sections, x - 1, z);
+                    } else if bx == 15 {
+                        mark(&mut self.dirty_sections, x + 1, z);
+                    }
+                    if bz == 0 {
+                        mark(&mut self.dirty_sections, x, z - 1);
+                    } else if bz == 15 {
+                        mark(&mut self.dirty_sections, x, z + 1);
+                    }
+                    if (bx == 0 || bx == 15) && (bz == 0 || bz == 15) {
+                        mark(
+                            &mut self.dirty_sections,
+                            if bx == 0 { x - 1 } else { x + 1 },
+                            if bz == 0 { z - 1 } else { z + 1 },
+                        );
+                    }
+                    if chunk_mut.lit {
+                        self.light_edits.push(((x, y, z), previous, state.0));
+                    } else {
+                        for dz in -1..=1 {
+                            for dx in -1..=1 {
+                                self.dirty_light.insert((cx + dx, cz + dz));
+                            }
+                        }
+                    }
+                }
+            }
+
+            let updated = Arc::clone(chunk);
+            self.chunks.ring_insert(cx, cz, updated);
+            if any_changed {
+                self.modified.insert((cx, cz));
+            }
+        }
+    }
     /// `getHeight(Heightmap.Types.WORLD_SURFACE, x, z)`: one above the highest
     /// block that isn't `air`, or the column's minimum Y (also where the chunk
     /// isn't loaded).

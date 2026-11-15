@@ -1692,6 +1692,11 @@ impl Streaming {
                     }
                 }
                 Done::Meshed(x, sy, z, mesh, seq) => {
+                    // Smooth frame pacing: limit uploads to 3 per frame to prevent stutters
+                    if uploads.len() >= 3 {
+                        self.deferred.push(Done::Meshed(x, sy, z, mesh, seq));
+                        continue;
+                    }
                     if self.meshing.get(&(x, sy, z)) != Some(&seq) {
                         stale.push(((x, sy, z), mesh));
                         continue;

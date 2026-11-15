@@ -703,22 +703,29 @@ impl Options {
     /// The command line alone: no file is read and nothing changes. `None` for `--help` and
     /// `--launch-api`, which print and end the run.
     fn parse(mut args: impl Iterator<Item = String>) -> Result<Option<Self>> {
-        let sibling = std::env::current_exe()?
-            .parent()
-            .ok_or("missing executable directory")?
-            .join("resources");
-        let default_res = if sibling.join("horizon-resources.json").exists() {
-            sibling
-        } else if let Some(app_data) = std::env::var_os("APPDATA") {
-            let phantom_res = std::path::PathBuf::from(app_data).join("phantom").join("resources");
-            if phantom_res.join("horizon-resources.json").exists() {
-                phantom_res
-            } else {
-                std::path::Path::new(".local/phantom-client").join(phantom_core::VANILLA_VERSION)
-            }
-        } else {
-            std::path::Path::new(".local/phantom-client").join(phantom_core::VANILLA_VERSION)
+        let exe_dir = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf()));
+        let has_manifest = |p: &std::path::Path| {
+            p.join("phantom-resources.json").is_file() || p.join("horizon-resources.json").is_file()
         };
+        let mut candidates = Vec::new();
+        if let Some(ref dir) = exe_dir {
+            candidates.push(dir.join("resources"));
+            candidates.push(dir.join(".local/phantom-client").join(phantom_core::VANILLA_VERSION));
+            candidates.push(dir.join(".local/horizon-client").join(phantom_core::VANILLA_VERSION));
+        }
+        candidates.push(std::path::Path::new(".local/phantom-client").join(phantom_core::VANILLA_VERSION));
+        candidates.push(std::path::Path::new(".local/horizon-client").join(phantom_core::VANILLA_VERSION));
+        candidates.push(std::path::PathBuf::from("resources"));
+        if let Some(app_data) = std::env::var_os("APPDATA") {
+            let app_data_path = std::path::PathBuf::from(app_data);
+            candidates.push(app_data_path.join("phantom").join("resources"));
+            candidates.push(app_data_path.join("phantom-launcher/versions/nightly-2026-11-05-66f3981/.local/phantom-client").join(phantom_core::VANILLA_VERSION));
+            candidates.push(app_data_path.join("phantom-launcher/versions/nightly-2026-11-05-66f3981/.local/horizon-client").join(phantom_core::VANILLA_VERSION));
+        }
+        let default_res = candidates
+            .into_iter()
+            .find(|p| has_manifest(p))
+            .unwrap_or_else(|| std::path::Path::new(".local/phantom-client").join(phantom_core::VANILLA_VERSION));
         let mut o = Self {
             resources: default_res,
             distance: 12,
@@ -2591,6 +2598,7 @@ struct Game<'a> {
     gui: UiResources,
     /// `FogRenderer`'s evolving state.
     fog: phantom_client::fog::FogState,
+    cached_fog_type: std::cell::Cell<Option<([i64; 3], phantom_client::fog::FogType)>>,
     screen_fx: phantom_client::screen_effects::ScreenEffects,
     /// `LocalPlayer.itemActivation`: the totem flying up to the screen.
     item_activation: phantom_client::item_activation::ItemActivation,
@@ -18354,7 +18362,7 @@ impl Game<'_> {
             log::warn!("Phantom: {e}");
         }
         if let Err(e) = self.advance_studio_replay() {
-            log::warn!("Horizon Studio replay: {e}");
+            log::warn!("Phantom Studio replay: {e}");
         }
         // The renderer laid translucent quads out again (a shader pack's flat terrain came
         // or went) and dropped every section and far tile: meshed again, as for a new one.
@@ -20494,6 +20502,7 @@ impl<'a> Game<'a> {
             pack,
             gui,
             fog: Default::default(),
+            cached_fog_type: std::cell::Cell::new(None),
             screen_fx: Default::default(),
             item_activation: Default::default(),
             weather_parameters: Default::default(),
@@ -21232,7 +21241,7 @@ impl Game<'_> {
             Some(PendingWorldEntry::StudioReplay(path)) => {
                 let path_str = path.to_string_lossy().to_string();
                 if let Err(e) = self.open_studio_replay(&path_str) {
-                    log::warn!("Horizon Studio: could not open {path_str}: {e}");
+                    log::warn!("Phantom Studio: could not open {path_str}: {e}");
                 }
             }
             None => {}
@@ -22170,7 +22179,8 @@ fn load_resources(
 /// the next starts read them from one file (#1961).
 fn write_prepared_files(root: PathBuf) {
     use phantom_core::prepared_files;
-    if prepared_files::open(&root).is_some() || !root.join("horizon-resources.json").is_file() {
+    let has_manifest = root.join("phantom-resources.json").is_file() || root.join("horizon-resources.json").is_file();
+    if prepared_files::open(&root).is_some() || !has_manifest {
         return;
     }
     let spawned = std::thread::Builder::new()
@@ -23269,24 +23279,36 @@ impl ApplicationHandler for App {
     }
 }
 
+fn manifest_file_path(root: &std::path::Path) -> Option<std::path::PathBuf> {
+    let p = root.join("phantom-resources.json");
+    if p.is_file() {
+        return Some(p);
+    }
+    let h = root.join("horizon-resources.json");
+    if h.is_file() {
+        return Some(h);
+    }
+    None
+}
+
 /// Every launch reads the prepared game files (`phantom-prepare`'s output, whose
-/// manifest is `horizon-resources.json`): without them, say where they were
+/// manifest is `phantom-resources.json` or `horizon-resources.json`): without them, say where they were
 /// looked for and how to get them, before a window or a loader starts.
 fn missing_resources(root: &std::path::Path) -> Option<String> {
     let shown = std::path::absolute(root).unwrap_or_else(|_| root.to_path_buf());
-    if !root.join("horizon-resources.json").is_file() {
+    let Some(manifest) = manifest_file_path(root) else {
         return Some(format!(
-            "Phantom's prepared game files are missing: no horizon-resources.json in {}\n\
-             Horizon is started from its launcher: download it at {} (Download). It needs your \
+            "Phantom's prepared game files are missing: no resources manifest in {}\n\
+             Phantom is started from its launcher: download it at {} (Download). It needs your \
              own Minecraft: Java Edition; the launcher signs you in and prepares the game files.\n\
              Developers: phantom-prepare --prepare, or pass --resources <folder>",
             shown.display(),
             phantom_client::no_resources::DOWNLOAD_URL
         ));
-    }
-    damaged_prepared(root).map(|problem| {
+    };
+    damaged_prepared(root, &manifest).map(|problem| {
         format!(
-            "Horizon's prepared game files are damaged: {problem} in {}\n\
+            "Phantom's prepared game files are damaged: {problem} in {}\n\
              Prepare them again with the launcher, or: phantom-prepare --prepare",
             shown.display()
         )
@@ -23296,14 +23318,14 @@ fn missing_resources(root: &std::path::Path) -> Option<String> {
 /// Which top-level prepared file a killed preparation or an interrupted copy
 /// left unusable. The loader parses these before it can start; naming one
 /// beats serde's bare "expected value at line 1 column 1".
-fn damaged_prepared(root: &std::path::Path) -> Option<String> {
-    let manifest = root.join("horizon-resources.json");
-    let bytes = std::fs::read(&manifest).ok()?;
+fn damaged_prepared(root: &std::path::Path, manifest: &std::path::Path) -> Option<String> {
+    let manifest_name = manifest.file_name().unwrap_or_default().to_string_lossy();
+    let bytes = std::fs::read(manifest).ok()?;
     if bytes.iter().all(u8::is_ascii_whitespace) {
-        return Some("horizon-resources.json is empty".into());
+        return Some(format!("{manifest_name} is empty"));
     }
     if serde_json::from_slice::<serde_json::Value>(&bytes).is_err() {
-        return Some("horizon-resources.json is not valid JSON".into());
+        return Some(format!("{manifest_name} is not valid JSON"));
     }
     for entry in std::fs::read_dir(root).ok()?.flatten() {
         let path = entry.path();

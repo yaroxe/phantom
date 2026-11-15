@@ -1434,21 +1434,29 @@ pub fn render_server_tab(
     }
     ui.add_space(8.);
 
-    let right_width = 270.0;
+    let right_width = 280.0;
+    let panel_height = (ui.available_height() - 16.0).max(320.0);
     ui.horizontal_top(|ui| {
         // Left: Console
         let left_width = (ui.available_width() - right_width - 12.0).max(200.0);
         ui.vertical(|ui| {
             ui.set_width(left_width);
-            render_console(sm, ui);
+            render_console(sm, ui, panel_height);
         });
 
         ui.add_space(8.0);
 
-        // Right: Compact Settings & Quick Actions Panel
+        // Right: Compact Settings & Quick Actions Panel (Scrollable so all buttons fit)
         ui.vertical(|ui| {
             ui.set_width(right_width);
-            render_quick_settings(sm, &srv, cfg, ui);
+            egui::ScrollArea::vertical()
+                .id_source("quick_settings_scroll")
+                .auto_shrink([false; 2])
+                .max_height(panel_height)
+                .show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    render_quick_settings(sm, &srv, cfg, ui);
+                });
         });
     });
     ui.add_space(24.0);
@@ -1676,9 +1684,9 @@ fn render_quick_settings(
 
 // ---------------------------------------------------------------- Console View
 
-fn render_console(sm: &mut ServerManager, ui: &mut egui::Ui) {
+fn render_console(sm: &mut ServerManager, ui: &mut egui::Ui, height: f32) {
     ui.vertical(|ui| {
-        let avail_h = 340.0;
+        let avail_h = (height - 34.0 - 6.0).max(180.0);
 
         Frame::none()
             .fill(Color32::from_rgb(10, 11, 14))

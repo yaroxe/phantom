@@ -7466,8 +7466,8 @@ impl Game<'_> {
             let d = glam::DVec3::new(mob.position.x, mob.position.y, mob.position.z) - camera;
             let dist_sq = d.length_squared();
 
-            // Distance culling for non-players (> 64 blocks)
-            if !is_player && dist_sq > 64.0 * 64.0 {
+            // Distance culling for entities (> 48 blocks)
+            if dist_sq > 48.0 * 48.0 {
                 continue;
             }
 

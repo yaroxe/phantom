@@ -475,7 +475,8 @@ impl Settings {
             vignette: f.bool("vignette"),
             autosave_indicator: f.bool("showAutosaveIndicator"),
             cutout_leaves: f.bool("cutoutLeaves"),
-            improved_transparency: f.bool("improvedTransparency"),
+            // Force disabled by default for maximum FPS (6 passes instead of 15 passes)
+            improved_transparency: false,
             attack_indicator: f.int("attackIndicator") as u8,
             inactivity_fps_limit: f.name("inactivityFpsLimit"),
             prioritize_chunk_updates: f.int("prioritizeChunkUpdates") as u8,

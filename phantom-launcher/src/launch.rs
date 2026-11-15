@@ -255,6 +255,18 @@ fn phantom(cfg: &Config) -> Result<String, String> {
         .arg(&cfg.nickname)
         .arg("--game-dir")
         .arg(cfg.game_dir());
+
+    if !cfg.skin_path.is_empty() && Path::new(&cfg.skin_path).is_file() {
+        cmd.env("PHANTOM_OFFLINE_SKIN", &cfg.skin_path);
+        cmd.env("HORIZON_OFFLINE_SKIN", &cfg.skin_path);
+        let model = if cfg.skin_model == "slim" { "slim" } else { "default" };
+        cmd.env("PHANTOM_OFFLINE_SKIN_MODEL", model);
+        cmd.env("HORIZON_OFFLINE_SKIN_MODEL", model);
+
+        let target_skin = PathBuf::from(&cfg.phantom_dir).join("skin.png");
+        let _ = std::fs::copy(&cfg.skin_path, &target_skin);
+    }
+
     cmd.spawn()
         .map_err(|e| format!("Не удалось запустить {}: {e}", client.display()))?;
     Ok("Phantom Engine запущен".to_string())

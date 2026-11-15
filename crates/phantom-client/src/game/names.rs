@@ -826,7 +826,7 @@ fn name_tag_in_view(
     min: glam::Vec3,
     max: glam::Vec3,
 ) -> bool {
-    distance_sqr < 64.0 * 64.0 && frustum.is_none_or(|view| view.intersects(min, max))
+    distance_sqr < 48.0 * 48.0 && frustum.is_none_or(|view| view.intersects(min, max))
 }
 
 fn first_mob_indices(mobs: &[Mob]) -> std::collections::HashMap<u32, usize> {
@@ -1115,9 +1115,9 @@ mod tests {
             ([0.0, 0.0, 10.0], 100.0, false),
             ([12.0, 0.0, -10.0], 244.0, false),
             ([0.0, 12.0, -10.0], 244.0, false),
-            ([0.0, 0.0, -65.0], 4225.0, false),
-            ([0.0, 0.0, -64.0], 4096.0, false),
-            ([0.0, 0.0, -63.0], 3969.0, true),
+            ([0.0, 0.0, -49.0], 2401.0, false),
+            ([0.0, 0.0, -48.0], 2304.0, false),
+            ([0.0, 0.0, -47.0], 2209.0, true),
         ] {
             assert_eq!(
                 name_tag_in_view(

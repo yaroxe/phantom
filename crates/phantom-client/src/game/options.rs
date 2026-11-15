@@ -481,7 +481,7 @@ impl Game<'_> {
                 Event::OpenStudioReplay(path) => {
                     let path = path.to_string_lossy().to_string();
                     if let Err(e) = self.open_studio_replay(&path) {
-                        log::warn!("Horizon Studio: could not open {path}: {e}");
+                        log::warn!("Phantom Studio: could not open {path}: {e}");
                     }
                 }
                 Event::OpenStudioFolder => {

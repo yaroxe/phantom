@@ -1289,7 +1289,7 @@ pub struct ParticleEngine {
     pub item_sprites: HashMap<ParticleType, Vec<String>>,
 }
 /// `ParticleGroup.MAX_PARTICLES` (per render group; one group here).
-const MAX_PARTICLES: usize = 16384;
+const MAX_PARTICLES: usize = 512;
 /// `ParticleLimit.SPORE_BLOSSOM`, the only limited particle.
 const SPORE_BLOSSOM_LIMIT: usize = 1000;
 const PARTICLE_LIGHT_CACHE_SIZE: usize = 64;
@@ -3727,8 +3727,9 @@ impl ParticleEngine {
             if size >= MAX_PARTICLES {
                 continue;
             }
-            if size >= 12288 {
-                let free = (MAX_PARTICLES - size) as f32 / 4096.0;
+            let quarter = MAX_PARTICLES * 3 / 4;
+            if size >= quarter {
+                let free = (MAX_PARTICLES - size) as f32 / (MAX_PARTICLES - quarter) as f32;
                 if self.random.next_float() >= free * free {
                     continue;
                 }

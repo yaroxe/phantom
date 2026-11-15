@@ -376,7 +376,7 @@ const PURGE_DELAY: libmimalloc_sys::mi_option_t = 15;
 pub fn configure_allocator() {
     // SAFETY: sets one integer option, which mimalloc reads at each purge.
     unsafe {
-        libmimalloc_sys::mi_option_set(PURGE_DELAY, 0);
+        libmimalloc_sys::mi_option_set(PURGE_DELAY, 50);
     }
 }
 
@@ -708,7 +708,7 @@ mod tests {
             assert_eq!(get(), 1000);
         }
         super::configure_allocator();
-        assert_eq!(get(), 0);
+        assert_eq!(get(), 50);
     }
 }
 

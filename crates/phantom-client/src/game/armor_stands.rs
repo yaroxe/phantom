@@ -1143,6 +1143,23 @@ impl Game<'_> {
             // marker box falls back to 4, so a visible marker stand draws.
             // Holograms stay hidden through the invisible flag instead.
             let range = if edge == 0.0 { 4.0 } else { edge } * 64.0;
+            let pos_diff = super::entity_culling::at(a.position) - camera;
+            let dist_sq = pos_diff.length_squared();
+            if dist_sq > 48.0 * 48.0 {
+                continue;
+            }
+            if dist_sq > 4.0 {
+                let (cam_yaw, cam_pitch) = (self.yaw.to_radians(), self.pitch.to_radians());
+                let cam_forward = glam::DVec3::new(
+                    f64::from(-cam_yaw.sin() * cam_pitch.cos()),
+                    f64::from(-cam_pitch.sin()),
+                    f64::from(cam_yaw.cos() * cam_pitch.cos()),
+                );
+                if pos_diff.normalize().dot(cam_forward) < -0.2 {
+                    continue;
+                }
+            }
+
             let dragon = a.equipment[5]
                 .as_ref()
                 .is_some_and(|i| &*i.item == "minecraft:dragon_head");

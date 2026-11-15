@@ -732,9 +732,25 @@ pub fn offline_cape() -> Option<&'static [u8]> {
 pub fn offline_skin() -> Option<&'static (Vec<u8>, bool)> {
     static SKIN: std::sync::OnceLock<Option<(Vec<u8>, bool)>> = std::sync::OnceLock::new();
     SKIN.get_or_init(|| {
-        let path = std::env::var_os("HORIZON_OFFLINE_SKIN").filter(|p| !p.is_empty())?;
-        let model = std::env::var("HORIZON_OFFLINE_SKIN_MODEL").unwrap_or_default();
-        read_offline_skin(std::path::Path::new(&path), &model)
+        let env_path = std::env::var_os("PHANTOM_OFFLINE_SKIN")
+            .or_else(|| std::env::var_os("HORIZON_OFFLINE_SKIN"))
+            .filter(|p| !p.is_empty());
+        let model = std::env::var("PHANTOM_OFFLINE_SKIN_MODEL")
+            .or_else(|_| std::env::var("HORIZON_OFFLINE_SKIN_MODEL"))
+            .unwrap_or_default();
+        let path = if let Some(p) = env_path {
+            std::path::PathBuf::from(p)
+        } else if let Some(app_data) = std::env::var_os("APPDATA") {
+            let p = std::path::PathBuf::from(app_data).join("phantom").join("skin.png");
+            if p.is_file() {
+                p
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        };
+        read_offline_skin(&path, &model)
             .inspect_err(|e| eprintln!("Phantom: no offline skin ({}): {e}", path.display()))
             .ok()
     })

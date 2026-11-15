@@ -23,6 +23,10 @@ pub struct Config {
     /// "phantom", "java:<version id>" or "jar:<path>".
     pub selected: String,
     pub custom_jars: Vec<String>,
+    /// Path to custom skin PNG file; empty = default.
+    pub skin_path: String,
+    /// Model: "classic" (Steve 4px) or "slim" (Alex 3px).
+    pub skin_model: String,
 }
 
 impl Default for Config {
@@ -37,6 +41,8 @@ impl Default for Config {
             java_path: String::new(),
             selected: "phantom".into(),
             custom_jars: Vec::new(),
+            skin_path: String::new(),
+            skin_model: "classic".into(),
         }
     }
 }

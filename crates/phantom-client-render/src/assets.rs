@@ -184,9 +184,14 @@ fn invalid(message: &str) -> io::Error {
 }
 impl Assets {
     pub fn load(root: &Path) -> Result<Self> {
-        let manifest: Value = phantom_world::json_file::read(&root.join("horizon-resources.json"))?;
+        let manifest_path = if root.join("phantom-resources.json").is_file() {
+            root.join("phantom-resources.json")
+        } else {
+            root.join("horizon-resources.json")
+        };
+        let manifest: Value = phantom_world::json_file::read(&manifest_path)?;
         if manifest["data_version"].as_i64() != Some(i64::from(DATA_VERSION)) {
-            return Err(invalid("resources do not match Horizon's pinned data version").into());
+            return Err(invalid("resources do not match Phantom's pinned data version").into());
         }
         let (registry, flags) = phantom_world::level::data::load_registry_with_flags(root)?;
         let bundle: Value = phantom_world::json_file::read(&root.join("block-tags.json"))?;

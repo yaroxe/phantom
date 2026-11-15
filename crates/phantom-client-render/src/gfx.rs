@@ -818,7 +818,7 @@ const MAX_OUTLINE_EDGES: u64 = 256;
 const SECTION_UPLOAD_CHUNK: u64 = 4 << 20;
 /// Section copies are submitted early past this many staged bytes, which
 /// bounds the staging memory frames that are not drawn can hold.
-const SECTION_COPY_LIMIT: u64 = 64 << 20;
+const SECTION_COPY_LIMIT: u64 = 4 * 1024 * 1024;
 /// What compaction copies in a frame, `compact_arena` first and
 /// `shrink_translucent` with what it left, and a range more where a call's
 /// first is larger (`move_off_page`): a page empties over a few frames, with
@@ -2322,7 +2322,7 @@ async fn open_backend(
         limits.max_texture_array_layers,
     ));
     let desc = wgpu::DeviceDescriptor {
-        label: Some("Horizon device"),
+        label: Some("Phantom device"),
         required_features: features,
         required_limits: limits,
         // Video memory in blocks of 8-64 MiB instead of 128-256 MiB (Vulkan and DirectX 12):
@@ -2624,7 +2624,9 @@ impl Renderer {
                 .map(|renderer| renderer.config.present_mode)
                 .filter(|mode| caps.present_modes.contains(mode))
                 .unwrap_or_else(|| {
-                    if caps.present_modes.contains(&wgpu::PresentMode::Mailbox) {
+                    if caps.present_modes.contains(&wgpu::PresentMode::Immediate) {
+                        wgpu::PresentMode::Immediate
+                    } else if caps.present_modes.contains(&wgpu::PresentMode::Mailbox) {
                         wgpu::PresentMode::Mailbox
                     } else {
                         wgpu::PresentMode::Fifo

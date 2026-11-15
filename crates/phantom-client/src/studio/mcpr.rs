@@ -70,7 +70,7 @@ impl Default for Metadata {
             file_format: "MCPR".to_owned(),
             file_format_version: 14,
             protocol: Some(phantom_protocol::PROTOCOL_VERSION),
-            generator: "Horizon Studio".to_owned(),
+            generator: "Phantom Studio".to_owned(),
             self_id: 1,
             players: Vec::new(),
         }
@@ -1436,6 +1436,6 @@ mod tests {
         let sidecar: Metadata =
             serde_json::from_slice(&fs::read(writer.metadata_path()).unwrap()).unwrap();
         assert_eq!(sidecar.duration, 2 * FLUSH_INTERVAL_MS);
-        assert_eq!(sidecar.generator, "Horizon Studio");
+        assert_eq!(sidecar.generator, "Phantom Studio");
     }
 }

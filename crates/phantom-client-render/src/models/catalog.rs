@@ -584,6 +584,11 @@ impl StateModels {
         }
         self.each_seeded(state, position_seed(position), |(_, model)| out.push(model))
     }
+    /// Lookup single static model for a block state if it doesn't use random choice.
+    pub(crate) fn single_model(&self, state: BlockStateId) -> Option<&BakedModel> {
+        let model_idx = (*self.single_models.get(state.0 as usize)?)?;
+        Some(&self.baked.get(model_idx as usize)?.1)
+    }
     fn each_seeded<'a>(
         &'a self,
         state: BlockStateId,

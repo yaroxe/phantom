@@ -179,7 +179,7 @@ impl Game<'_> {
                         overlay::labelled_pass_lines("Phantom GPU", &r.own_pass_times())
                     });
                     if self.debug && !own_lines.is_empty() {
-                        d.group("Horizon passes", own_lines);
+                        d.group("Phantom passes", own_lines);
                     }
                 }
                 "tps" => self.debug_tps_line(d),

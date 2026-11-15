@@ -18,6 +18,7 @@ use phantom_core::random::RandomSource as _;
 #[derive(Default, Clone)]
 pub(super) struct OrderedTicks {
     /// Joins at or above this started after the tick began; they tick next tick.
+    #[allow(dead_code)]
     born: JoinSeq,
     /// The last join number ticked, if any: later ones are still to come.
     pub(super) done: Option<JoinSeq>,
@@ -29,6 +30,14 @@ pub(super) struct OrderedTicks {
     suffix_min: [JoinSeq; Batch::COUNT],
     /// The orbs' lava random, made on first use.
     lava_random: Option<phantom_core::random::LegacyRandom>,
+    /// Pre-sorted entities ticking during normal batch passes.
+    pub(super) pending_early: Vec<(JoinSeq, Pending)>,
+    /// Pre-sorted entities ticking in the late pass.
+    pub(super) pending_late: Vec<(JoinSeq, Pending)>,
+    /// Cursor index into pending_early.
+    pub(super) cursor: usize,
+    /// Reusable buffer for nearby obstacle collisions.
+    pub(super) nearby: Vec<phantom_core::geometry::Aabb>,
 }
 
 /// The batches of the other kinds, in the order they tick.
@@ -49,7 +58,7 @@ impl Batch {
 }
 
 #[derive(Clone, Copy)]
-enum Pending {
+pub(super) enum Pending {
     Orb,
     Tnt,
     Falling,
@@ -92,12 +101,47 @@ impl Game<'_> {
             lowest = lowest.min(first.unwrap_or(JoinSeq::MAX));
             *slot = lowest;
         }
+
+        let mut pending_early = std::mem::take(&mut self.ordered.pending_early);
+        let mut pending_late = std::mem::take(&mut self.ordered.pending_late);
+        let nearby = std::mem::take(&mut self.ordered.nearby);
+        pending_early.clear();
+        pending_late.clear();
+
+        let announced = self.ordered.announced;
+        let born = JoinSeq::upcoming();
+        let mut offer = |j: JoinSeq, kind: Pending| {
+            if j < born {
+                match kind {
+                    Pending::Orb => pending_early.push((j, kind)),
+                    _ => {
+                        if j < announced {
+                            pending_early.push((j, kind));
+                        } else {
+                            pending_late.push((j, kind));
+                        }
+                    }
+                }
+            }
+        };
+        self.orbs.iter().for_each(|e| offer(e.join, Pending::Orb));
+        self.tnts.iter().for_each(|e| offer(e.join, Pending::Tnt));
+        self.falling
+            .iter()
+            .for_each(|e| offer(e.join, Pending::Falling));
+        pending_early.sort_unstable_by_key(|&(j, _)| j);
+        pending_late.sort_unstable_by_key(|&(j, _)| j);
+
         self.ordered = OrderedTicks {
-            announced: self.ordered.announced,
-            born: JoinSeq::upcoming(),
+            announced,
+            born,
             done: None,
             suffix_min,
             lava_random: None,
+            pending_early,
+            pending_late,
+            cursor: 0,
+            nearby,
         };
     }
 
@@ -108,36 +152,31 @@ impl Game<'_> {
         let mut followed = None;
         let mut events = false;
         let entity_ticking = self.entity_ticking_area();
-        // Who ticks in this run, sorted once: entities that join meanwhile are
-        // at or above `born`, so the set cannot grow, only lose the removed.
-        let (done, born, announced) =
-            (self.ordered.done, self.ordered.born, self.ordered.announced);
-        let wanted = |j: JoinSeq| done.is_none_or(|d| j > d) && j < cut && j < born;
-        let mut pending: Vec<(JoinSeq, Pending)> = Vec::new();
-        let mut offer = |j: JoinSeq, kind: Pending| {
-            // Orbs are announced after their tick, always; TNT and falling
-            // blocks that joined since the last packets wait for them.
-            let right_pass = match kind {
-                Pending::Orb => !late,
-                _ => late == (j >= announced),
-            };
-            if right_pass && wanted(j) {
-                pending.push((j, kind));
+
+        let mut to_process: Vec<(JoinSeq, Pending)> = Vec::new();
+        if !late {
+            while self.ordered.cursor < self.ordered.pending_early.len() {
+                let (j, kind) = self.ordered.pending_early[self.ordered.cursor];
+                if j >= cut {
+                    break;
+                }
+                self.ordered.cursor += 1;
+                to_process.push((j, kind));
             }
-        };
-        self.orbs.iter().for_each(|e| offer(e.join, Pending::Orb));
-        self.tnts.iter().for_each(|e| offer(e.join, Pending::Tnt));
-        self.falling
-            .iter()
-            .for_each(|e| offer(e.join, Pending::Falling));
-        pending.sort_unstable_by_key(|&(j, _)| j);
-        // EntityGetter.getEntityCollisions: the boxes that stop these moves (a
-        // boat, a shulker, a happy ghast held still), gathered once for the
-        // run and again after an explosion, which can move or remove them.
+        } else {
+            to_process = std::mem::take(&mut self.ordered.pending_late);
+        }
+
+        if to_process.is_empty() {
+            return Ok(());
+        }
+
         let mut obstacles: Option<phantom_client::entities::ObstacleGrid> = None;
-        let mut nearby = Vec::new();
-        for (join, kind) in pending {
+        let mut nearby = std::mem::take(&mut self.ordered.nearby);
+
+        for (join, kind) in to_process {
             self.ordered.done = Some(join);
+            nearby.clear();
             // ServerLevel.tick: only entities in entity-ticking chunks tick.
             match kind {
                 Pending::Tnt => {
@@ -249,6 +288,7 @@ impl Game<'_> {
                 }
             }
         }
+        self.ordered.nearby = nearby;
         if events && let Err(e) = self.process_level_events() {
             first_error.get_or_insert(e);
         }
