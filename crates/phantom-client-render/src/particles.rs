@@ -1486,10 +1486,16 @@ impl ParticleEngine {
         // generation. Discard them rather than selecting another set after reload.
         self.particles.retain(|p| p.controller.is_none());
         self.pending.retain(|p| p.controller.is_none());
-        self.atlas = atlas
-            .iter()
-            .map(|(name, &rect)| (name.clone(), (rect, translucent.contains(name))))
-            .collect();
+        self.atlas.clear();
+        for (name, &rect) in atlas {
+            let is_trans = translucent.contains(name);
+            self.atlas.insert(name.clone(), (rect, is_trans));
+            if let Some(bare) = name.strip_prefix("minecraft:") {
+                self.atlas.entry(bare.to_string()).or_insert((rect, is_trans));
+            } else if !name.contains(':') {
+                self.atlas.entry(format!("minecraft:{name}")).or_insert((rect, is_trans));
+            }
+        }
         self.rects = self
             .names
             .iter()
@@ -4750,10 +4756,17 @@ impl ParticleEngine {
                         || matches!(p.behaviour, Behaviour::Controlled { translucent: true })
                         || matches!(p.behaviour, Behaviour::Mod { alpha, .. } if alpha != [1.0; 2]),
                 ),
-                Sprite::Named(name) => match self.atlas.get(name) {
-                    Some(&(rect, translucent)) => (Some(rect), translucent),
-                    None => (None, false),
-                },
+                Sprite::Named(name) => {
+                    let bare = name.strip_prefix("minecraft:").unwrap_or(name);
+                    match self
+                        .atlas
+                        .get(name)
+                        .or_else(|| self.atlas.get(bare))
+                    {
+                        Some(&(rect, translucent)) => (Some(rect), translucent),
+                        None => (None, false),
+                    }
+                }
             };
             let Some(r) = rect else { continue };
             let (center, size) = culled_geometry.unwrap_or_else(|| {

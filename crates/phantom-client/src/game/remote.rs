@@ -720,7 +720,7 @@ pub(super) struct Remote {
     pub(super) profile_name: String,
     /// `MultiPlayerGameMode.destroyBlockPos`, `.destroyProgress` and the face last sent: the block
     /// the break targets, which outlives the break itself.
-    destroying: Option<([i32; 3], u8, f32)>,
+    pub(super) destroying: Option<([i32; 3], u8, f32)>,
     /// `MultiPlayerGameMode.destroyingItem`: the held item key the break began with.
     destroying_item: String,
     /// `MultiPlayerGameMode.isDestroying`: a break is running. `destroying` keeps the target after
@@ -2976,6 +2976,12 @@ impl Game<'_> {
         if self.world.loaded(pos[0], pos[2])
             && self.world.set(pos[0], pos[1], pos[2], state).is_ok()
         {
+            let here = self.player_position();
+            let dx = (pos[0] as f64 - here[0]).abs();
+            let dz = (pos[2] as f64 - here[2]).abs();
+            if dx <= 32.0 && dz <= 32.0 {
+                self.world.mark_section_urgent(pos[0], pos[1], pos[2]);
+            }
             self.sync_block_entity((pos[0], pos[1], pos[2]), Some(previous), state);
             // LevelChunk.setBlockState removes the block entity of a block
             // that changes: the moving piston the client's moveBlocks made
@@ -5870,16 +5876,17 @@ impl Game<'_> {
             }
         }
         // An offline name's skin from the launcher, where neither the server
-        // nor an account gives the local player one.
-        if !resolved.iter().any(|(u, _)| *u == local)
-            && let Some((rgba, is_slim)) = phantom_client::skins::offline_skin()
-        {
+        // nor an account gives the local player one (or custom_skin.png override).
+        if let Some((rgba, is_slim)) = phantom_client::skins::offline_skin() {
             const OFFLINE: &str = "horizon/offline_skin";
             if !self.skin_slots.contains(OFFLINE) || !self.gui.atlas.sprites.contains_key(OFFLINE) {
                 self.store_skin(OFFLINE.into(), rgba.clone());
             }
+            resolved.retain(|(u, _)| *u != local);
             if *is_slim {
                 slim.insert(local);
+            } else {
+                slim.remove(&local);
             }
             resolved.push((local, OFFLINE.into()));
         }
@@ -8061,6 +8068,8 @@ impl Game<'_> {
                 progress: done,
                 ticks,
             });
+            let play_sound = (ticks as u32).is_multiple_of(4);
+            self.breaking_block_effects(pos, hit.face, play_sound);
         }
     }
     /// MultiPlayerGameMode.destroyBlock: the predicted break.
@@ -8101,6 +8110,7 @@ impl Game<'_> {
         let air = self.world.air;
         if self.world.set(pos[0], pos[1], pos[2], air).is_ok() {
             self.world.block_entities.remove(&(pos[0], pos[1], pos[2]));
+            self.world.mark_section_urgent(pos[0], pos[1], pos[2]);
         }
         self.mining = None;
     }

@@ -4196,7 +4196,16 @@ impl Game<'_> {
         }
     }
     fn particle_sprite(&self, state: BlockStateId, pos: [i32; 3]) -> Option<(String, u32)> {
-        let sprite = Self::block_particle_sprite(&self.pack, state)?;
+        let sprite = Self::block_particle_sprite(&self.pack, state).or_else(|| {
+            let facts = self.res.facts().get(state);
+            let name = facts.name.strip_prefix("minecraft:").unwrap_or(&facts.name);
+            let key = format!("block/{name}");
+            if self.gui.atlas.sprites.contains_key(&key) || self.gui.atlas.sprites.contains_key(&*facts.name) {
+                Some(key)
+            } else {
+                None
+            }
+        })?;
         let chunks = &self.world.chunks;
         let (cx, cz) = (pos[0] >> 4, pos[2] >> 4);
         let region: [[Option<&phantom_client::chunk::Chunk>; 3]; 3] = std::array::from_fn(|dz| {
@@ -4262,7 +4271,12 @@ impl Game<'_> {
         let Some((sprite, tint)) = self.particle_sprite(state, pos) else {
             return;
         };
-        let boxes = self.particle_shape(pos, state);
+        let raw_boxes = self.particle_shape(pos, state);
+        let boxes = if raw_boxes.is_empty() {
+            vec![[0.0, 0.0, 0.0, 1.0, 1.0, 1.0]]
+        } else {
+            raw_boxes
+        };
         phantom_client::particles::destroy_positions(pos, &boxes, |p, v| {
             let particle = Particle::terrain(self.particles.random(), p, v, sprite.clone(), tint);
             self.particles.push(particle);
@@ -4276,7 +4290,12 @@ impl Game<'_> {
         let Some((sprite, tint)) = self.particle_sprite(state, pos) else {
             return;
         };
-        let boxes = self.particle_shape(pos, state);
+        let raw_boxes = self.particle_shape(pos, state);
+        let boxes = if raw_boxes.is_empty() {
+            vec![[0.0, 0.0, 0.0, 1.0, 1.0, 1.0]]
+        } else {
+            raw_boxes
+        };
         // Keep client effects separate from the authoritative world RNG.
         let r = self.particles.random();
         let Some(p) = phantom_client::particles::breaking_position(r, pos, face, &boxes) else {
@@ -6666,6 +6685,9 @@ impl Game<'_> {
                 correct_tool,
             )
         });
+        if removed {
+            self.world.mark_section_urgent(pos[0], pos[1], pos[2]);
+        }
         if removed && !creative {
             let held = self.held().cloned();
             self.mine_block_with_held(&facts.name, facts.hardness);
@@ -12503,10 +12525,10 @@ impl Game<'_> {
             Some(c) => c.1 = c.1.max(stage),
             None => stages.push((pos, stage)),
         };
-        if let Some(m) = &self.mining
-            && m.progress > 0.0
-        {
+        if let Some(m) = &self.mining {
             add(m.pos, ((m.progress * 10.0) as u32).min(9));
+        } else if let Some((pos, _, done)) = self.remote.as_ref().and_then(|r| r.destroying) {
+            add(pos, ((done * 10.0) as u32).min(9));
         }
         let now = self.world.game_time;
         for (pos, stage, at) in self.destroying.values() {
@@ -12523,8 +12545,18 @@ impl Game<'_> {
                 d.length_squared() <= 1024.0
             })
             .filter_map(|(pos, stage)| {
-                let name = names.get(stage as usize)?;
-                let r = self.gui.atlas.sprites.get(*name)?;
+                let stage_idx = (stage as usize).min(9);
+                let primary = names.get(stage_idx).copied();
+                let r = primary
+                    .and_then(|n| self.gui.atlas.sprites.get(n))
+                    .or_else(|| self.gui.atlas.sprites.get(DESTROY_STAGES[stage_idx]))
+                    .or_else(|| self.gui.atlas.sprites.get(DESTROY_STAGES_OIT[stage_idx]))
+                    .or_else(|| {
+                        self.gui
+                            .atlas
+                            .sprites
+                            .get(&format!("minecraft:{}", DESTROY_STAGES[stage_idx]))
+                    })?;
                 Some((pos, [r.u0, r.v0]))
             })
             .collect()
@@ -15153,7 +15185,10 @@ impl Game<'_> {
     /// `left` or right arm with its skin at pose `m`, in its rest pose
     /// turned 0.1 radians outwards.
     fn first_person_arm(&self, left: bool, m: glam::Mat4, light: u32, out: &mut Vec<Vertex>) {
-        let slim = self.player_model.as_ref().is_some_and(|m| m.slim);
+        let slim = self.player_model.as_ref().map_or_else(
+            || phantom_client::skins::offline_skin().is_some_and(|(_, is_slim)| *is_slim),
+            |m| m.slim,
+        );
         let Some(arm) = self.res.player_arm(slim, left).as_ref() else {
             return;
         };
@@ -15164,6 +15199,7 @@ impl Game<'_> {
             .as_ref()
             .and_then(|m| m.skin.as_deref())
             .and_then(|skin| sprites.get(skin))
+            .or_else(|| sprites.get("horizon/offline_skin"))
             .or_else(|| sprites.get("entity/player/wide/steve"))
             .copied()
         else {
@@ -17499,6 +17535,8 @@ impl Game<'_> {
                 .atlas
                 .sprites
                 .get("block/destroy_stage_0")
+                .or_else(|| self.gui.atlas.sprites.get("block/destroy_oit_stage_0"))
+                .or_else(|| self.gui.atlas.sprites.get("minecraft:block/destroy_stage_0"))
                 .map_or([0.0; 4], |r| [r.u0, r.v0, r.u1 - r.u0, r.v1 - r.v0]),
             end_portal_sprites: ["environment/end_sky", "entity/end_portal/end_portal"].map(|n| {
                 self.gui
@@ -18552,23 +18590,33 @@ impl Game<'_> {
                     AUTO_UPLOAD_TIME
                 };
                 let started = Instant::now();
-                while let Some((_, mesh)) = pending.last() {
-                    if auto && count > 0 && started.elapsed() >= auto_time {
-                        break;
-                    }
-                    if auto && is_sprinting && count >= 3 {
-                        break;
-                    }
+                while let Some((key_ref, mesh)) = pending.last() {
+                    let key = *key_ref;
+                    let is_urgent = self.streaming.urgent_uploads.remove(&key) || {
+                        let centre = self.streaming.center;
+                        (key.0 - centre.0).abs() <= 1 && (key.2 - centre.1).abs() <= 1
+                    };
                     let size = ((mesh.solid.len() + mesh.translucent.len())
                         * std::mem::size_of::<phantom_client::mesher::TerrainVertex>())
                         as u64;
-                    if (limit > 0 && count >= limit)
-                        || (budget > 0 && bytes > 0 && bytes + size > budget)
-                    {
-                        break;
+                    if !is_urgent {
+                        if auto && count > 0 && started.elapsed() >= auto_time {
+                            break;
+                        }
+                        if auto && is_sprinting && count >= 3 {
+                            break;
+                        }
+                        if (limit > 0 && count >= limit)
+                            || (budget > 0 && bytes > 0 && bytes + size > budget)
+                        {
+                            break;
+                        }
                     }
                     let (key, mesh) = pending.pop().expect("checked above");
                     renderer.upload(key, &mesh);
+                    if is_urgent {
+                        renderer.flush_section_copies();
+                    }
                     spent.push((key, mesh));
                     count += 1;
                     bytes += size;

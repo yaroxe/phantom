@@ -541,6 +541,10 @@ pub struct Streaming {
     light_snapshots: FxHashMap<(i32, i32), u64>,
     pub generated_total: u64,
     pub meshed_total: u64,
+    /// Player block edits marked urgent, scheduled at top priority (i64::MIN)
+    pub urgent_sections: FxHashSet<(i32, i32, i32)>,
+    /// Meshed urgent sections waiting to bypass upload budgets
+    pub urgent_uploads: FxHashSet<(i32, i32, i32)>,
     /// Chunks come from a server (`insert_remote`/`forget`): nothing is
     /// generated and columns are only unloaded when the server says so.
     pub remote: bool,
@@ -1113,6 +1117,8 @@ impl Streaming {
             light_snapshots: Default::default(),
             generated_total: 0,
             meshed_total: 0,
+            urgent_sections: Default::default(),
+            urgent_uploads: Default::default(),
             remote: false,
             relight_resent: false,
             extra: Vec::new(),
@@ -1692,8 +1698,10 @@ impl Streaming {
                     }
                 }
                 Done::Meshed(x, sy, z, mesh, seq) => {
-                    // Smooth frame pacing: limit uploads to 3 per frame to prevent stutters
-                    if uploads.len() >= 3 {
+                    let is_urgent = self.urgent_sections.remove(&(x, sy, z));
+                    // Smooth frame pacing: limit normal uploads to 3 per frame to prevent stutters,
+                    // but NEVER defer urgent player-edited sections!
+                    if !is_urgent && uploads.len() >= 3 {
                         self.deferred.push(Done::Meshed(x, sy, z, mesh, seq));
                         continue;
                     }
@@ -1711,6 +1719,9 @@ impl Streaming {
                     self.meshing.remove(&(x, sy, z));
                     self.compile_started.insert((x, sy, z), seq);
                     self.meshed_total += 1;
+                    if is_urgent {
+                        self.urgent_uploads.insert((x, sy, z));
+                    }
                     uploads.push(((x, sy, z), mesh));
                 }
             }
@@ -2039,13 +2050,12 @@ impl Streaming {
                 }
                 continue;
             }
+            let is_col_urgent = world.dirty_sections.has_urgent_in_column(x, z);
             // A neighbour being lit dirties this column again when its light
             // job finishes (new chunks relight their eight neighbours), so
-            // wait for it rather than mesh once per neighbour. Columns still
-            // in `dirty_light` here can't be lit yet (a neighbour of theirs is
-            // missing): waiting for them could last until the player comes
-            // back.
-            let ready = (-1..=1).all(|dz| {
+            // wait for it rather than mesh once per neighbour. Urgent player-edited
+            // columns skip neighbour waiting to update immediately!
+            let ready = is_col_urgent || (-1..=1).all(|dz| {
                 (-1..=1).all(|dx| {
                     let n = (x + dx, z + dz);
                     self.lit.contains(&n) && !self.lighting.contains_key(&n)
@@ -2054,7 +2064,8 @@ impl Streaming {
             if !ready {
                 continue;
             }
-            candidates.push((self.distance(x, z), x, z, sections));
+            let dist = if is_col_urgent { i64::MIN / 4 } else { self.distance(x, z) };
+            candidates.push((dist, x, z, sections));
         }
         // Nearest first, and only as many sections as the workers can chew.
         // Every ready column used to be submitted at once, so at a wide
@@ -2064,19 +2075,25 @@ impl Streaming {
         // stays dirty is asked for again, from the current centre, as
         // capacity frees; `requeue` then has a small queue to keep close.
         let room = (self.workers * 32).saturating_sub(self.meshing.len());
-        nearest_first(&mut candidates, room);
+        let urgent_count = candidates.iter().filter(|(d, ..)| *d <= i64::MIN / 4).count();
+        let effective_room = room.max(urgent_count);
+        nearest_first(&mut candidates, effective_room);
         for (_, x, z, sections) in candidates {
             let Some(region) = Self::region(world, x, z) else {
                 continue;
             };
             world.dirty_sections.take_column(x, z);
             for sy in sections.iter().map(|sy| sy as i32) {
+                let is_urgent = world.dirty_sections.urgent.remove(&(x, sy, z));
+                if is_urgent {
+                    self.urgent_sections.insert((x, sy, z));
+                }
                 let first = self.meshed.insert((x, z));
                 self.sequence += 1;
                 self.meshing.insert((x, sy, z), self.sequence);
                 self.submit(
-                    Some((x, z)),
-                    if first { 2 } else { 0 },
+                    if is_urgent { None } else { Some((x, z)) },
+                    if is_urgent { i64::MIN / 2 } else if first { 2 } else { 0 },
                     Job::Mesh(
                         x,
                         sy,

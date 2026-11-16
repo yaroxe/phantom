@@ -918,7 +918,13 @@ impl HandWorld for GameHands<'_, '_> {
     fn main_hand_key(&mut self) -> String {
         self.game.main_hand_key()
     }
-    fn destroy_stage(&mut self, _: [i32; 3], _: Option<i32>) {}
+    fn destroy_stage(&mut self, pos: [i32; 3], stage: Option<i32>) {
+        if let Some(stage) = stage {
+            self.game.destroy_block_progress(-1, pos, stage);
+        } else {
+            self.game.destroy_block_progress(-1, pos, -1);
+        }
+    }
     fn swing(&mut self, hand: Hand, animation: SwingAnimation) {
         self.game.swing_hand(hand, animation);
     }

@@ -256,15 +256,37 @@ fn phantom(cfg: &Config) -> Result<String, String> {
         .arg("--game-dir")
         .arg(cfg.game_dir());
 
-    if !cfg.skin_path.is_empty() && Path::new(&cfg.skin_path).is_file() {
-        cmd.env("PHANTOM_OFFLINE_SKIN", &cfg.skin_path);
-        cmd.env("HORIZON_OFFLINE_SKIN", &cfg.skin_path);
-        let model = if cfg.skin_model == "slim" { "slim" } else { "default" };
+    let candidate_skins = [
+        PathBuf::from(&cfg.skin_path),
+        PathBuf::from(cfg.game_dir()).join("custom_skin.png"),
+        PathBuf::from(&cfg.phantom_dir).join("custom_skin.png"),
+        PathBuf::from(&cfg.phantom_dir).join("skin.png"),
+    ];
+    let skin_found = candidate_skins.iter().find(|p| !p.as_os_str().is_empty() && p.is_file());
+    if let Some(skin_file) = skin_found {
+        cmd.env("PHANTOM_OFFLINE_SKIN", skin_file);
+        cmd.env("HORIZON_OFFLINE_SKIN", skin_file);
+
+        let mut is_slim = cfg.skin_model == "slim";
+        for p in [
+            PathBuf::from(cfg.game_dir()).join("custom_skin_slim.txt"),
+            PathBuf::from(&cfg.phantom_dir).join("custom_skin_slim.txt"),
+        ] {
+            if let Ok(content) = fs::read_to_string(&p) {
+                let trimmed = content.trim();
+                if trimmed == "true" {
+                    is_slim = true;
+                } else if trimmed == "false" {
+                    is_slim = false;
+                }
+            }
+        }
+        let model = if is_slim { "slim" } else { "default" };
         cmd.env("PHANTOM_OFFLINE_SKIN_MODEL", model);
         cmd.env("HORIZON_OFFLINE_SKIN_MODEL", model);
 
         let target_skin = PathBuf::from(&cfg.phantom_dir).join("skin.png");
-        let _ = std::fs::copy(&cfg.skin_path, &target_skin);
+        let _ = std::fs::copy(skin_file, &target_skin);
     }
 
     cmd.spawn()

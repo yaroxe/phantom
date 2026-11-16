@@ -1,1 +1,0 @@
-{"rustc":222933465615791797,"features":"[]","declared_features":"[]","target":7845153393992308883,"profile":854319013279132213,"path":130812764429004853,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"release\\.fingerprint\\xml-rs-eec98edd3b24dd3d\\dep-lib-xml","checksum":false}}],"rustflags":["-C","target-cpu=x86-64-v2"],"config":9396254390672932401,"compile_kind":0}

@@ -311,6 +311,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                             theme::TEXT_SOFT,
                                         );
                                     }
+                                    ui.add_space(40.);
                                 });
                         }
 
@@ -481,6 +482,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                                 col_ui.add_space(8.);
                             }
                         });
+                        ui.add_space(60.);
                     });
 
                 if let Some(id) = get {

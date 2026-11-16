@@ -734,24 +734,73 @@ pub fn offline_skin() -> Option<&'static (Vec<u8>, bool)> {
     SKIN.get_or_init(|| {
         let env_path = std::env::var_os("PHANTOM_OFFLINE_SKIN")
             .or_else(|| std::env::var_os("HORIZON_OFFLINE_SKIN"))
-            .filter(|p| !p.is_empty());
-        let model = std::env::var("PHANTOM_OFFLINE_SKIN_MODEL")
-            .or_else(|_| std::env::var("HORIZON_OFFLINE_SKIN_MODEL"))
-            .unwrap_or_default();
-        let path = if let Some(p) = env_path {
-            std::path::PathBuf::from(p)
-        } else if let Some(app_data) = std::env::var_os("APPDATA") {
-            let p = std::path::PathBuf::from(app_data).join("phantom").join("skin.png");
-            if p.is_file() {
-                p
-            } else {
-                return None;
+            .filter(|p| !p.is_empty())
+            .map(std::path::PathBuf::from);
+
+        let cur_dir = std::env::current_dir().ok();
+        let game_dir_arg = std::env::args()
+            .position(|a| a == "--game-dir" || a == "--gameDir")
+            .and_then(|i| std::env::args().nth(i + 1))
+            .map(std::path::PathBuf::from);
+
+        let app_data = std::env::var_os("APPDATA").map(std::path::PathBuf::from);
+
+        let mut candidates = Vec::new();
+        if let Some(p) = env_path {
+            candidates.push(p);
+        }
+        if let Some(d) = cur_dir.as_ref() {
+            candidates.push(d.join("custom_skin.png"));
+        }
+        if let Some(gd) = game_dir_arg.as_ref() {
+            candidates.push(gd.join("custom_skin.png"));
+        }
+        if let Some(ad) = app_data.as_ref() {
+            candidates.push(ad.join("phantom").join("custom_skin.png"));
+            candidates.push(ad.join("phantom").join("skin.png"));
+        }
+
+        let skin_path = candidates.into_iter().find(|p| p.is_file())?;
+
+        // Determine if slim
+        let mut is_slim = false;
+        let mut slim_checked = false;
+        let mut slim_candidates = Vec::new();
+        if let Some(parent) = skin_path.parent() {
+            slim_candidates.push(parent.join("custom_skin_slim.txt"));
+        }
+        if let Some(d) = cur_dir.as_ref() {
+            slim_candidates.push(d.join("custom_skin_slim.txt"));
+        }
+        if let Some(gd) = game_dir_arg.as_ref() {
+            slim_candidates.push(gd.join("custom_skin_slim.txt"));
+        }
+        if let Some(ad) = app_data.as_ref() {
+            slim_candidates.push(ad.join("phantom").join("custom_skin_slim.txt"));
+        }
+        for sc in slim_candidates {
+            if let Ok(content) = std::fs::read_to_string(sc) {
+                let trimmed = content.trim();
+                if trimmed == "true" {
+                    is_slim = true;
+                    slim_checked = true;
+                    break;
+                } else if trimmed == "false" {
+                    is_slim = false;
+                    slim_checked = true;
+                    break;
+                }
             }
-        } else {
-            return None;
-        };
-        read_offline_skin(&path, &model)
-            .inspect_err(|e| eprintln!("Phantom: no offline skin ({}): {e}", path.display()))
+        }
+        if !slim_checked {
+            let model = std::env::var("PHANTOM_OFFLINE_SKIN_MODEL")
+                .or_else(|_| std::env::var("HORIZON_OFFLINE_SKIN_MODEL"))
+                .unwrap_or_default();
+            is_slim = model == "slim";
+        }
+
+        read_offline_skin(&skin_path, if is_slim { "slim" } else { "classic" })
+            .inspect_err(|e| eprintln!("Phantom: no offline skin ({}): {e}", skin_path.display()))
             .ok()
     })
     .as_ref()

@@ -15,11 +15,17 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Default)]
 pub struct DirtySections {
     columns: crate::fast_hash::FxHashMap<(i32, i32), SectionMask>,
+    pub urgent: crate::fast_hash::FxHashSet<(i32, i32, i32)>,
 }
 impl DirtySections {
     pub fn insert(&mut self, (x, sy, z): (i32, i32, i32)) {
         debug_assert!((0..SectionMask::CAPACITY as i32).contains(&sy));
         self.columns.entry((x, z)).or_default().insert(sy as usize);
+    }
+    pub fn insert_urgent(&mut self, (x, sy, z): (i32, i32, i32)) {
+        debug_assert!((0..SectionMask::CAPACITY as i32).contains(&sy));
+        self.columns.entry((x, z)).or_default().insert(sy as usize);
+        self.urgent.insert((x, sy, z));
     }
     pub fn contains(&self, &(x, sy, z): &(i32, i32, i32)) -> bool {
         (0..SectionMask::CAPACITY as i32).contains(&sy)
@@ -28,6 +34,12 @@ impl DirtySections {
                 .get(&(x, z))
                 .is_some_and(|m| m.contains(sy as usize))
     }
+    pub fn is_urgent(&self, key: &(i32, i32, i32)) -> bool {
+        self.urgent.contains(key)
+    }
+    pub fn has_urgent_in_column(&self, x: i32, z: i32) -> bool {
+        self.urgent.iter().any(|&(ux, _, uz)| ux == x && uz == z)
+    }
     /// The dirty section indexes of column (x, z), removed.
     pub fn take_column(&mut self, x: i32, z: i32) -> SectionMask {
         self.columns.remove(&(x, z)).unwrap_or_default()
@@ -35,6 +47,7 @@ impl DirtySections {
     /// Keep the columns `keep` accepts.
     pub fn retain_columns(&mut self, mut keep: impl FnMut(i32, i32) -> bool) {
         self.columns.retain(|&(x, z), _| keep(x, z));
+        self.urgent.retain(|&(x, _, z)| keep(x, z));
     }
     /// The columns holding dirty sections, with their section indexes.
     pub fn columns(&self) -> impl Iterator<Item = ((i32, i32), SectionMask)> + '_ {
@@ -42,6 +55,7 @@ impl DirtySections {
     }
     pub fn clear(&mut self) {
         self.columns.clear();
+        self.urgent.clear();
     }
     pub fn is_empty(&self) -> bool {
         self.columns.is_empty()
@@ -384,6 +398,43 @@ impl World {
             }
         }
         Ok(())
+    }
+
+    /// Marks modified section and its adjacent boundary sections as urgent,
+    /// giving them immediate worker priority (i64::MIN) and instant GPU upload.
+    pub fn mark_section_urgent(&mut self, x: i32, y: i32, z: i32) {
+        let min_y = self.shape.min_y;
+        let sy = (y - min_y) >> 4;
+        let sections = (self.shape.height >> 4) as i32;
+        let local_y = y & 15;
+        let mark_u = |dirty: &mut DirtySections, bx: i32, bz: i32| {
+            dirty.insert_urgent((bx >> 4, sy, bz >> 4));
+            if local_y == 0 && sy > 0 {
+                dirty.insert_urgent((bx >> 4, sy - 1, bz >> 4));
+            }
+            if local_y == 15 && sy + 1 < sections {
+                dirty.insert_urgent((bx >> 4, sy + 1, bz >> 4));
+            }
+        };
+        let (bx, bz) = (x & 15, z & 15);
+        mark_u(&mut self.dirty_sections, x, z);
+        if bx == 0 {
+            mark_u(&mut self.dirty_sections, x - 1, z);
+        } else if bx == 15 {
+            mark_u(&mut self.dirty_sections, x + 1, z);
+        }
+        if bz == 0 {
+            mark_u(&mut self.dirty_sections, x, z - 1);
+        } else if bz == 15 {
+            mark_u(&mut self.dirty_sections, x, z + 1);
+        }
+        if (bx == 0 || bx == 15) && (bz == 0 || bz == 15) {
+            mark_u(
+                &mut self.dirty_sections,
+                if bx == 0 { x - 1 } else { x + 1 },
+                if bz == 0 { z - 1 } else { z + 1 },
+            );
+        }
     }
 
     /// Resident storage batch write: groups writes by chunk with a single Arc::make_mut

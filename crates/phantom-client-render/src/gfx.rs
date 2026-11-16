@@ -5708,6 +5708,13 @@ impl Renderer {
         self.section_uploads.finish(&encoder);
         Some(encoder.finish())
     }
+    /// Immediately submits staged section upload copy commands to the GPU queue
+    /// without waiting for the buffer threshold or frame boundary.
+    pub fn flush_section_copies(&mut self) {
+        if let Some(copies) = self.take_section_copies() {
+            self.queue.submit([copies]);
+        }
+    }
     /// Draws `count` section draws from `first` with the arenas and section
     /// origins bound: one indirect multi-draw, or a loop without it.
     /// Consecutive draws in one arena page share a vertex buffer binding,

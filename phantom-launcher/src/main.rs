@@ -10,6 +10,7 @@ pub mod modrinth;
 pub mod server;
 pub mod tabs;
 pub mod theme;
+pub mod updater;
 
 use eframe::egui;
 

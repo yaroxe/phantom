@@ -196,6 +196,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                     "Java-версии не найдены в папке игры (versions/). Создайте профиль или добавьте существующий .jar.",
                 ));
             }
+            ui.add_space(60.);
         });
 
     if add_jar {

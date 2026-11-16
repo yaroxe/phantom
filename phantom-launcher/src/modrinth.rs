@@ -2,7 +2,7 @@
 use serde::Deserialize;
 use std::{
     fs,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -179,13 +179,24 @@ pub fn download(
     let target: PathBuf = dest.join(&name);
     let part = dest.join(format!("{name}.part"));
 
-    let mut reader = agent()
+    let resp = agent()
         .get(&file.url)
         .call()
-        .map_err(|e| format!("Скачивание: {e}"))?
-        .into_reader();
+        .map_err(|e| format!("Скачивание: {e}"))?;
+    if resp.status() != 200 {
+        return Err(format!("Ошибка HTTP {}: {}", resp.status(), file.url));
+    }
+    let mut reader = resp.into_reader();
     let mut out = fs::File::create(&part).map_err(|e| format!("{}: {e}", part.display()))?;
     std::io::copy(&mut reader, &mut out).map_err(|e| format!("Скачивание: {e}"))?;
+    out.flush().map_err(|e| format!("{}: {e}", part.display()))?;
+    out.sync_all().map_err(|e| format!("{}: {e}", part.display()))?;
+    let meta = out.metadata().map_err(|e| format!("{}: {e}", part.display()))?;
+    if meta.len() == 0 {
+        drop(out);
+        let _ = fs::remove_file(&part);
+        return Err("Скачанный файл пустой (0 байт)".into());
+    }
     drop(out);
     fs::rename(&part, &target).map_err(|e| format!("{}: {e}", target.display()))?;
 

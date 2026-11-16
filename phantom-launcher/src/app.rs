@@ -38,6 +38,11 @@ pub enum Msg {
     Download(String, Result<String, String>),
     Icon(String, Result<Vec<u8>, String>),
     Unpack(usize, usize),
+    UpdateAvailable(crate::updater::UpdateInfo),
+    UpdateProgress { downloaded: u64, total: u64 },
+    UpdateExtracting,
+    UpdateSuccess { tag: String },
+    UpdateError(String),
 }
 
 pub struct App {
@@ -71,6 +76,7 @@ pub struct App {
     pub skin_front_tex: Option<egui::TextureHandle>,
     pub skin_side_tex: Option<egui::TextureHandle>,
     pub skin_preview_dirty: bool,
+    pub update_state: crate::updater::UpdateState,
 }
 
 impl App {
@@ -78,6 +84,17 @@ impl App {
         let cfg = Config::load();
         let (tx, rx) = channel();
         let selected = cfg.selected.clone();
+
+        crate::updater::cleanup_old_launcher();
+
+        let tx_upd = tx.clone();
+        let cur_ver = crate::updater::get_current_version();
+        thread::spawn(move || {
+            if let Some(info) = crate::updater::check_for_updates(&cur_ver) {
+                let _ = tx_upd.send(Msg::UpdateAvailable(info));
+            }
+        });
+
         App {
             javas: java::detect(cfg.game_dir()),
             versions: launch::installed_versions(cfg.game_dir()),
@@ -106,6 +123,7 @@ impl App {
             skin_front_tex: None,
             skin_side_tex: None,
             skin_preview_dirty: true,
+            update_state: crate::updater::UpdateState::Idle,
         }
     }
 
@@ -127,13 +145,7 @@ impl App {
     }
 
     pub fn target_folder(&self) -> PathBuf {
-        if self.install_target == "phantom" {
-            crate::config::data_root()
-                .join("phantom")
-                .join(self.kind.folder())
-        } else {
-            PathBuf::from(&self.cfg.game_dir).join(self.kind.folder())
-        }
+        PathBuf::from(self.cfg.game_dir()).join(self.kind.folder())
     }
 
     pub fn start_play(&mut self, ctx: &egui::Context) {
@@ -176,16 +188,21 @@ impl App {
             return;
         }
         let dest = self.target_folder();
-        let is_phantom = self.install_target == "phantom";
+        let phantom_dir = PathBuf::from(&self.cfg.phantom_dir);
         let is_shader = self.kind == Kind::Shader;
+        let is_rp = self.kind == Kind::ResourcePack;
         let (kind, loader, ver) = (self.kind, self.loader.clone(), self.game_ver.clone());
         let (tx, ctx) = (self.tx.clone(), ctx.clone());
 
         thread::spawn(move || {
             let res = modrinth::download(&id, kind, &loader, &ver, &dest);
-            // If downloading shader for Phantom Engine, duplicate into version folder too
             if let Ok(ref filename) = res {
-                if is_phantom && is_shader {
+                let downloaded_file = dest.join(filename);
+                if is_shader {
+                    let p_shader = phantom_dir.join("shaderpacks");
+                    let _ = fs::create_dir_all(&p_shader);
+                    let _ = fs::copy(&downloaded_file, p_shader.join(filename));
+
                     let versions_dir = crate::config::data_root()
                         .join("phantom-launcher")
                         .join("versions");
@@ -195,10 +212,14 @@ impl App {
                             if p.is_dir() {
                                 let v_shader_dir = p.join("shaderpacks");
                                 let _ = fs::create_dir_all(&v_shader_dir);
-                                let _ = fs::copy(dest.join(filename), v_shader_dir.join(filename));
+                                let _ = fs::copy(&downloaded_file, v_shader_dir.join(filename));
                             }
                         }
                     }
+                } else if is_rp {
+                    let p_rp = phantom_dir.join("resourcepacks");
+                    let _ = fs::create_dir_all(&p_rp);
+                    let _ = fs::copy(&downloaded_file, p_rp.join(filename));
                 }
             }
             let _ = tx.send(Msg::Download(id, res));
@@ -262,7 +283,213 @@ impl App {
                         }
                     }
                 }
+                Msg::UpdateAvailable(info) => {
+                    self.update_state = crate::updater::UpdateState::Available(info);
+                }
+                Msg::UpdateProgress { downloaded, total } => {
+                    if let crate::updater::UpdateState::Downloading { ref tag, .. } = self.update_state {
+                        let tag = tag.clone();
+                        self.update_state = crate::updater::UpdateState::Downloading { tag, downloaded, total };
+                    }
+                }
+                Msg::UpdateExtracting => {
+                    if let crate::updater::UpdateState::Downloading { ref tag, .. } = self.update_state {
+                        let tag = tag.clone();
+                        self.update_state = crate::updater::UpdateState::Extracting { tag };
+                    }
+                }
+                Msg::UpdateSuccess { tag } => {
+                    self.update_state = crate::updater::UpdateState::ReadyToRestart { tag };
+                }
+                Msg::UpdateError(err) => {
+                    self.update_state = crate::updater::UpdateState::Error(err);
+                }
             }
+        }
+    }
+
+    pub fn start_update(&mut self, ctx: &egui::Context, info: crate::updater::UpdateInfo) {
+        self.update_state = crate::updater::UpdateState::Downloading {
+            tag: info.tag.clone(),
+            downloaded: 0,
+            total: info.size_bytes,
+        };
+        let (tx, ctx) = (self.tx.clone(), ctx.clone());
+        thread::spawn(move || {
+            let tx_p = tx.clone();
+            let ctx_p = ctx.clone();
+            let tx_ext = tx.clone();
+            let ctx_ext = ctx.clone();
+            let tag = info.tag.clone();
+
+            let res = crate::updater::perform_update(
+                &info,
+                move |downloaded, total| {
+                    let _ = tx_p.send(Msg::UpdateProgress { downloaded, total });
+                    ctx_p.request_repaint();
+                },
+                move || {
+                    let _ = tx_ext.send(Msg::UpdateExtracting);
+                    ctx_ext.request_repaint();
+                },
+            );
+
+            match res {
+                Ok(()) => {
+                    let _ = tx.send(Msg::UpdateSuccess { tag });
+                }
+                Err(e) => {
+                    let _ = tx.send(Msg::UpdateError(e));
+                }
+            }
+            ctx.request_repaint();
+        });
+    }
+
+    pub fn update_banner(&mut self, ctx: &egui::Context, t: f32) {
+        let state = &self.update_state;
+        if matches!(state, crate::updater::UpdateState::Idle) {
+            return;
+        }
+
+        let (bg, stroke) = match state {
+            crate::updater::UpdateState::ReadyToRestart { .. } => (
+                Color32::from_rgb(0x0e, 0x1f, 0x15),
+                Stroke::new(1., theme::OK),
+            ),
+            crate::updater::UpdateState::Error(..) => (
+                Color32::from_rgb(0x22, 0x11, 0x11),
+                Stroke::new(1., theme::DANGER),
+            ),
+            _ => (
+                Color32::from_rgb(0x18, 0x19, 0x11),
+                Stroke::new(1., theme::YELLOW),
+            ),
+        };
+
+        let frame = Frame::none()
+            .fill(bg)
+            .stroke(stroke)
+            .inner_margin(Margin::symmetric(24., 8.));
+
+        let mut action_start_update: Option<crate::updater::UpdateInfo> = None;
+        let mut action_dismiss = false;
+
+        egui::TopBottomPanel::top("update_banner")
+            .exact_height(46.)
+            .frame(frame)
+            .show(ctx, |ui| {
+                ui.horizontal_centered(|ui| {
+                    match &self.update_state {
+                        crate::updater::UpdateState::Available(info) => {
+                            let shimmer_yellow = fx::shimmer(t * 0.2);
+                            ui.label(RichText::new("⚡").size(17.).color(shimmer_yellow).strong());
+                            ui.label(
+                                RichText::new(format!("Доступно обновление {}!", info.tag))
+                                    .size(14.)
+                                    .color(theme::YELLOW)
+                                    .strong(),
+                            );
+                            if info.size_bytes > 0 {
+                                let mb = info.size_bytes as f64 / (1024.0 * 1024.0);
+                                ui.label(muted(&format!("({mb:.1} МБ)")));
+                            }
+
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                if ui.button(RichText::new("✕").size(14.).color(theme::MUTED)).clicked() {
+                                    action_dismiss = true;
+                                }
+                                ui.add_space(8.);
+                                let btn = Button::new(
+                                    RichText::new("⬇ СКАЧАТЬ И ОБНОВИТЬ")
+                                        .size(13.)
+                                        .color(Color32::BLACK)
+                                        .strong(),
+                                )
+                                .fill(theme::YELLOW);
+                                if ui.add(btn).clicked() {
+                                    action_start_update = Some(info.clone());
+                                }
+                            });
+                        }
+                        crate::updater::UpdateState::Downloading { tag, downloaded, total } => {
+                            ui.spinner();
+                            let pct = if *total > 0 {
+                                ((*downloaded as f64 / *total as f64) * 100.0) as u32
+                            } else {
+                                0
+                            };
+                            let d_mb = *downloaded as f64 / (1024.0 * 1024.0);
+                            let t_mb = *total as f64 / (1024.0 * 1024.0);
+                            ui.label(
+                                RichText::new(format!(
+                                    "Скачивание обновления {tag}: {pct}%... ({d_mb:.1}/{t_mb:.1} МБ)"
+                                ))
+                                .size(14.)
+                                .color(theme::TEXT)
+                                .strong(),
+                            );
+
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                let frac = if *total > 0 {
+                                    (*downloaded as f32 / *total as f32).clamp(0.0, 1.0)
+                                } else {
+                                    0.0
+                                };
+                                progress_bar(ui, t, frac, vec2(160., 12.));
+                            });
+                        }
+                        crate::updater::UpdateState::Extracting { tag } => {
+                            ui.spinner();
+                            ui.label(
+                                RichText::new(format!("Установка и распаковка обновления {tag}..."))
+                                    .size(14.)
+                                    .color(theme::TEXT)
+                                    .strong(),
+                            );
+                        }
+                        crate::updater::UpdateState::ReadyToRestart { tag } => {
+                            ui.label(
+                                RichText::new(format!("✅ Обновлено до {tag}! Перезапустите лаунчер."))
+                                    .size(14.)
+                                    .color(theme::OK)
+                                    .strong(),
+                            );
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                let btn = Button::new(
+                                    RichText::new("🔄 ПЕРЕЗАПУСТИТЬ ЛАУНЧЕР")
+                                        .size(13.)
+                                        .color(Color32::BLACK)
+                                        .strong(),
+                                )
+                                .fill(theme::OK);
+                                if ui.add(btn).clicked() {
+                                    crate::updater::restart_launcher();
+                                }
+                            });
+                        }
+                        crate::updater::UpdateState::Error(err) => {
+                            ui.label(
+                                RichText::new(format!("❌ Ошибка обновления: {err}"))
+                                    .size(13.)
+                                    .color(theme::DANGER),
+                            );
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                if ui.button(RichText::new("✕ ЗАКРЫТЬ").size(12.)).clicked() {
+                                    action_dismiss = true;
+                                }
+                            });
+                        }
+                        crate::updater::UpdateState::Idle => {}
+                    }
+                });
+            });
+
+        if let Some(info) = action_start_update {
+            self.start_update(ctx, info);
+        }
+        if action_dismiss {
+            self.update_state = crate::updater::UpdateState::Idle;
         }
     }
 
@@ -603,98 +830,105 @@ impl App {
     }
 
     fn home(&mut self, ui: &mut egui::Ui, t: f32) {
-        let w = ui.available_width();
-        let (hero, _) = ui.allocate_exact_size(vec2(w, 240.), Sense::hover());
-        let p = ui.painter().clone();
-        p.rect_filled(hero, 4., theme::CARD);
-        fx::grid(&p, hero, t);
-        fx::particles(&p, hero, t);
-        p.rect_stroke(hero, 4., Stroke::new(1., theme::BORDER));
-        fx::brackets(&p, hero.shrink(10.), 20., fx::shimmer(t * 0.2));
-        fx::reactor(&p, pos2(hero.right() - 150., hero.center().y), 80., t);
+        egui::ScrollArea::vertical()
+            .id_source("home_tab_scroll")
+            .auto_shrink([false; 2])
+            .show(ui, |ui| {
+                let w = ui.available_width();
+                let (hero, _) = ui.allocate_exact_size(vec2(w, 240.), Sense::hover());
+                let p = ui.painter().clone();
+                p.rect_filled(hero, 4., theme::CARD);
+                fx::grid(&p, hero, t);
+                fx::particles(&p, hero, t);
+                p.rect_stroke(hero, 4., Stroke::new(1., theme::BORDER));
+                fx::brackets(&p, hero.shrink(10.), 20., fx::shimmer(t * 0.2));
+                fx::reactor(&p, pos2(hero.right() - 150., hero.center().y), 80., t);
 
-        let left = hero.left() + 36.;
-        p.text(
-            pos2(left, hero.top() + 28.),
-            Align2::LEFT_TOP,
-            "PHANTOM ENGINE  ·  RUST  ·  WGPU / VULKAN",
-            FontId::proportional(13.),
-            theme::MUTED,
-        );
-        let mut job = LayoutJob::default();
-        for (i, ch) in "PHANTOM".chars().enumerate() {
-            job.append(
-                &ch.to_string(),
-                0.,
-                TextFormat {
-                    font_id: FontId::proportional(72.),
-                    extra_letter_spacing: 3.,
-                    color: fx::shimmer(t * 0.15 + i as f32 * 0.06),
-                    ..Default::default()
-                },
-            );
-        }
-        let galley = p.fonts(|f| f.layout_job(job));
-        p.galley(pos2(left, hero.top() + 52.), galley, Color32::WHITE);
-        p.text(
-            pos2(left, hero.top() + 150.),
-            Align2::LEFT_TOP,
-            "Нативный движок Rust 26.3 · wgpu / Vulkan",
-            FontId::proportional(15.),
-            theme::TEXT_SOFT,
-        );
-        p.text(
-            pos2(left, hero.top() + 176.),
-            Align2::LEFT_TOP,
-            "Без аккаунтов. Без ожиданий. Просто играть.",
-            FontId::proportional(15.),
-            theme::MUTED,
-        );
-        fx::gradient(
-            &p,
-            Rect::from_min_size(pos2(hero.left(), hero.bottom() - 3.), vec2(w, 3.)),
-            t,
-            false,
-            1.,
-        );
-
-        ui.add_space(18.);
-        if let Some((d, n)) = self.unpack {
-            card(ui, |ui| {
-                ui.label(
-                    RichText::new(format!("Распаковка ресурсов: {d} из {n}"))
-                        .size(15.)
-                        .color(theme::YELLOW)
-                        .strong(),
+                let left = hero.left() + 36.;
+                p.text(
+                    pos2(left, hero.top() + 28.),
+                    Align2::LEFT_TOP,
+                    "PHANTOM ENGINE  ·  RUST  ·  WGPU / VULKAN",
+                    FontId::proportional(13.),
+                    theme::MUTED,
                 );
-                progress_bar(ui, t, d as f32 / n.max(1) as f32, vec2(ui.available_width(), 12.));
-            });
-            ui.add_space(10.);
-        }
+                let mut job = LayoutJob::default();
+                for (i, ch) in "PHANTOM".chars().enumerate() {
+                    job.append(
+                        &ch.to_string(),
+                        0.,
+                        TextFormat {
+                            font_id: FontId::proportional(72.),
+                            extra_letter_spacing: 3.,
+                            color: fx::shimmer(t * 0.15 + i as f32 * 0.06),
+                            ..Default::default()
+                        },
+                    );
+                }
+                let galley = p.fonts(|f| f.layout_job(job));
+                p.galley(pos2(left, hero.top() + 52.), galley, Color32::WHITE);
+                p.text(
+                    pos2(left, hero.top() + 150.),
+                    Align2::LEFT_TOP,
+                    "Нативный движок Rust 26.3 · wgpu / Vulkan",
+                    FontId::proportional(15.),
+                    theme::TEXT_SOFT,
+                );
+                p.text(
+                    pos2(left, hero.top() + 176.),
+                    Align2::LEFT_TOP,
+                    "Без аккаунтов. Без ожиданий. Просто играть.",
+                    FontId::proportional(15.),
+                    theme::MUTED,
+                );
+                fx::gradient(
+                    &p,
+                    Rect::from_min_size(pos2(hero.left(), hero.bottom() - 3.), vec2(w, 3.)),
+                    t,
+                    false,
+                    1.,
+                );
 
-        ui.columns(3, |cols| {
-            cols[0].vertical(|ui| {
-                card(ui, |ui| {
-                    ui.label(muted("СБОРКА ДВИЖКА"));
-                    ui.label(RichText::new("Phantom Multi-Core").size(18.).color(theme::YELLOW).strong());
-                    ui.label(muted("26.3 · Vulkan / Rayon"));
+                ui.add_space(18.);
+                if let Some((d, n)) = self.unpack {
+                    card(ui, |ui| {
+                        ui.label(
+                            RichText::new(format!("Распаковка ресурсов: {d} из {n}"))
+                                .size(15.)
+                                .color(theme::YELLOW)
+                                .strong(),
+                        );
+                        progress_bar(ui, t, d as f32 / n.max(1) as f32, vec2(ui.available_width(), 12.));
+                    });
+                    ui.add_space(10.);
+                }
+
+                ui.columns(3, |cols| {
+                    cols[0].vertical(|ui| {
+                        card(ui, |ui| {
+                            ui.label(muted("СБОРКА ДВИЖКА"));
+                            ui.label(RichText::new("Phantom Multi-Core").size(17.).color(theme::YELLOW).strong());
+                            ui.label(muted("26.3 · Vulkan / Rayon"));
+                        });
+                    });
+                    cols[1].vertical(|ui| {
+                        card(ui, |ui| {
+                            ui.label(muted("АКТИВНЫЙ ИГРОК"));
+                            let nick_display: String = self.cfg.nickname.chars().take(15).collect();
+                            ui.label(RichText::new(nick_display).size(17.).color(theme::TEXT).strong());
+                            ui.label(muted("Offline UUID"));
+                        });
+                    });
+                    cols[2].vertical(|ui| {
+                        card(ui, |ui| {
+                            ui.label(muted("ВЫДЕЛЕНИЕ RAM"));
+                            ui.label(RichText::new(format!("{} GB", self.cfg.ram_gb)).size(17.).color(theme::TEXT).strong());
+                            ui.label(muted("Для Java версий"));
+                        });
+                    });
                 });
+                ui.add_space(60.);
             });
-            cols[1].vertical(|ui| {
-                card(ui, |ui| {
-                    ui.label(muted("АКТИВНЫЙ ИГРОК"));
-                    ui.label(RichText::new(&self.cfg.nickname).size(18.).color(theme::TEXT).strong());
-                    ui.label(muted("Offline UUID"));
-                });
-            });
-            cols[2].vertical(|ui| {
-                card(ui, |ui| {
-                    ui.label(muted("ВЫДЕЛЕНИЕ RAM"));
-                    ui.label(RichText::new(format!("{} GB", self.cfg.ram_gb)).size(18.).color(theme::TEXT).strong());
-                    ui.label(muted("Для Java версий"));
-                });
-            });
-        });
     }
 
     fn builds(&mut self, ui: &mut egui::Ui, t: f32) {
@@ -753,6 +987,7 @@ impl App {
                         self.rescan();
                     }
                 });
+                ui.add_space(60.);
             });
         if changed {
             self.cfg.save();
@@ -772,6 +1007,7 @@ impl eframe::App for App {
 
         self.rail(ctx, t);
         self.dock(ctx, t);
+        self.update_banner(ctx, t);
         let area = ctx.available_rect();
         let frame = Frame::none()
             .fill(theme::BG)
