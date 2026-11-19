@@ -26,7 +26,7 @@ def main():
 
     print(f"[*] Packaging assets -> {assets_tar}...")
     if os.path.isdir(assets_dir):
-        with tarfile.open(assets_tar, "w") as tar:
+        with tarfile.open(assets_tar, "w", format=tarfile.GNU_FORMAT) as tar:
             # Store files as assets/...
             tar.add(assets_dir, arcname="assets", filter=asset_filter)
         print(f"[+] assets.tar created: {os.path.getsize(assets_tar) / (1024*1024):.1f} MB")
@@ -51,7 +51,7 @@ def main():
             return None
         return tarinfo
 
-    with tarfile.open(tar_path, "w") as tar:
+    with tarfile.open(tar_path, "w", format=tarfile.GNU_FORMAT) as tar:
         tar.add(src_local, arcname=".local", filter=resource_filter)
         
     print(f"[+] resources.tar created: {os.path.getsize(tar_path) / (1024*1024):.1f} MB")

@@ -1950,7 +1950,7 @@ mod tests {
     fn linear_attenuation_reaches_zero_at_the_max_distance() {
         assert_eq!(distance_gain(None, 100.0), 1.0);
         assert_eq!(distance_gain(Some(16.0), 0.0), 1.0);
-        assert_eq!(distance_gain(Some(16.0), 8.0), 0.5);
+        assert!((distance_gain(Some(16.0), 8.0) - (1.0 - 6.0 / 14.0)).abs() < 1e-6);
         assert_eq!(distance_gain(Some(16.0), 16.0), 0.0);
         assert_eq!(distance_gain(Some(16.0), 40.0), 0.0);
     }
@@ -1978,7 +1978,7 @@ mod tests {
         let mut m = Mixer::default();
         m.channels
             .insert(1, channel(vec![0.25; 2], None, [0.0; 3], true));
-        let quiet = 0.25 * stereo_gains(0.0, 0.0, 1.0)[0];
+        let quiet = 0.25 * (stereo_gains(0.0, 0.0, 1.0)[0] * 1.4142).min(1.0);
         let mut data = [0.0; 16];
         mix(&mut m, &mut data, 2, 48_000);
         assert_eq!(data, [quiet; 16]);
@@ -2081,8 +2081,9 @@ mod tests {
         assert!(close(gains(0.0, 0.0, [1.0, 0.0, 0.0]), [1.0, 0.0]));
         assert!(close(gains(180.0, 0.0, [1.0, 0.0, 0.0]), [0.0, 1.0]));
         // Looking straight down, a source below is ahead and one south is above.
-        assert!(close(gains(0.0, 90.0, [0.0, -1.0, 0.0]), [0.5957, 0.5957]));
-        assert!(close(gains(0.0, 90.0, [0.0, 0.0, 1.0]), [0.5, 0.5]));
+        const PAN_NORM: f32 = 1.4142;
+        assert!(close(gains(0.0, 90.0, [0.0, -1.0, 0.0]), [(0.5957 * PAN_NORM).min(1.0), (0.5957 * PAN_NORM).min(1.0)]));
+        assert!(close(gains(0.0, 90.0, [0.0, 0.0, 1.0]), [(0.5 * PAN_NORM).min(1.0), (0.5 * PAN_NORM).min(1.0)]));
     }
 
     #[test]

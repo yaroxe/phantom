@@ -18,7 +18,9 @@ fn main() {
 fn get_skin_meta(filename: &str) -> (&'static str, bool) {
     match filename {
         // Priority (Page 1)
-        "gopnik.png" => ("Гопник (Адидас)", false),
+        "zek_batya.png" => ("Батя", false),
+        "steve.png" => ("Стив", false),
+        "alex.png" => ("Алекс", true),
         "entity_303.png" => ("Энтити 303", false),
         "herobrine.png" => ("Херобрин", false),
         "town_woman.png" => ("Горожанка", false),
@@ -112,7 +114,9 @@ fn generate_skins_catalog() {
     let skins_dir = Path::new(&manifest_dir).join("assets").join("skins");
 
     let priority_order = [
-        "gopnik.png",
+        "zek_batya.png",
+        "steve.png",
+        "alex.png",
         "entity_303.png",
         "herobrine.png",
         "town_woman.png",

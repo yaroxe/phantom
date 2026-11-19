@@ -15,7 +15,7 @@ use std::{
 // Include generated embedded skins catalog from build.rs
 include!(concat!(env!("OUT_DIR"), "/skins_catalog.rs"));
 
-const DEFAULT_SKIN_BYTES: &[u8] = include_bytes!("../../assets/skins/gopnik.png");
+const DEFAULT_SKIN_BYTES: &[u8] = include_bytes!("../../assets/skins/zek_batya.png");
 
 /// Upgrades a vintage 64x32 skin (e.g. Minecraft 0.12.3 / Beta / Alpha) to standard 64x64 format
 /// with exact vanilla mirroring for the left arm and left leg.
@@ -414,12 +414,12 @@ pub fn ensure_skins_library(library_dir: &Path) {
         "castaway.png", "balloon_boy.png", "mojang.png", "boba_fett.png", "batman.png",
         "bowser.png", "magma.png", "cyber_phantom.png", "specops.png", "steel.png", "neon.png",
         "Ветровка Стрит.png", "Спецназ.png", "Новогодний Стив.png", "Селянин-дикарь.png",
-        "Магма.png", "Кибер-фантом.png", "Зек Батя.png", "FNAF (Balloon Boy).png", "Боба Фетт.png",
+        "Магма.png", "Кибер-фантом.png", "FNAF (Balloon Boy).png", "Боба Фетт.png",
         "Бэтмен.png", "Боузер.png", "Mojang.png", "Огненный.png", "Кибер-Фантом.png", "Поселенец.png",
         "Праздничный Стив.png", "Зомби на Хэллоуин.png", "Селянин.png",
         // User requested removals:
-        "Батя.png", "Стив.png", "Алекс.png", "Люди в чёрном.png", "Человек в чёрном.png",
-        "zek_batya.png", "steve.png", "alex.png", "agent_mib.png", "classic_steve.png",
+        "Люди в чёрном.png", "Человек в чёрном.png",
+        "agent_mib.png", "classic_steve.png",
         "Классический Стив 0.12.png",
     ];
     for f in obsolete {
@@ -495,7 +495,7 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
 
     // Auto-clean forbidden skins from active config if selected previously
     let cur_low = app.cfg.skin_path.to_lowercase();
-    if cur_low.contains("batya") || cur_low.contains("steve") || cur_low.contains("alex") || cur_low.contains("mib") || cur_low.contains("батя") || cur_low.contains("стив") || cur_low.contains("алекс") || cur_low.contains("чёрн") {
+    if cur_low.contains("mib") || cur_low.contains("чёрн") || cur_low.contains("черн") {
         app.cfg.skin_path.clear();
         app.skin_preview_dirty = true;
         app.cfg.save();
@@ -555,7 +555,7 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
                     );
 
                     let skin_display = if app.cfg.skin_path.is_empty() {
-                        "Гопник (Адидас) [По умолчанию]".to_string()
+                        "Батя [По умолчанию]".to_string()
                     } else {
                         Path::new(&app.cfg.skin_path)
                             .file_stem()
@@ -744,7 +744,7 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
                         app.cfg.skin_model = "classic".into();
                         app.skin_preview_dirty = true;
                         app.cfg.save();
-                        app.status = Some((true, "Установлен стандартный скин Гопник".into()));
+                        app.status = Some((true, "Установлен стандартный скин Батя".into()));
                     }
 
                     ui.add_space(8.0);
@@ -789,9 +789,9 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
             }
 
             let forbidden = [
-                "батя", "стив", "алекс", "люди в чёрном", "человек в чёрном",
-                "человек в черном", "люди в черном", "zek_batya", "steve",
-                "alex", "agent_mib", "mib", "batya", "classic_steve",
+                "люди в чёрном", "человек в чёрном",
+                "человек в черном", "люди в черном",
+                "agent_mib", "mib", "classic_steve",
                 "классический стив", "стив 0.12",
             ];
 
@@ -822,6 +822,16 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
             }
 
             let total_items = all_items.len();
+            let per_page = 15;
+            let total_pages = ((total_items + per_page - 1) / per_page).max(1);
+            if app.skin_tab_page >= total_pages {
+                app.skin_tab_page = total_pages - 1;
+            }
+
+            let start_idx = app.skin_tab_page * per_page;
+            let end_idx = (start_idx + per_page).min(total_items);
+            let page_items = &all_items[start_idx..end_idx];
+
             let mut skin_to_apply: Option<SkinItem> = None;
             let mut skin_to_delete: Option<PathBuf> = None;
 
@@ -831,9 +841,8 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
                 .auto_shrink([false; 2])
                 .show(ui, |ui| {
                     let avail_w = (ui.available_width() - 14.0).max(360.0);
-                    let target_card_w = 112.0f32;
                     let spacing = 8.0f32;
-                    let cols = (((avail_w + spacing) / (target_card_w + spacing)).floor() as usize).max(3).min(7);
+                    let cols = 5;
                     let card_w = ((avail_w - (cols as f32 - 1.0) * spacing) / cols as f32).floor();
                     let card_h = 188.0f32;
 
@@ -841,13 +850,13 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
                     let thumb_h = 136.0f32;
                     let ctx = ui.ctx().clone();
 
-                    for chunk in all_items.chunks(cols) {
+                    for chunk in page_items.chunks(cols) {
                         ui.horizontal(|ui| {
                             ui.spacing_mut().item_spacing.x = spacing;
 
                             for item in chunk {
                                 let is_active = if app.cfg.skin_path.is_empty() {
-                                    item.name == "Гопник (Адидас)"
+                                    item.name == "Батя"
                                 } else {
                                     Path::new(&app.cfg.skin_path)
                                         .file_stem()
@@ -1014,16 +1023,53 @@ pub fn render(app: &mut App, ui: &mut Ui, _t: f32) {
                         ui.add_space(spacing);
                     }
 
-                    // Bottom info label
-                    ui.add_space(12.0);
+                    // Bottom pagination controls
+                    ui.add_space(10.0);
                     ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing.x = 6.0;
+
+                        let prev_enabled = app.skin_tab_page > 0;
+                        if ui.add_enabled(prev_enabled, egui::Button::new(RichText::new("◀").size(12.0)).min_size(vec2(28.0, 24.0))).clicked() {
+                            app.skin_tab_page = app.skin_tab_page.saturating_sub(1);
+                        }
+
+                        for p in 0..total_pages {
+                            let is_current = p == app.skin_tab_page;
+                            let mut btn = egui::Button::new(
+                                RichText::new((p + 1).to_string())
+                                    .strong()
+                                    .size(12.0)
+                                    .color(if is_current { theme::YELLOW } else { theme::TEXT }),
+                            )
+                            .min_size(vec2(28.0, 24.0));
+
+                            if is_current {
+                                btn = btn.stroke(Stroke::new(1.5, theme::YELLOW));
+                            }
+
+                            if ui.add(btn).clicked() {
+                                app.skin_tab_page = p;
+                            }
+                        }
+
+                        let next_enabled = app.skin_tab_page + 1 < total_pages;
+                        if ui.add_enabled(next_enabled, egui::Button::new(RichText::new("▶").size(12.0)).min_size(vec2(28.0, 24.0))).clicked() {
+                            app.skin_tab_page += 1;
+                        }
+
+                        ui.add_space(12.0);
                         ui.label(
-                            RichText::new(format!("Всего скинов: {} (прокрутите колёсиком мыши для просмотра всех)", total_items))
-                                .size(11.5)
-                                .color(theme::MUTED),
+                            RichText::new(format!(
+                                "Стр. {} / {} • Всего: {}",
+                                app.skin_tab_page + 1,
+                                total_pages,
+                                total_items
+                            ))
+                            .size(12.0)
+                            .color(theme::MUTED),
                         );
                     });
-                    ui.add_space(40.0);
+                    ui.add_space(20.0);
                 });
 
             // Handle skin apply

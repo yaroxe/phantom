@@ -8,7 +8,8 @@ pub fn main() {
 
 /// Start the game with trait mods in dispatch order.
 pub fn main_with(mods: crate::mod_api::Mods) {
-    let _ = rayon::ThreadPoolBuilder::new().num_threads(2).build_global();
+    let rayon_threads = phantom_threads::worker_count().saturating_sub(1).clamp(2, 8);
+    let _ = rayon::ThreadPoolBuilder::new().num_threads(rayon_threads).build_global();
     // First: a trait injection into anything below (logging, the crash handler) calls its mod.
     if crate::mod_api::MODS.set(mods).is_err() {
         log::warn!("Trait mods already installed; ignoring the second list");

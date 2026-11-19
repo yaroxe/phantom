@@ -314,14 +314,18 @@ impl Game<'_> {
             };
             // LivingEntityRenderer.shouldShowName (team rules included), then
             // MobRenderer: a visible name, or the mob under the crosshair.
-            let invisible = sb::invisible_to(
-                team,
-                viewer,
-                self.spectator(),
-                m.invisible || m.has_effect("minecraft:invisibility"),
-            );
+            let invisible = if m.name_visible {
+                false
+            } else {
+                sb::invisible_to(
+                    team,
+                    viewer,
+                    self.spectator(),
+                    m.invisible || m.has_effect("minecraft:invisibility"),
+                )
+            };
             // Entity.isDiscrete: a crouching player.
-            let discrete = player && m.extra.crouching;
+            let discrete = player && (m.extra.crouching || m.extra.avatar_pose == phantom_client::pose::Pose::Crouching);
             let view = sb::NameView {
                 discrete,
                 distance_sqr,
@@ -826,7 +830,7 @@ fn name_tag_in_view(
     min: glam::Vec3,
     max: glam::Vec3,
 ) -> bool {
-    distance_sqr < 48.0 * 48.0 && frustum.is_none_or(|view| view.intersects(min, max))
+    distance_sqr < 64.0 * 64.0 && frustum.is_none_or(|view| view.intersects(min, max))
 }
 
 fn first_mob_indices(mobs: &[Mob]) -> std::collections::HashMap<u32, usize> {
@@ -898,9 +902,14 @@ fn named_by_player_list(players: &[(&Mob, String)]) -> std::collections::HashSet
 /// shortcut: the scale attribute is not in the tag height, add `model_scale`
 /// when tags on scaled players matter.
 pub(super) fn name_tag_at(m: &Mob, alpha: f64) -> glam::DVec3 {
+    let crouch_lift = if m.extra.crouching || m.extra.avatar_pose == phantom_client::pose::Pose::Crouching {
+        0.15
+    } else {
+        0.0
+    };
     glam::DVec3::new(
         m.previous.x + (m.position.x - m.previous.x) * alpha,
-        m.previous.y + (m.position.y - m.previous.y) * alpha + f64::from(m.height()) + 0.5,
+        m.previous.y + (m.position.y - m.previous.y) * alpha + f64::from(m.height()) + 0.5 + crouch_lift,
         m.previous.z + (m.position.z - m.previous.z) * alpha,
     )
 }

@@ -443,8 +443,8 @@ impl World {
         &mut self,
         blocks: impl IntoIterator<Item = (i32, i32, i32, BlockStateId)>,
     ) {
-        use std::collections::HashMap;
-        let mut by_chunk: HashMap<(i32, i32), Vec<(i32, i32, i32, BlockStateId)>> = HashMap::new();
+        use crate::fast_hash::FxHashMap;
+        let mut by_chunk: FxHashMap<(i32, i32), Vec<(i32, i32, i32, BlockStateId)>> = FxHashMap::default();
         for (x, y, z, state) in blocks {
             by_chunk.entry((x >> 4, z >> 4)).or_default().push((x, y, z, state));
         }

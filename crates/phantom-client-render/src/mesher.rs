@@ -1633,7 +1633,7 @@ impl Mesher<'_> {
         let info = &self.tables.info;
         let full_faces = &self.tables.full_faces;
         let catalog = &self.render.model_catalog;
-        let mut models = Vec::new();
+        let mut models = Vec::with_capacity(4);
         for y in 0..16 {
             for z in 0..16 {
                 // The padded index of the row's x = 0 cell: `pi(x, y, z)` is

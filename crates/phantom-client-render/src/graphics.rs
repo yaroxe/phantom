@@ -785,10 +785,10 @@ impl Default for Graphics {
             blue_map: crate::bluemap::Settings::default(),
             cave_culling: true,
             gpu_culling: false,
-            entity_culling: EntityCullingMode::Off,
+            entity_culling: EntityCullingMode::Asynchronous,
             entity_culling_precheck: 64,
             particle_culling: ParticleCullingMode::Off,
-            leaf_culling: LeafCullingMode::Off,
+            leaf_culling: LeafCullingMode::Hollow,
             cache_shulker_boxes: false,
             // Sign text has used its renderer cache independently of the new model caches.
             cache_signs: true,

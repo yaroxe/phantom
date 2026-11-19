@@ -1699,9 +1699,8 @@ impl Streaming {
                 }
                 Done::Meshed(x, sy, z, mesh, seq) => {
                     let is_urgent = self.urgent_sections.remove(&(x, sy, z));
-                    // Smooth frame pacing: limit normal uploads to 3 per frame to prevent stutters,
-                    // but NEVER defer urgent player-edited sections!
-                    if !is_urgent && uploads.len() >= 3 {
+                    let max_uploads = if self.terrain_loading() || self.deferred.len() > 24 { 14 } else { 6 };
+                    if !is_urgent && uploads.len() >= max_uploads {
                         self.deferred.push(Done::Meshed(x, sy, z, mesh, seq));
                         continue;
                     }

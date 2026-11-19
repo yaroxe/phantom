@@ -6,7 +6,7 @@ use std::{
     time::Duration,
 };
 
-pub const CURRENT_VERSION: &str = "v1.1.0";
+pub const CURRENT_VERSION: &str = "v1.2.0";
 const GITHUB_API_URL: &str = "https://api.github.com/repos/yaroxe/phantom/releases/latest";
 const USER_AGENT: &str = "PhantomLauncher/1.1";
 
@@ -259,9 +259,9 @@ pub fn perform_update(
                 if file_name == "phantom-client.exe" {
                     let dest = exe_dir.join("phantom-client.exe");
                     let mut out = fs::File::create(&dest)
-                        .map_err(|e| format!("Не удалось создать {}: {e}", dest.display()))?;
+                        .map_err(|e| format!("Не удалось создать {}: {e}. Закройте игру перед обновлением.", dest.display()))?;
                     std::io::copy(&mut item, &mut out)
-                        .map_err(|e| format!("Не удалось записать {}: {e}", dest.display()))?;
+                        .map_err(|e| format!("Не удалось записать {}: {e}. Закройте игру перед обновлением.", dest.display()))?;
 
                     // Mirror to AppData version directory if present
                     let versions_dir = crate::config::data_root()
@@ -308,7 +308,7 @@ pub fn perform_update(
             if info.asset_name == "phantom-client.exe" {
                 let dest = exe_dir.join("phantom-client.exe");
                 fs::copy(&temp_path, &dest)
-                    .map_err(|e| format!("Не удалось обновить клиент: {e}"))?;
+                    .map_err(|e| format!("Не удалось обновить клиент: {e}. Закройте игру перед обновлением."))?;
 
                 let versions_dir = crate::config::data_root()
                     .join("phantom-launcher")

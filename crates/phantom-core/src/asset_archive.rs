@@ -131,6 +131,31 @@ impl AssetArchive {
                 continue;
             }
 
+            if typeflag == b'x' {
+                // PAX extended header
+                let mut pax_buf = vec![0u8; size as usize];
+                if file.read_exact(&mut pax_buf).is_ok() {
+                    let text = String::from_utf8_lossy(&pax_buf);
+                    for line in text.lines() {
+                        let trimmed = line.trim();
+                        if let Some(space_idx) = trimmed.find(' ') {
+                            let kv = &trimmed[space_idx + 1..];
+                            if let Some((k, v)) = kv.split_once('=') {
+                                if k == "path" {
+                                    pending_long_name = Some(v.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+                let skip = padded_size.saturating_sub(size);
+                if skip > 0 && file.seek(SeekFrom::Current(skip as i64)).is_err() {
+                    break;
+                }
+                current_offset += padded_size;
+                continue;
+            }
+
             // Normal file entry
             if typeflag == b'0' || typeflag == 0 {
                 let raw_name = if let Some(long) = pending_long_name.take() {
@@ -311,7 +336,7 @@ impl AssetArchive {
             .entries
             .partition_point(|e| e.0.as_str() < search_prefix.as_str());
 
-        let mut results: Vec<String> = self.entries[start..]
+        let mut results_set: BTreeSet<String> = self.entries[start..]
             .iter()
             .take_while(|e| e.0.starts_with(&search_prefix))
             .map(|e| e.0.clone())
@@ -330,9 +355,7 @@ impl AssetArchive {
                         } else if path.is_file() {
                             if let Ok(rel) = path.strip_prefix(&self.root) {
                                 let s = rel.to_string_lossy().replace('\\', "/");
-                                if !results.contains(&s) {
-                                    results.push(s);
-                                }
+                                results_set.insert(s);
                             }
                         }
                     }
@@ -340,8 +363,7 @@ impl AssetArchive {
             }
         }
 
-        results.sort();
-        results
+        results_set.into_iter().collect()
     }
 }
 

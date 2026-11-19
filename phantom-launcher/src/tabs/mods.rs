@@ -468,6 +468,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
 
                 // Modrinth hits
                 let mut get: Option<String> = None;
+                let installed_map = crate::modrinth::load_installed_map(&app.target_folder());
                 egui::ScrollArea::vertical()
                     .id_source("catalog_scroll")
                     .auto_shrink([false; 2])
@@ -476,7 +477,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
                         ui.columns(2, |cols| {
                             for (i, h) in hits.iter().enumerate() {
                                 let col_ui = &mut cols[i % 2];
-                                if let Some(id) = app.hit_card(col_ui, &ctx, t, i, h, &installed_files) {
+                                if let Some(id) = app.hit_card(col_ui, &ctx, t, i, h, &installed_files, &installed_map) {
                                     get = Some(id);
                                 }
                                 col_ui.add_space(8.);

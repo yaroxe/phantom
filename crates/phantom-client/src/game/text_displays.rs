@@ -250,7 +250,7 @@ impl Game<'_> {
         data: &TextDisplayData,
         view_scale: f64,
     ) -> bool {
-        let range = f64::from(data.view_range) * 64.0 * view_scale;
+        let range = f64::from(if data.view_range <= 0.0 { 1.0 } else { data.view_range }) * 64.0 * view_scale;
         if text_display::no_culling(data.width, data.height) {
             return (origin - camera).length_squared() < range * range;
         }
@@ -382,6 +382,7 @@ impl Game<'_> {
             }
             if text_display::no_culling(d.width, d.height) {
                 let (lo, hi) = cached.transformed_bounds(matrix);
+                let (lo, hi) = (lo - glam::Vec3::splat(1.0), hi + glam::Vec3::splat(1.0));
                 if cached.batch.vertices.is_empty()
                     || self
                         .view_frustum

@@ -165,10 +165,14 @@ impl App {
         thread::spawn(move || {
             let tx_prog = tx.clone();
             let ctx_prog = ctx.clone();
-            let _ = launch::unpack_resources_if_needed(move |done, total, _| {
+            if let Err(e) = launch::unpack_resources_if_needed(move |done, total, _| {
                 let _ = tx_prog.send(Msg::Unpack(done, total));
                 ctx_prog.request_repaint();
-            });
+            }) {
+                let _ = tx.send(Msg::Launch(Err(e)));
+                ctx.request_repaint();
+                return;
+            }
             let _ = tx.send(Msg::Launch(launch::play(&cfg)));
             ctx.request_repaint();
         });
@@ -521,11 +525,11 @@ impl App {
         i: usize,
         h: &Hit,
         installed: &[InstalledFile],
+        installed_map: &crate::modrinth::InstalledMap,
     ) -> Option<String> {
         let mut download_click = None;
 
         // Check if installed via .phantom_installed.json or matching files
-        let installed_map = crate::modrinth::load_installed_map(&self.target_folder());
         let is_installed = installed_map.contains_key(&h.project_id)
             || installed.iter().any(|f| {
                 let c = f.clean_name.to_lowercase();

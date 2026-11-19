@@ -492,7 +492,10 @@ fn load_hex(root: &Path, p: &serde_json::Value) -> HashMap<u32, HexGlyph> {
         return glyphs;
     };
     let path = root.join(resource_path(file, "", "").replace("//", "/"));
-    let Ok(zip) = Zip::open(&path) else {
+    let zip = Zip::open(&path).or_else(|_| {
+        phantom_core::prepared_files::read(&path).and_then(Zip::from_bytes)
+    });
+    let Ok(zip) = zip else {
         return glyphs;
     };
     let names: Vec<String> = zip

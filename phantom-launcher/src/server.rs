@@ -195,12 +195,14 @@ pub struct ServerManager {
     pub pending_start: bool,
     /// The last Playit address seen, kept between launches.
     pub last_tunnel: Option<String>,
+    pub cached_local_ip: String,
 }
 
 impl ServerManager {
     pub fn new() -> Self {
         let (bg_tx, bg_rx) = channel();
         let servers = load_servers();
+        let cached_local_ip = local_ip();
         let mut sm = ServerManager {
             servers,
             selected_idx: 0,
@@ -228,6 +230,7 @@ impl ServerManager {
                 .ok()
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty()),
+            cached_local_ip,
         };
         sm.reload_properties();
         sm
@@ -330,6 +333,7 @@ impl ServerManager {
         let Some(srv) = self.current_server().cloned() else {
             return;
         };
+        self.cached_local_ip = local_ip();
         let srv_dir = self.server_dir(&srv);
         let _ = fs::create_dir_all(&srv_dir);
 
@@ -513,7 +517,9 @@ impl ServerManager {
         }
         #[cfg(target_os = "windows")]
         {
-            let _ = Command::new("taskkill").args(["/F", "/IM", "playit.exe"]).status();
+            let mut cmd = Command::new("taskkill");
+            crate::java::quiet(&mut cmd);
+            let _ = cmd.args(["/F", "/IM", "playit.exe"]).status();
         }
     }
 
@@ -593,7 +599,9 @@ impl ServerManager {
             // 0. Kill any lingering playit.exe process on Windows
             #[cfg(target_os = "windows")]
             {
-                let _ = Command::new("taskkill").args(["/F", "/IM", "playit.exe"]).status();
+                let mut cmd = Command::new("taskkill");
+                crate::java::quiet(&mut cmd);
+                let _ = cmd.args(["/F", "/IM", "playit.exe"]).status();
                 thread::sleep(Duration::from_millis(200));
             }
 
@@ -698,6 +706,7 @@ impl ServerManager {
 
             let work_dir = playit_path.parent().unwrap_or(&launcher_dir);
             let mut cmd = Command::new(&playit_path);
+            crate::java::quiet(&mut cmd);
             cmd.current_dir(work_dir)
                 .arg("--stdout")
                 .stdout(Stdio::piped())
@@ -716,24 +725,6 @@ impl ServerManager {
 
             if let Ok(mut tp) = tunnel_proc_arc.lock() {
                 *tp = Some(child);
-            }
-
-            // Fast check: if secret key is configured and tunnels are already present, resolve immediately!
-            if let Some(ref key) = find_playit_secret_key(work_dir) {
-                if let Ok(mut logs) = logs_arc.lock() {
-                    logs.push("[Playit] Проверка активных туннелей в API Playit.gg...".into());
-                }
-                if let Some((java_addr, bedrock_addr)) = fetch_playit_tunnels(key) {
-                    let j = java_addr.unwrap_or_default();
-                    let b = bedrock_addr.unwrap_or_default();
-                    if !j.is_empty() || !b.is_empty() {
-                        let _ = tx.send(Ok(format!("PLAYIT_OK:{j}|{b}")));
-                        if let Ok(mut logs) = logs_arc.lock() {
-                            logs.push(format!("[Playit] Туннели активны! Java: {j}, Bedrock: {b}"));
-                        }
-                        // Let reader threads continue logging stdout/stderr in background
-                    }
-                }
             }
 
             let (event_tx, event_rx) = channel::<PlayitEvent>();
@@ -803,7 +794,26 @@ impl ServerManager {
                 });
             }
 
+            // Fast check: if secret key is configured and tunnels are already present, resolve immediately!
+            if let Some(ref key) = find_playit_secret_key(work_dir) {
+                if let Ok(mut logs) = logs_arc.lock() {
+                    logs.push("[Playit] Проверка активных туннелей в API Playit.gg...".into());
+                }
+                if let Some((java_addr, bedrock_addr)) = fetch_playit_tunnels(key) {
+                    let j = java_addr.unwrap_or_default();
+                    let b = bedrock_addr.unwrap_or_default();
+                    if !j.is_empty() || !b.is_empty() {
+                        let _ = tx.send(Ok(format!("PLAYIT_OK:{j}|{b}")));
+                        if let Ok(mut logs) = logs_arc.lock() {
+                            logs.push(format!("[Playit] Туннели активны! Java: {j}, Bedrock: {b}"));
+                        }
+                        return;
+                    }
+                }
+            }
+
             let start_time = std::time::Instant::now();
+            let mut last_api_check = std::time::Instant::now();
             let mut resolved = false;
 
             while start_time.elapsed() < Duration::from_secs(20) {
@@ -844,8 +854,9 @@ impl ServerManager {
                     }
                 }
 
-                // Check API periodically every 2 seconds if not yet resolved
-                if !resolved && start_time.elapsed().as_secs() % 2 == 0 {
+                // Check API periodically no more than once per 3 seconds if not yet resolved
+                if !resolved && last_api_check.elapsed() >= Duration::from_secs(3) {
+                    last_api_check = std::time::Instant::now();
                     if let Some(ref key) = find_playit_secret_key(work_dir) {
                         if let Some((java_addr, bedrock_addr)) = fetch_playit_tunnels(key) {
                             let j = java_addr.unwrap_or_default();
@@ -881,6 +892,7 @@ fn spawn_process(
     mut cmd: Command,
     logs: Arc<Mutex<Vec<String>>>,
 ) -> Result<ServerProcess, String> {
+    crate::java::quiet(&mut cmd);
     let mut child = cmd.spawn().map_err(|e| format!("{e}"))?;
     let stdout = child.stdout.take();
     let stderr = child.stderr.take();
@@ -972,7 +984,9 @@ pub fn local_ip() -> String {
     // 1. Try ipconfig on Windows to find the real physical adapter with gateway
     #[cfg(target_os = "windows")]
     {
-        if let Ok(output) = Command::new("ipconfig").output() {
+        let mut cmd = Command::new("ipconfig");
+        crate::java::quiet(&mut cmd);
+        if let Ok(output) = cmd.output() {
             let text = String::from_utf8_lossy(&output.stdout);
             let mut candidates = Vec::new();
             for line in text.lines() {
@@ -1536,7 +1550,7 @@ pub fn render_server_tab(
                     ui.label(RichText::new(status_text).color(status_col).strong().size(13.));
 
                     // IP copy button: [📋 IP: {ip}:{port}]
-                    let ip = local_ip();
+                    let ip = &sm.cached_local_ip;
                     let full_addr = format!("{ip}:{}", srv.port);
                     if ui
                         .add(
@@ -1833,7 +1847,7 @@ pub fn render_server_tab(
     ui.add_space(6.);
 
     // Big copy buttons: the address for friends, ready to paste.
-    let current_local_ip = local_ip();
+    let current_local_ip = &sm.cached_local_ip;
     let lan_main = format!("{}:{}", current_local_ip, srv.port);
     let claim = sm.tunnel_url.clone().filter(|u| u.contains("claim"));
     let mut copied: Option<String> = None;
@@ -1968,6 +1982,7 @@ fn render_quick_settings(
     ui: &mut egui::Ui,
 ) {
     let mut changed = false;
+    let mut new_port: Option<u16> = None;
 
     // 1. Server settings frame
     Frame::none()
@@ -2096,6 +2111,9 @@ fn render_quick_settings(
                         if ui.add(TextEdit::singleline(&mut port_str).desired_width(70.)).changed() {
                             props.set_str("server-port", &port_str);
                             changed = true;
+                            if let Ok(p) = port_str.trim().parse::<u16>() {
+                                new_port = Some(p);
+                            }
                         }
                     });
                 } else {
@@ -2106,6 +2124,12 @@ fn render_quick_settings(
 
     if changed {
         sm.save_current_properties();
+    }
+    if let Some(p) = new_port {
+        if let Some(s) = sm.servers.get_mut(sm.selected_idx) {
+            s.port = p;
+            save_servers(&sm.servers);
+        }
     }
 
     ui.add_space(8.);
@@ -2271,7 +2295,7 @@ fn render_properties_editor(
     ui: &mut egui::Ui,
 ) {
     let mut changed = false;
-    let ip = local_ip();
+    let ip = &sm.cached_local_ip;
     let port = srv.port;
 
     // IP address banner

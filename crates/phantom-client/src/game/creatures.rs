@@ -7448,13 +7448,6 @@ impl Game<'_> {
                 == super::perspective::CameraType::ThirdPersonFront,
             ..Default::default()
         });
-        // Camera forward direction for fast entity culling
-        let (cam_yaw, cam_pitch) = (self.yaw.to_radians(), self.pitch.to_radians());
-        let cam_forward = glam::DVec3::new(
-            f64::from(-cam_yaw.sin() * cam_pitch.cos()),
-            f64::from(-cam_pitch.sin()),
-            f64::from(cam_yaw.cos() * cam_pitch.cos()),
-        );
 
         for mob in &self.mobs {
             // LevelRenderer: the entity the view looks out of is not drawn
@@ -7466,17 +7459,20 @@ impl Game<'_> {
             let d = glam::DVec3::new(mob.position.x, mob.position.y, mob.position.z) - camera;
             let dist_sq = d.length_squared();
 
-            // Distance culling for entities (> 48 blocks)
-            if dist_sq > 48.0 * 48.0 {
+            // Distance culling for standard entities (> 64 blocks; skip players and bosses)
+            if !is_player
+                && !matches!(
+                    mob.species(),
+                    Species::Ghast
+                        | Species::HappyGhast
+                        | Species::Wither
+                        | Species::Guardian
+                        | Species::ElderGuardian
+                )
+                && &*mob.kind.id != "minecraft:ender_dragon"
+                && dist_sq > 64.0 * 64.0
+            {
                 continue;
-            }
-
-            // Behind-camera culling: if outside FOV (> 4 blocks away and dot < -0.2)
-            if dist_sq > 4.0 {
-                let dir = d.normalize();
-                if dir.dot(cam_forward) < -0.2 {
-                    continue;
-                }
             }
 
             // Entity.shouldRenderAtSqrDistance: 64 times the bounding box's
@@ -7485,7 +7481,7 @@ impl Game<'_> {
             let (w, h, _) = mob.dims();
             let edge = (w + h + w) / 3.0 * if is_player { 10.0 } else { 1.0 };
             let range = edge * 64.0 * scale;
-            if dist_sq >= range * range {
+            if !is_player && dist_sq >= range * range {
                 continue;
             }
             let beam = phantom_client::mobs::guardian::beam(mob, alpha as f32);
@@ -7495,9 +7491,10 @@ impl Game<'_> {
                 && beam.is_none()
             {
                 let (lo, hi) = super::entity_culling::cull_box(mob, alpha);
+                let margin = if is_player { 3.0 } else { 0.5 };
                 let (lo, hi) = (
-                    (lo - camera - glam::DVec3::splat(0.5)).as_vec3(),
-                    (hi - camera + glam::DVec3::splat(0.5)).as_vec3(),
+                    (lo - camera - glam::DVec3::splat(margin)).as_vec3(),
+                    (hi - camera + glam::DVec3::splat(margin)).as_vec3(),
                 );
                 if !view.intersects(lo, hi) {
                     continue;
@@ -7742,7 +7739,7 @@ impl Game<'_> {
             }
             // Glowing outlines and a guardian's beam remain visible independently
             // of whether the body is hidden behind terrain.
-            if outline.is_none() && culling.checks_vertices() && beam.is_none() {
+            if outline.is_none() && culling.checks_vertices() && beam.is_none() && !is_player {
                 // What the GPU draws of the mob counts by its bounds' corners.
                 self.cull_skinned(out, entity_start, skinned);
             }
