@@ -173,25 +173,30 @@ fn decode_source(s: &Value) -> Option<SpriteSource> {
 /// The texture files of a resource tree: `namespace:path` for every
 /// `assets/<namespace>/textures/<path>.png`.
 pub fn list_textures(root: &Path) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut namespaces = Vec::new();
+    let mut out_set = std::collections::BTreeSet::new();
+    let mut namespaces_set = std::collections::BTreeSet::new();
     if let Ok(ns) = fs::read_dir(root.join("assets")) {
         for e in ns.flatten() {
-            namespaces.push(e.file_name().to_string_lossy().into_owned());
+            namespaces_set.insert(e.file_name().to_string_lossy().into_owned());
         }
-    } else if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
-        namespaces = archive.namespaces();
     }
-    for namespace in namespaces {
+    if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+        for ns in archive.namespaces() {
+            namespaces_set.insert(ns);
+        }
+    }
+    if namespaces_set.is_empty() {
+        namespaces_set.insert("minecraft".to_string());
+    }
+    for namespace in namespaces_set {
         let base = root.join("assets").join(&namespace).join("textures");
         // A prepared root's: from its data file, without listing the disk.
         if let Some(files) = phantom_core::prepared_files::files_under(&base) {
-            out.extend(
-                files
-                    .iter()
-                    .filter_map(|file| file.strip_suffix(".png"))
-                    .map(|rel| format!("{namespace}:{rel}")),
-            );
+            for file in files {
+                if let Some(rel) = file.strip_suffix(".png") {
+                    out_set.insert(format!("{namespace}:{rel}"));
+                }
+            }
             continue;
         }
         let mut stack = vec![base.clone()];
@@ -214,13 +219,23 @@ pub fn list_textures(root: &Path) -> Vec<String> {
                     && let Ok(rel) = p.strip_prefix(&base)
                 {
                     let rel = rel.with_extension("").to_string_lossy().replace('\\', "/");
-                    out.push(format!("{namespace}:{rel}"));
+                    out_set.insert(format!("{namespace}:{rel}"));
+                }
+            }
+        }
+        // ALWAYS also collect from AssetArchive (assets.tar) so resource packs cleanly merge with vanilla textures
+        if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+            let prefix = format!("assets/{namespace}/textures/");
+            for f in archive.list(&prefix) {
+                if let Some(rel) = f.strip_prefix(&prefix) {
+                    if let Some(clean_rel) = rel.strip_suffix(".png") {
+                        out_set.insert(format!("{namespace}:{clean_rel}"));
+                    }
                 }
             }
         }
     }
-    out.sort();
-    out
+    out_set.into_iter().collect()
 }
 /// The file of a texture identifier. A Custom Item Textures id (`cit_assets`) names its
 /// resource path, wherever the folder: `directory` is not used for it. An id whose path would
@@ -403,19 +418,23 @@ pub fn generate(
 /// namespace), by atlas id.
 pub fn atlases(root: &Path) -> BTreeMap<String, Vec<SpriteSource>> {
     let mut out = BTreeMap::new();
-    let mut namespaces = Vec::new();
+    let mut namespaces_set = std::collections::BTreeSet::new();
     if let Ok(ns) = fs::read_dir(root.join("assets")) {
         for e in ns.flatten() {
-            namespaces.push(e.file_name().to_string_lossy().into_owned());
+            namespaces_set.insert(e.file_name().to_string_lossy().into_owned());
         }
-    } else if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
-        namespaces = archive.namespaces();
     }
-    for namespace in namespaces {
+    if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+        for ns in archive.namespaces() {
+            namespaces_set.insert(ns);
+        }
+    }
+    if namespaces_set.is_empty() {
+        namespaces_set.insert("minecraft".to_string());
+    }
+    for namespace in namespaces_set {
         let atlases_dir = root.join("assets").join(&namespace).join("atlases");
-        let mut found_on_disk = false;
         if let Ok(files) = fs::read_dir(&atlases_dir) {
-            found_on_disk = true;
             for f in files.flatten() {
                 let path = f.path();
                 if path.extension().is_none_or(|e| e != "json") {
@@ -427,16 +446,19 @@ pub fn atlases(root: &Path) -> BTreeMap<String, Vec<SpriteSource>> {
                 }
             }
         }
-        if !found_on_disk {
-            if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
-                let prefix = format!("assets/{namespace}/atlases/");
-                for f in archive.list(&prefix) {
-                    if let Some(rel) = f.strip_prefix(&prefix) {
-                        if let Some(name) = rel.strip_suffix(".json") {
-                            if let Some(text) = archive.read_text(&f) {
-                                if let Some(sources) = decode(&text) {
-                                    out.insert(format!("{namespace}:{name}"), sources);
-                                }
+        // ALWAYS merge remaining atlases from AssetArchive (assets.tar)
+        if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+            let prefix = format!("assets/{namespace}/atlases/");
+            for f in archive.list(&prefix) {
+                if let Some(rel) = f.strip_prefix(&prefix) {
+                    if let Some(name) = rel.strip_suffix(".json") {
+                        let key = format!("{namespace}:{name}");
+                        if out.contains_key(&key) {
+                            continue; // Pack on disk has precedence
+                        }
+                        if let Some(text) = archive.read_text(&f) {
+                            if let Some(sources) = decode(&text) {
+                                out.insert(key, sources);
                             }
                         }
                     }

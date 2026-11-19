@@ -4758,12 +4758,20 @@ impl ParticleEngine {
                 ),
                 Sprite::Named(name) => {
                     let bare = name.strip_prefix("minecraft:").unwrap_or(name);
-                    match self
+                    let found = self
                         .atlas
                         .get(name)
                         .or_else(|| self.atlas.get(bare))
-                    {
-                        Some(&(rect, translucent)) => (Some(rect), translucent),
+                        .copied()
+                        .or_else(|| {
+                            let block_key = format!("block/{bare}");
+                            self.atlas.get(&block_key).copied()
+                        })
+                        .or_else(|| {
+                            bare.strip_prefix("block/").and_then(|s| self.atlas.get(s).copied())
+                        });
+                    match found {
+                        Some((rect, translucent)) => (Some(rect), translucent),
                         None => (None, false),
                     }
                 }

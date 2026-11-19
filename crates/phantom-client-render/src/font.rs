@@ -537,37 +537,43 @@ fn font_ids(root: &Path) -> Vec<String> {
             }
         }
     }
-    let mut ids = Vec::new();
-    let mut namespaces = Vec::new();
+    let mut ids_set = std::collections::BTreeSet::new();
+    let mut namespaces_set = std::collections::BTreeSet::new();
     if let Ok(ns) = std::fs::read_dir(root.join("assets")) {
         for e in ns.flatten() {
-            namespaces.push(e.file_name().to_string_lossy().into_owned());
+            namespaces_set.insert(e.file_name().to_string_lossy().into_owned());
         }
-    } else if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
-        namespaces = archive.namespaces();
     }
-    for ns in namespaces {
-        let before_len = ids.len();
+    if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+        for ns in archive.namespaces() {
+            namespaces_set.insert(ns);
+        }
+    }
+    if namespaces_set.is_empty() {
+        namespaces_set.insert("minecraft".to_string());
+    }
+    for ns in namespaces_set {
+        let mut disk_ids = Vec::new();
         walk(
             &root.join("assets").join(&ns).join("font"),
             &format!("{ns}:"),
-            &mut ids,
+            &mut disk_ids,
         );
-        if ids.len() == before_len {
-            if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
-                let prefix = format!("assets/{ns}/font/");
-                for f in archive.list(&prefix) {
-                    if let Some(rel) = f.strip_prefix(&prefix) {
-                        if let Some(stem) = rel.strip_suffix(".json") {
-                            ids.push(format!("{ns}:{stem}"));
-                        }
+        for id in disk_ids {
+            ids_set.insert(id);
+        }
+        if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+            let prefix = format!("assets/{ns}/font/");
+            for f in archive.list(&prefix) {
+                if let Some(rel) = f.strip_prefix(&prefix) {
+                    if let Some(stem) = rel.strip_suffix(".json") {
+                        ids_set.insert(format!("{ns}:{stem}"));
                     }
                 }
             }
         }
     }
-    ids.sort();
-    ids
+    ids_set.into_iter().collect()
 }
 impl Region {
     /// Place `w x h` pixels in the region (rows left to right); their atlas

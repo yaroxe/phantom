@@ -149,13 +149,41 @@ pub fn find_client(cfg: &Config) -> Option<PathBuf> {
     if !cfg.phantom_client.trim().is_empty() && explicit.is_file() {
         return Some(explicit);
     }
+    let mut c = Vec::new();
+
+    // 1. ПРИОРИТЕТ 1: Рядом с исполняемым файлом лаунчера (для ярлыков на рабочем столе и портативного запуска)
+    if let Ok(current_exe) = env::current_exe() {
+        if let Some(exe_dir) = current_exe.parent() {
+            c.push(exe_dir.join(exe));
+            c.push(exe_dir.join("bin").join(exe));
+            c.push(exe_dir.join("target").join("release").join(exe));
+            c.push(exe_dir.join("target").join("fast").join(exe));
+            if let Ok(entries) = fs::read_dir(exe_dir.join("versions")) {
+                let mut versions: Vec<PathBuf> = entries.filter_map(|e| e.ok()).map(|e| e.path()).collect();
+                versions.sort();
+                versions.reverse();
+                c.extend(versions.into_iter().map(|v| v.join(exe)));
+            }
+            if let Some(parent) = exe_dir.parent() {
+                c.push(parent.join(exe));
+                c.push(parent.join("target").join("release").join(exe));
+                c.push(parent.join("target").join("fast").join(exe));
+            }
+        }
+    }
+
+    // 2. Текущая рабочая директория
+    c.push(PathBuf::from(exe));
+    c.push(PathBuf::from("target/release").join(exe));
+    c.push(PathBuf::from("target/fast").join(exe));
+
+    // 3. AppData и папка настроек
     let data_root = crate::config::data_root();
     let dirs = [
         PathBuf::from(&cfg.phantom_dir),
         data_root.join("phantom-launcher"),
         data_root.join("horizon-launcher"),
     ];
-    let mut c = Vec::new();
     for dir in &dirs {
         c.push(dir.join(exe));
         c.push(dir.join("bin").join(exe));
@@ -166,25 +194,23 @@ pub fn find_client(cfg: &Config) -> Option<PathBuf> {
         versions.reverse(); // newest name first
         c.extend(versions.into_iter().map(|v| v.join(exe)));
     }
-    if let Some(side) = env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|p| p.join(exe)))
-    {
-        c.push(side);
-    }
-    c.push(PathBuf::from("target/release").join(exe));
     c.into_iter().find(|p| p.is_file())
 }
 
 /// Unpacks `resources.tar` (next to the launcher or in the working directory) into the folder it lies
 /// in, once. `on_progress(done, total, current file)`; returns at once when it is already unpacked.
 pub fn unpack_resources_if_needed(on_progress: impl Fn(usize, usize, &str)) -> Result<(), String> {
-    let mut candidates = vec![PathBuf::from("resources.tar")];
+    let mut candidates = Vec::new();
+    // 1. Проверяем рядом с лаунчером в первую очередь (для ярлыков на рабочем столе)
     if let Ok(exe) = env::current_exe() {
         if let Some(exe_dir) = exe.parent() {
             candidates.push(exe_dir.join("resources.tar"));
+            if let Some(parent) = exe_dir.parent() {
+                candidates.push(parent.join("resources.tar"));
+            }
         }
     }
+    candidates.push(PathBuf::from("resources.tar"));
     let Some(tar_path) = candidates.into_iter().find(|p| p.is_file()) else {
         return Ok(());
     };

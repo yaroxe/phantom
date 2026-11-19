@@ -670,29 +670,81 @@ pub struct ItemRenderer {
 }
 
 /// Every `items/**/*.json` client item definition, by identifier. Through
-/// `json_folder`: from the prepared data file when the root has one.
+/// `json_folder`: from the prepared data file when the root has one, or directly
+/// from `AssetArchive` (`assets.tar`) when loose assets are not unpacked on disk.
 fn load_definitions(root: &Path) -> BTreeMap<String, ClientItem> {
     let mut out = BTreeMap::new();
-    let Ok(namespaces) = fs::read_dir(root.join("assets")) else {
-        return out;
-    };
-    for ns in namespaces.flatten() {
-        let Ok(folder) = phantom_world::json_folder::read(&ns.path().join("items")) else {
-            continue;
-        };
-        let namespace = ns.file_name().to_string_lossy().into_owned();
-        for file in &folder.files {
-            let Some(text) = file.bytes().ok().and_then(|b| std::str::from_utf8(b).ok()) else {
+    let mut namespaces_list = Vec::new();
+    if let Ok(namespaces) = fs::read_dir(root.join("assets")) {
+        for ns in namespaces.flatten() {
+            let namespace = ns.file_name().to_string_lossy().into_owned();
+            namespaces_list.push(namespace.clone());
+            let Ok(folder) = phantom_world::json_folder::read(&ns.path().join("items")) else {
                 continue;
             };
-            match ClientItem::from_json(text) {
-                Ok(item) => {
-                    out.insert(format!("{namespace}:{}", file.name), item);
+            for file in &folder.files {
+                let Some(text) = file.bytes().ok().and_then(|b| std::str::from_utf8(b).ok()) else {
+                    continue;
+                };
+                match ClientItem::from_json(text) {
+                    Ok(item) => {
+                        out.insert(format!("{namespace}:{}", file.name), item);
+                    }
+                    Err(e) => log::warn!(
+                        "Phantom: item definition {namespace}:{} not loaded: {e}",
+                        file.name
+                    ),
                 }
-                Err(e) => log::warn!(
-                    "Phantom: item definition {namespace}:{} not loaded: {e}",
-                    file.name
-                ),
+            }
+        }
+    }
+    // Also load from AssetArchive (assets.tar) all item definitions that are not yet in `out`
+    // (do not skip if out is non-empty, so pack items merge on top of all vanilla items)
+    if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+        let mut archive_nss = archive.namespaces();
+        if archive_nss.is_empty() {
+            archive_nss.push("minecraft".to_string());
+        }
+        let nss = if namespaces_list.is_empty() {
+            archive_nss
+        } else {
+            let mut all_nss = namespaces_list;
+            for ans in archive_nss {
+                if !all_nss.contains(&ans) {
+                    all_nss.push(ans);
+                }
+            }
+            all_nss
+        };
+        for namespace in nss {
+            let prefix = format!("assets/{namespace}/items/");
+            for file_path in archive.list(&prefix) {
+                if !file_path.ends_with(".json") {
+                    continue;
+                }
+                let file_name = file_path
+                    .strip_prefix(&prefix)
+                    .unwrap_or(&file_path)
+                    .strip_suffix(".json")
+                    .unwrap_or(&file_path);
+                let key = format!("{namespace}:{file_name}");
+                if out.contains_key(&key) {
+                    continue; // Pack on disk has higher priority
+                }
+                let Some(bytes) = archive.read(&file_path) else {
+                    continue;
+                };
+                let Ok(text) = std::str::from_utf8(&bytes) else {
+                    continue;
+                };
+                match ClientItem::from_json(text) {
+                    Ok(item) => {
+                        out.insert(key, item);
+                    }
+                    Err(e) => log::warn!(
+                        "Phantom: item definition {namespace}:{file_name} from archive not loaded: {e}"
+                    ),
+                }
             }
         }
     }

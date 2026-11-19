@@ -15194,12 +15194,14 @@ impl Game<'_> {
         };
         // The player's own skin, as the inventory's model shows it.
         let sprites = &self.gui.atlas.sprites;
-        let Some(r) = self
-            .player_model
-            .as_ref()
-            .and_then(|m| m.skin.as_deref())
-            .and_then(|skin| sprites.get(skin))
-            .or_else(|| sprites.get("horizon/offline_skin"))
+        let offline_sprite = sprites.get("horizon/offline_skin");
+        let Some(r) = offline_sprite
+            .or_else(|| {
+                self.player_model
+                    .as_ref()
+                    .and_then(|m| m.skin.as_deref())
+                    .and_then(|skin| sprites.get(skin))
+            })
             .or_else(|| sprites.get("entity/player/wide/steve"))
             .copied()
         else {

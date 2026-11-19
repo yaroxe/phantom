@@ -1,6 +1,7 @@
 //! Modrinth open REST API v2: search and download shaders, resourcepacks and mods.
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fs,
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -213,4 +214,65 @@ pub fn fetch_icon(url: &str) -> Result<Vec<u8>, String> {
         .read_to_end(&mut buf)
         .map_err(|e| format!("{e}"))?;
     Ok(buf)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct InstalledRecord {
+    pub filename: String,
+    #[serde(default)]
+    pub slug: String,
+    #[serde(default)]
+    pub title: String,
+}
+
+pub type InstalledMap = HashMap<String, InstalledRecord>;
+
+pub fn load_installed_map(dir: &Path) -> InstalledMap {
+    let path = dir.join(".phantom_installed.json");
+    if let Ok(data) = fs::read_to_string(&path) {
+        if let Ok(map) = serde_json::from_str::<InstalledMap>(&data) {
+            let mut pruned = InstalledMap::new();
+            for (k, v) in map {
+                let file_p = dir.join(&v.filename);
+                let disabled_p = dir.join(format!("{}.disabled", v.filename));
+                if file_p.is_file() || disabled_p.is_file() {
+                    pruned.insert(k, v);
+                }
+            }
+            return pruned;
+        }
+    }
+    InstalledMap::new()
+}
+
+pub fn save_installed_map(dir: &Path, map: &InstalledMap) {
+    let path = dir.join(".phantom_installed.json");
+    if let Ok(json) = serde_json::to_string_pretty(map) {
+        let _ = fs::write(&path, json);
+    }
+}
+
+pub fn record_installed(dir: &Path, project_id: &str, filename: &str, slug: &str, title: &str) {
+    let mut map = load_installed_map(dir);
+    map.insert(
+        project_id.to_string(),
+        InstalledRecord {
+            filename: filename.to_string(),
+            slug: slug.to_string(),
+            title: title.to_string(),
+        },
+    );
+    save_installed_map(dir, &map);
+}
+
+pub fn remove_installed_by_file(dir: &Path, file_path: &Path) {
+    let filename = file_path
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let clean = filename.strip_suffix(".disabled").unwrap_or(&filename);
+    let mut map = load_installed_map(dir);
+    map.retain(|_, v| v.filename != filename && v.filename != clean);
+    save_installed_map(dir, &map);
 }

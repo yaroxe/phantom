@@ -75,6 +75,17 @@ impl AssetArchive {
             return None;
         };
 
+        #[cfg(windows)]
+        let mut file = {
+            use std::os::windows::fs::OpenOptionsExt;
+            let mut opts = fs::OpenOptions::new();
+            opts.read(true);
+            // FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE (7) allows deleting/renaming
+            // cache directories on Windows without access violation errors.
+            opts.share_mode(7);
+            opts.open(&archive_path).ok()?
+        };
+        #[cfg(not(windows))]
         let mut file = File::open(&archive_path).ok()?;
         let mut entries = Vec::new();
         let mut namespaces_set = BTreeSet::new();
@@ -338,6 +349,12 @@ impl AssetArchive {
 
 type OpenedArchives = Vec<(PathBuf, Option<Arc<AssetArchive>>)>;
 static OPENED: Mutex<OpenedArchives> = Mutex::new(Vec::new());
+
+/// Invalidates cached archive handles for `root` so its folder can be removed or rebuilt.
+pub fn invalidate_cache(root: &Path) {
+    let mut opened = OPENED.lock().unwrap_or_else(PoisonError::into_inner);
+    opened.retain(|(r, _)| r != root && !r.starts_with(root));
+}
 
 /// Opens or retrieves cached `AssetArchive` for `root`.
 pub fn open_cached(root: &Path) -> Option<Arc<AssetArchive>> {

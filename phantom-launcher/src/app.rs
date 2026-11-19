@@ -75,7 +75,12 @@ pub struct App {
     pub unpack: Option<(usize, usize)>,
     pub skin_front_tex: Option<egui::TextureHandle>,
     pub skin_side_tex: Option<egui::TextureHandle>,
+    pub skin_3d_tex: Option<egui::TextureHandle>,
+    pub skin_preview_yaw: f32,
+    pub skin_preview_pitch: f32,
     pub skin_preview_dirty: bool,
+    pub skin_card_cache: HashMap<String, egui::TextureHandle>,
+    pub skin_tab_page: usize,
     pub update_state: crate::updater::UpdateState,
 }
 
@@ -122,7 +127,12 @@ impl App {
             unpack: None,
             skin_front_tex: None,
             skin_side_tex: None,
+            skin_3d_tex: None,
+            skin_preview_yaw: 25.0,
+            skin_preview_pitch: 10.0,
             skin_preview_dirty: true,
+            skin_card_cache: HashMap::new(),
+            skin_tab_page: 0,
             update_state: crate::updater::UpdateState::Idle,
         }
     }
@@ -193,15 +203,23 @@ impl App {
         let is_rp = self.kind == Kind::ResourcePack;
         let (kind, loader, ver) = (self.kind, self.loader.clone(), self.game_ver.clone());
         let (tx, ctx) = (self.tx.clone(), ctx.clone());
+        let title = self
+            .hits
+            .iter()
+            .find(|h| h.project_id == id)
+            .map(|h| h.title.clone())
+            .unwrap_or_else(|| id.clone());
 
         thread::spawn(move || {
             let res = modrinth::download(&id, kind, &loader, &ver, &dest);
             if let Ok(ref filename) = res {
                 let downloaded_file = dest.join(filename);
+                crate::modrinth::record_installed(&dest, &id, filename, &id, &title);
                 if is_shader {
                     let p_shader = phantom_dir.join("shaderpacks");
                     let _ = fs::create_dir_all(&p_shader);
                     let _ = fs::copy(&downloaded_file, p_shader.join(filename));
+                    crate::modrinth::record_installed(&p_shader, &id, filename, &id, &title);
 
                     let versions_dir = crate::config::data_root()
                         .join("phantom-launcher")
@@ -213,6 +231,7 @@ impl App {
                                 let v_shader_dir = p.join("shaderpacks");
                                 let _ = fs::create_dir_all(&v_shader_dir);
                                 let _ = fs::copy(&downloaded_file, v_shader_dir.join(filename));
+                                crate::modrinth::record_installed(&v_shader_dir, &id, filename, &id, &title);
                             }
                         }
                     }
@@ -220,6 +239,7 @@ impl App {
                     let p_rp = phantom_dir.join("resourcepacks");
                     let _ = fs::create_dir_all(&p_rp);
                     let _ = fs::copy(&downloaded_file, p_rp.join(filename));
+                    crate::modrinth::record_installed(&p_rp, &id, filename, &id, &title);
                 }
             }
             let _ = tx.send(Msg::Download(id, res));
@@ -504,12 +524,14 @@ impl App {
     ) -> Option<String> {
         let mut download_click = None;
 
-        // Check if installed
-        let is_installed = installed.iter().any(|f| {
-            let c = f.clean_name.to_lowercase();
-            let t = h.title.to_lowercase();
-            c.contains(&t) || t.contains(&c)
-        });
+        // Check if installed via .phantom_installed.json or matching files
+        let installed_map = crate::modrinth::load_installed_map(&self.target_folder());
+        let is_installed = installed_map.contains_key(&h.project_id)
+            || installed.iter().any(|f| {
+                let c = f.clean_name.to_lowercase();
+                let t = h.title.to_lowercase();
+                c.contains(&t) || t.contains(&c)
+            });
 
         // Request icon if needed
         if let Some(ref url) = h.icon_url {
@@ -583,9 +605,10 @@ impl App {
                             ui.spinner();
                         } else if is_installed {
                             let _ = ui.add_sized(
-                                [110., 32.],
-                                Button::new(RichText::new("УСТАНОВЛЕНО ✓").size(13.).color(Color32::BLACK).strong())
-                                    .fill(theme::OK),
+                                [120., 32.],
+                                Button::new(RichText::new("✓ УСТАНОВЛЕНО").size(13.).color(Color32::from_rgb(0, 40, 10)).strong())
+                                    .fill(Color32::from_rgb(34, 197, 94))
+                                    .sense(Sense::hover()),
                             );
                         } else if ui
                             .add_sized([110., 32.], primary_button("СКАЧАТЬ"))
@@ -702,6 +725,17 @@ impl App {
                     true,
                     1.,
                 );
+
+                // Version display in the sidebar corner
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+                    ui.add_space(8.0);
+                    let cur_ver = crate::updater::get_current_version();
+                    ui.label(
+                        egui::RichText::new(cur_ver)
+                            .size(10.5)
+                            .color(theme::MUTED),
+                    );
+                });
             });
     }
 

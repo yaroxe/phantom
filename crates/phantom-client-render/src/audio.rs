@@ -301,8 +301,14 @@ fn decode(path: &Path) -> Option<(Vec<f32>, u32, u16)> {
         audio::SampleBuffer, codecs::DecoderOptions, formats::FormatOptions, io::MediaSourceStream,
         meta::MetadataOptions, probe::Hint,
     };
-    let file = fs::File::open(path).ok()?;
-    let stream = MediaSourceStream::new(Box::new(file), Default::default());
+    let source_box: Box<dyn symphonia::core::io::MediaSource> = if let Ok(file) = fs::File::open(path) {
+        Box::new(file)
+    } else if let Ok(bytes) = phantom_core::prepared_files::read(path) {
+        Box::new(std::io::Cursor::new(bytes))
+    } else {
+        return None;
+    };
+    let stream = MediaSourceStream::new(source_box, Default::default());
     let mut hint = Hint::new();
     hint.with_extension("ogg");
     let probed = symphonia::default::get_probe()
@@ -582,10 +588,20 @@ fn stereo_gains(right: f32, up: f32, forward: f32) -> [f32; 2] {
 }
 /// The gain OpenAL applies for distance (`AL_LINEAR_DISTANCE` with reference
 /// distance 0 and rolloff 1: the distance clamps to the max distance).
+/// Near distance 0..2 blocks stays at full 100% volume for immediate player actions
+/// (footsteps, mining in hand, placing blocks).
 fn distance_gain(linear: Option<f32>, distance: f32) -> f32 {
     match linear {
         None => 1.0,
-        Some(max) if max > 0.0 => (1.0 - distance.min(max) / max).clamp(0.0, 1.0),
+        Some(max) if max > 0.0 => {
+            if distance <= 2.0 {
+                1.0
+            } else {
+                let eff_dist = distance - 2.0;
+                let eff_max = (max - 2.0).max(1.0);
+                (1.0 - (eff_dist / eff_max).min(1.0)).clamp(0.0, 1.0)
+            }
+        }
         Some(_) => 0.0,
     }
 }
@@ -697,7 +713,10 @@ fn mix(mixer: &mut Mixer, data: &mut [f32], channels: usize, rate: u32) {
                 left = middle + (left - middle) / 2.0;
                 right = middle + (right - middle) / 2.0;
             }
-            [left * gain, right * gain]
+            // Equal-power pan normalization (sqrt(2) ≈ 1.4142) so mono gameplay sounds
+            // aren't halved in volume relative to stereo music.
+            const PAN_NORM: f32 = 1.4142;
+            [(left * PAN_NORM).min(1.0) * gain, (right * PAN_NORM).min(1.0) * gain]
         };
         let step = f64::from(*source_rate) / f64::from(rate) * f64::from(c.pitch.max(0.0));
         voices.push((*id, [left, right, gain], step));

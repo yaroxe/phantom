@@ -357,22 +357,25 @@ impl ResourceSource for std::path::PathBuf {
         self.join(path).is_file() || phantom_core::asset_archive::asset_exists(self, path)
     }
     fn namespaces(&self) -> Vec<String> {
-        let mut list: Vec<String> = std::fs::read_dir(self.join("assets"))
-            .into_iter()
-            .flatten()
-            .flatten()
-            .filter(|e| e.path().is_dir())
-            .filter_map(|e| e.file_name().to_str().map(str::to_owned))
-            .collect();
-        if list.is_empty() {
-            if let Some(archive) = phantom_core::asset_archive::open_cached(self) {
-                list = archive.namespaces();
+        let mut set = std::collections::BTreeSet::new();
+        if let Ok(entries) = std::fs::read_dir(self.join("assets")) {
+            for e in entries.flatten() {
+                if e.path().is_dir() {
+                    if let Some(name) = e.file_name().to_str() {
+                        set.insert(name.to_owned());
+                    }
+                }
             }
         }
-        if list.is_empty() {
+        if let Some(archive) = phantom_core::asset_archive::open_cached(self) {
+            for ns in archive.namespaces() {
+                set.insert(ns);
+            }
+        }
+        if set.is_empty() {
             vec!["minecraft".into()]
         } else {
-            list
+            set.into_iter().collect()
         }
     }
 }

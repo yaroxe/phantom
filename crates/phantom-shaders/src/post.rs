@@ -216,10 +216,11 @@ const ENTITIES_TRANSLUCENT: [&str; 5] = [
 const BEACON_BEAM: [&str; 3] = ["gbuffers_beaconbeam", "gbuffers_textured", "gbuffers_basic"];
 
 /// `gbuffers_particles` and its fallbacks (2.3).
-const PARTICLES: [&str; 4] = [
+const PARTICLES: [&str; 5] = [
     "gbuffers_particles",
     "gbuffers_textured_lit",
     "gbuffers_textured",
+    "gbuffers_terrain",
     "gbuffers_basic",
 ];
 
@@ -1024,12 +1025,11 @@ pub fn load_post(
     loader.post.hand_water = hand_water;
     let flag = |key: &str| properties.get(key).map(|v| v.trim() == "true");
     loader.post.translucent_late = flag("separateEntityDraws").unwrap_or(false);
-    // `after` when the pack has a deferred program, else `mixed`; ours are all translucent, so
-    // `mixed` draws them after deferred too.
+    // Default particles to render with gbuffers_textured / gbuffers_terrain before deferred
     loader.post.particles_late = match properties.get("particles.ordering").map(str::trim) {
+        Some("after") => true,
         Some("before") => false,
-        Some(_) => true,
-        None => !flag("particles.before.deferred").unwrap_or(false),
+        _ => false,
     };
     load_shadow(
         &mut loader,

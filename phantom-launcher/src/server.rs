@@ -188,8 +188,9 @@ pub struct ServerManager {
     // Internet exposure / Tunnel
     pub public_ip: Option<String>,
     pub tunnel_url: Option<String>,
+    pub bedrock_tunnel_url: Option<String>,
     pub is_tunneling: bool,
-    pub tunnel_proc: Option<Child>,
+    pub tunnel_proc: Arc<Mutex<Option<Child>>>,
     /// Start again as soon as the background download has finished.
     pub pending_start: bool,
     /// The last Playit address seen, kept between launches.
@@ -219,8 +220,9 @@ impl ServerManager {
             bg_tx,
             public_ip: None,
             tunnel_url: None,
+            bedrock_tunnel_url: None,
             is_tunneling: false,
-            tunnel_proc: None,
+            tunnel_proc: Arc::new(Mutex::new(None)),
             pending_start: false,
             last_tunnel: fs::read_to_string(Self::servers_root().join("last_tunnel.txt"))
                 .ok()
@@ -268,6 +270,7 @@ impl ServerManager {
         while let Ok(res) = self.bg_rx.try_recv() {
             match res {
                 Ok(msg) => {
+                    self.is_tunneling = false;
                     if let Some(rest) = msg.strip_prefix("UPNP_OK:") {
                         self.public_ip = Some(rest.to_string());
                         self.status_msg = Some((true, format!("UPnP открыт: {rest}")));
@@ -275,10 +278,23 @@ impl ServerManager {
                         self.tunnel_url = Some(rest.to_string());
                         self.status_msg = Some((true, format!("Ссылка Playit: {rest}")));
                     } else if let Some(rest) = msg.strip_prefix("PLAYIT_OK:") {
-                        self.tunnel_url = Some(rest.to_string());
-                        self.last_tunnel = Some(rest.to_string());
-                        let _ = fs::write(Self::servers_root().join("last_tunnel.txt"), rest);
-                        self.status_msg = Some((true, format!("Playit адрес: {rest}")));
+                        let (java, bedrock) = if let Some((j, b)) = rest.split_once('|') {
+                            (j.trim(), b.trim())
+                        } else {
+                            (rest.trim(), "")
+                        };
+                        self.tunnel_url = if java.is_empty() { None } else { Some(java.to_string()) };
+                        self.bedrock_tunnel_url = if bedrock.is_empty() { None } else { Some(bedrock.to_string()) };
+
+                        let display = match (self.tunnel_url.as_deref(), self.bedrock_tunnel_url.as_deref()) {
+                            (Some(j), Some(b)) => format!("{j} (Java) / {b} (Bedrock)"),
+                            (Some(j), None) => j.to_string(),
+                            (None, Some(b)) => b.to_string(),
+                            _ => "Туннель активен".into(),
+                        };
+                        self.last_tunnel = self.tunnel_url.clone().or_else(|| self.bedrock_tunnel_url.clone());
+                        let _ = fs::write(Self::servers_root().join("last_tunnel.txt"), &display);
+                        self.status_msg = Some((true, format!("Playit адрес: {display}")));
                     } else if let Some(rest) = msg.strip_prefix("BORE_OK:") {
                         self.tunnel_url = Some(rest.to_string());
                         self.status_msg = Some((true, format!("Туннель активен: {rest}")));
@@ -305,6 +321,7 @@ impl ServerManager {
                 }
                 self.process = None;
                 self.running_id = None;
+                self.stop_tunnel();
             }
         }
     }
@@ -484,12 +501,24 @@ impl ServerManager {
         }
     }
 
-    pub fn stop_server(&mut self) {
-        if let Some(mut tp) = self.tunnel_proc.take() {
-            let _ = tp.kill();
-        }
+    pub fn stop_tunnel(&mut self) {
         self.is_tunneling = false;
+        self.public_ip = None;
         self.tunnel_url = None;
+        self.bedrock_tunnel_url = None;
+        if let Ok(mut tp) = self.tunnel_proc.lock() {
+            if let Some(mut p) = tp.take() {
+                let _ = p.kill();
+            }
+        }
+        #[cfg(target_os = "windows")]
+        {
+            let _ = Command::new("taskkill").args(["/F", "/IM", "playit.exe"]).status();
+        }
+    }
+
+    pub fn stop_server(&mut self) {
+        self.stop_tunnel();
         if let Some(mut proc) = self.process.take() {
             let _ = proc.stdin_tx.send("stop\n".into());
             let _ = proc.stdin_tx.send("/stop\n".into());
@@ -553,11 +582,21 @@ impl ServerManager {
         self.status_msg = Some((true, "Открытие доступа: UPnP + Playit.gg туннель...".into()));
 
         let logs_arc = Arc::clone(&self.console_logs);
-        let launcher_dir = cfg.game_dir().join("launcher_tools");
+        let phantom_dir = PathBuf::from(&cfg.phantom_dir);
+        let launcher_dir = phantom_dir.join("launcher_tools");
         let _ = fs::create_dir_all(&launcher_dir);
+        let mc_launcher_dir = cfg.game_dir().join("launcher_tools");
         let tx = self.bg_tx.clone();
+        let tunnel_proc_arc = Arc::clone(&self.tunnel_proc);
 
         thread::spawn(move || {
+            // 0. Kill any lingering playit.exe process on Windows
+            #[cfg(target_os = "windows")]
+            {
+                let _ = Command::new("taskkill").args(["/F", "/IM", "playit.exe"]).status();
+                thread::sleep(Duration::from_millis(200));
+            }
+
             // 1. Try UPnP with igd_next
             let upnp_res = match igd_next::search_gateway(Default::default()) {
                 Ok(gateway) => {
@@ -572,8 +611,15 @@ impl ServerManager {
                             "Phantom Server",
                         ) {
                             Ok(()) => {
-                                let ext_ip = gateway.get_external_ip().map(|ip| ip.to_string()).unwrap_or_else(|_| "Не удалось получить IP".into());
-                                Ok(format!("UPNP_OK:{ext_ip}:{port}"))
+                                let ext_ip = gateway
+                                    .get_external_ip()
+                                    .map(|ip| ip.to_string())
+                                    .unwrap_or_else(|_| "Не удалось получить IP".into());
+                                if is_private_or_cgnat(&ext_ip) {
+                                    Err(format!("Двойной NAT (внешний IP роутера {ext_ip} серый/локальный)"))
+                                } else {
+                                    Ok(format!("UPNP_OK:{ext_ip}:{port}"))
+                                }
                             }
                             Err(e) => Err(format!("UPnP ошибка: {e}")),
                         }
@@ -587,68 +633,245 @@ impl ServerManager {
             if let Ok(ref msg) = upnp_res {
                 let _ = tx.send(Ok(msg.clone()));
                 if let Ok(mut logs) = logs_arc.lock() {
-                    logs.push(format!("[Phantom UPnP] Порт {port} успешно открыт на роутере! Внешний адрес: {msg}"));
+                    logs.push(format!(
+                        "[Phantom UPnP] Порт {port} успешно открыт на роутере! Внешний адрес: {msg}"
+                    ));
                 }
                 return;
             }
 
             // 2. UPnP failed or behind double NAT -> Playit.gg tunnel agent
             if let Ok(mut logs) = logs_arc.lock() {
-                logs.push("[Phantom] Двойной NAT / UPnP закрыт. Запуск Playit.gg агента (поддержка Java + Bedrock UDP)...".into());
+                logs.push(
+                    "[Phantom] Двойной NAT / UPnP закрыт. Запуск Playit.gg агента (поддержка Java + Bedrock UDP)..."
+                        .into(),
+                );
             }
 
-            let playit_exe = launcher_dir.join("playit.exe");
-            if !playit_exe.is_file() {
+            // Find playit.exe in known paths
+            let mut playit_path = launcher_dir.join("playit.exe");
+            if !playit_path.is_file() {
+                if mc_launcher_dir.join("playit.exe").is_file() {
+                    playit_path = mc_launcher_dir.join("playit.exe");
+                } else if let Ok(current_exe) = std::env::current_exe() {
+                    if let Some(parent) = current_exe.parent() {
+                        let candidate = parent.join("playit.exe");
+                        if candidate.is_file() {
+                            playit_path = candidate;
+                        }
+                    }
+                }
+            }
+
+            if !playit_path.is_file() {
                 if let Ok(mut logs) = logs_arc.lock() {
                     logs.push("[Phantom] Скачивание официального playit.exe...".into());
                 }
-                let ps_cmd = format!(
-                    "Invoke-WebRequest -Uri 'https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64.exe' -OutFile '{}'",
-                    playit_exe.display()
-                );
-                let _ = Command::new("powershell")
-                    .args(["-NoProfile", "-Command", &ps_cmd])
-                    .status();
+                let dl_url = "https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows-x86_64.exe";
+                let agent = ureq::AgentBuilder::new()
+                    .timeout(Duration::from_secs(60))
+                    .build();
+                let dl_ok = agent
+                    .get(dl_url)
+                    .call()
+                    .ok()
+                    .and_then(|resp| {
+                        let mut file = fs::File::create(&playit_path).ok()?;
+                        std::io::copy(&mut resp.into_reader(), &mut file).ok()
+                    })
+                    .is_some();
+                if !dl_ok {
+                    let ps_cmd = format!(
+                        "Invoke-WebRequest -Uri '{dl_url}' -OutFile '{}'",
+                        playit_path.display()
+                    );
+                    let _ = Command::new("powershell")
+                        .args(["-NoProfile", "-Command", &ps_cmd])
+                        .status();
+                }
             }
 
-            if playit_exe.is_file() {
-                let mut cmd = Command::new(&playit_exe);
-                cmd.current_dir(&launcher_dir)
-                    .arg("--stdout")
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped());
+            if !playit_path.is_file() {
+                let _ = tx.send(Err("Не удалось найти или скачать playit.exe".into()));
+                return;
+            }
 
-                match cmd.spawn() {
-                    Ok(mut child) => {
-                        if let Some(stdout) = child.stdout.take() {
-                            let r = std::io::BufReader::new(stdout);
-                            for line in r.lines().flatten() {
-                                if let Ok(mut logs) = logs_arc.lock() {
-                                    logs.push(format!("[Playit] {line}"));
-                                }
-                                // Check for claim URL or tunnel address in stdout
-                                if line.contains("https://playit.gg/claim/") {
-                                    if let Some(pos) = line.find("https://playit.gg/claim/") {
-                                        let claim_url = line[pos..].split_whitespace().next().unwrap_or("");
-                                        let _ = tx.send(Ok(format!("PLAYIT_CLAIM:{claim_url}")));
-                                    }
-                                } else if line.contains(".ply.gg") || line.contains(".playit.gg") || line.contains(".joinmc.link") {
-                                    for word in line.split_whitespace() {
-                                        if word.contains(".ply.gg") || word.contains(".playit.gg") || word.contains(".joinmc.link") {
-                                            let clean = word.trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != ':');
-                                            let _ = tx.send(Ok(format!("PLAYIT_OK:{clean}")));
-                                        }
-                                    }
+            let work_dir = playit_path.parent().unwrap_or(&launcher_dir);
+            let mut cmd = Command::new(&playit_path);
+            cmd.current_dir(work_dir)
+                .arg("--stdout")
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped());
+
+            let mut child = match cmd.spawn() {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = tx.send(Err(format!("Ошибка запуска playit.exe: {e}")));
+                    return;
+                }
+            };
+
+            let stdout = child.stdout.take();
+            let stderr = child.stderr.take();
+
+            if let Ok(mut tp) = tunnel_proc_arc.lock() {
+                *tp = Some(child);
+            }
+
+            // Fast check: if secret key is configured and tunnels are already present, resolve immediately!
+            if let Some(ref key) = find_playit_secret_key(work_dir) {
+                if let Ok(mut logs) = logs_arc.lock() {
+                    logs.push("[Playit] Проверка активных туннелей в API Playit.gg...".into());
+                }
+                if let Some((java_addr, bedrock_addr)) = fetch_playit_tunnels(key) {
+                    let j = java_addr.unwrap_or_default();
+                    let b = bedrock_addr.unwrap_or_default();
+                    if !j.is_empty() || !b.is_empty() {
+                        let _ = tx.send(Ok(format!("PLAYIT_OK:{j}|{b}")));
+                        if let Ok(mut logs) = logs_arc.lock() {
+                            logs.push(format!("[Playit] Туннели активны! Java: {j}, Bedrock: {b}"));
+                        }
+                        // Let reader threads continue logging stdout/stderr in background
+                    }
+                }
+            }
+
+            let (event_tx, event_rx) = channel::<PlayitEvent>();
+
+            if let Some(stdout) = stdout {
+                let event_tx_c = event_tx.clone();
+                let logs_c = Arc::clone(&logs_arc);
+                thread::spawn(move || {
+                    let reader = BufReader::new(stdout);
+                    for line in reader.lines().flatten() {
+                        let clean = strip_ansi(&line);
+                        if let Ok(mut l) = logs_c.lock() {
+                            if l.len() > 1000 {
+                                l.remove(0);
+                            }
+                            l.push(format!("[Playit] {clean}"));
+                        }
+                        if clean.contains("playit.gg/claim/") {
+                            if let Some(pos) = clean.find("https://playit.gg/claim/") {
+                                let claim_url = clean[pos..]
+                                    .split_whitespace()
+                                    .next()
+                                    .unwrap_or("")
+                                    .to_string();
+                                let _ = event_tx_c.send(PlayitEvent::Claim(claim_url));
+                            }
+                        } else if clean.contains("playit connected")
+                            || clean.contains("tunnels loaded")
+                            || clean.contains("tunnel_count")
+                        {
+                            let _ = event_tx_c.send(PlayitEvent::Connected);
+                        } else if clean.contains(".ply.gg")
+                            || clean.contains(".playit.gg")
+                            || clean.contains(".joinmc.link")
+                        {
+                            for word in clean.split_whitespace() {
+                                if word.contains(".ply.gg")
+                                    || word.contains(".playit.gg")
+                                    || word.contains(".joinmc.link")
+                                {
+                                    let clean_word = word
+                                        .trim_matches(|c: char| {
+                                             !c.is_alphanumeric() && c != '.' && c != ':' && c != '-'
+                                        })
+                                        .to_string();
+                                    let _ = event_tx_c.send(PlayitEvent::DirectAddress(clean_word));
                                 }
                             }
                         }
                     }
-                    Err(e) => {
-                        let _ = tx.send(Err(format!("Ошибка запуска playit.exe: {e}")));
+                });
+            }
+
+            if let Some(stderr) = stderr {
+                let logs_c = Arc::clone(&logs_arc);
+                thread::spawn(move || {
+                    let reader = BufReader::new(stderr);
+                    for line in reader.lines().flatten() {
+                        let clean = strip_ansi(&line);
+                        if let Ok(mut l) = logs_c.lock() {
+                            if l.len() > 1000 {
+                                l.remove(0);
+                            }
+                            l.push(format!("[Playit ERR] {clean}"));
+                        }
+                    }
+                });
+            }
+
+            let start_time = std::time::Instant::now();
+            let mut resolved = false;
+
+            while start_time.elapsed() < Duration::from_secs(20) {
+                if let Ok(mut tp) = tunnel_proc_arc.lock() {
+                    if let Some(ref mut c) = *tp {
+                        if let Ok(Some(status)) = c.try_wait() {
+                            let _ = tx.send(Err(format!("playit.exe завершился (код {status})")));
+                            return;
+                        }
                     }
                 }
-            } else {
-                let _ = tx.send(Err("Не удалось запустить playit.exe".into()));
+
+                if let Ok(event) = event_rx.recv_timeout(Duration::from_millis(300)) {
+                    match event {
+                        PlayitEvent::Claim(url) => {
+                            let _ = tx.send(Ok(format!("PLAYIT_CLAIM:{url}")));
+                            resolved = true;
+                            break;
+                        }
+                        PlayitEvent::Connected => {
+                            if let Some(ref key) = find_playit_secret_key(work_dir) {
+                                if let Some((java_addr, bedrock_addr)) = fetch_playit_tunnels(key) {
+                                    let j = java_addr.unwrap_or_default();
+                                    let b = bedrock_addr.unwrap_or_default();
+                                    if !j.is_empty() || !b.is_empty() {
+                                        let _ = tx.send(Ok(format!("PLAYIT_OK:{j}|{b}")));
+                                        resolved = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        PlayitEvent::DirectAddress(addr) => {
+                            let _ = tx.send(Ok(format!("PLAYIT_OK:{addr}|")));
+                            resolved = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Check API periodically every 2 seconds if not yet resolved
+                if !resolved && start_time.elapsed().as_secs() % 2 == 0 {
+                    if let Some(ref key) = find_playit_secret_key(work_dir) {
+                        if let Some((java_addr, bedrock_addr)) = fetch_playit_tunnels(key) {
+                            let j = java_addr.unwrap_or_default();
+                            let b = bedrock_addr.unwrap_or_default();
+                            if !j.is_empty() || !b.is_empty() {
+                                let _ = tx.send(Ok(format!("PLAYIT_OK:{j}|{b}")));
+                                resolved = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !resolved {
+                if let Some(ref key) = find_playit_secret_key(work_dir) {
+                    if let Some((java_addr, bedrock_addr)) = fetch_playit_tunnels(key) {
+                        let j = java_addr.unwrap_or_default();
+                        let b = bedrock_addr.unwrap_or_default();
+                        if !j.is_empty() || !b.is_empty() {
+                            let _ = tx.send(Ok(format!("PLAYIT_OK:{j}|{b}")));
+                            return;
+                        }
+                    }
+                }
+                let _ = tx.send(Err("Таймаут подключения к Playit.gg. Проверьте интернет.".into()));
             }
         });
     }
@@ -746,14 +969,210 @@ pub fn save_servers(list: &[ServerEntry]) {
 }
 
 pub fn local_ip() -> String {
-    if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
-        if socket.connect("8.8.8.8:80").is_ok() {
-            if let Ok(addr) = socket.local_addr() {
-                return addr.ip().to_string();
+    // 1. Try ipconfig on Windows to find the real physical adapter with gateway
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = Command::new("ipconfig").output() {
+            let text = String::from_utf8_lossy(&output.stdout);
+            let mut candidates = Vec::new();
+            for line in text.lines() {
+                let trimmed = line.trim();
+                // Check English and Russian ipconfig patterns: "IPv4 Address", "IPv4-адрес"
+                if trimmed.contains("IPv4") {
+                    if let Some((_, ip_part)) = trimmed.split_once(':') {
+                        let ip = ip_part.trim();
+                        if let Ok(parsed) = ip.parse::<std::net::Ipv4Addr>() {
+                            let octets = parsed.octets();
+                            // Reject loopback (127.*), link-local (169.254.*), Meta/Clash TUN (198.18.* / 198.19.*), unspecified (0.0.0.0)
+                            if octets[0] == 127
+                                || (octets[0] == 169 && octets[1] == 254)
+                                || (octets[0] == 198 && (octets[1] == 18 || octets[1] == 19))
+                                || octets == [0, 0, 0, 0]
+                            {
+                                continue;
+                            }
+                            // Prioritize standard RFC 1918 private subnets: 192.168.x.x, 10.x.x.x, 172.16-31.x.x
+                            let is_prio = (octets[0] == 192 && octets[1] == 168)
+                                || octets[0] == 10
+                                || (octets[0] == 172 && (16..=31).contains(&octets[1]));
+                            if is_prio {
+                                return ip.to_string();
+                            }
+                            candidates.push(ip.to_string());
+                        }
+                    }
+                }
+            }
+            if let Some(first) = candidates.first() {
+                return first.clone();
             }
         }
     }
+
+    // 2. Fallback: UDP connect to router/DNS
+    for probe_target in ["192.168.1.1:80", "192.168.0.1:80", "10.0.0.1:80", "8.8.8.8:80"] {
+        if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+            if socket.connect(probe_target).is_ok() {
+                if let Ok(addr) = socket.local_addr() {
+                    let ip = addr.ip().to_string();
+                    if !ip.starts_with("198.18.")
+                        && !ip.starts_with("198.19.")
+                        && !ip.starts_with("169.254.")
+                        && !ip.starts_with("127.")
+                        && ip != "0.0.0.0"
+                    {
+                        return ip;
+                    }
+                }
+            }
+        }
+    }
+
     "127.0.0.1".to_string()
+}
+
+fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut in_esc = false;
+    for c in s.chars() {
+        if c == '\x1b' {
+            in_esc = true;
+        } else if in_esc {
+            if c.is_ascii_alphabetic() {
+                in_esc = false;
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+fn is_private_or_cgnat(ip_str: &str) -> bool {
+    if let Ok(ip) = ip_str.parse::<std::net::Ipv4Addr>() {
+        let octets = ip.octets();
+        if octets[0] == 10 {
+            return true;
+        }
+        if octets[0] == 172 && (16..=31).contains(&octets[1]) {
+            return true;
+        }
+        if octets[0] == 192 && octets[1] == 168 {
+            return true;
+        }
+        if octets[0] == 100 && (64..=127).contains(&octets[1]) {
+            return true;
+        }
+        if octets[0] == 198 && (18..=19).contains(&octets[1]) {
+            return true;
+        }
+        if octets[0] == 169 && octets[1] == 254 {
+            return true;
+        }
+        if octets[0] == 127 {
+            return true;
+        }
+    }
+    false
+}
+
+fn find_playit_secret_key(launcher_dir: &Path) -> Option<String> {
+    let mut candidate_paths = Vec::new();
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        candidate_paths.push(PathBuf::from(local_app_data).join("playit_gg").join("playit.toml"));
+    }
+    if let Ok(app_data) = std::env::var("APPDATA") {
+        candidate_paths.push(PathBuf::from(&app_data).join("playit_gg").join("playit.toml"));
+        candidate_paths.push(PathBuf::from(&app_data).join("playit").join("playit.toml"));
+    }
+    if let Ok(userprofile) = std::env::var("USERPROFILE") {
+        candidate_paths.push(PathBuf::from(&userprofile).join(".config").join("playit").join("playit.toml"));
+        candidate_paths.push(PathBuf::from(&userprofile).join(".playit").join("playit.toml"));
+    }
+    candidate_paths.push(launcher_dir.join("playit.toml"));
+
+    for path in candidate_paths {
+        if path.is_file() {
+            if let Ok(content) = fs::read_to_string(&path) {
+                for line in content.lines() {
+                    let line = line.trim();
+                    if line.starts_with("secret_key") {
+                        if let Some((_, val)) = line.split_once('=') {
+                            let clean = val.trim().trim_matches('"').trim_matches('\'').trim();
+                            if !clean.is_empty() {
+                                return Some(clean.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn fetch_playit_tunnels(secret_key: &str) -> Option<(Option<String>, Option<String>)> {
+    let agent = ureq::AgentBuilder::new()
+        .timeout(Duration::from_secs(8))
+        .build();
+    let resp = agent
+        .post("https://api.playit.gg/v1/tunnels/list")
+        .set("Authorization", &format!("Agent-Key {}", secret_key.trim()))
+        .set("Content-Type", "application/json")
+        .send_bytes(b"{}")
+        .ok()?;
+    let json: serde_json::Value = resp.into_json().ok()?;
+    let tunnels = json.get("data")?.get("tunnels")?.as_array()?;
+
+    let mut java_addr = None;
+    let mut bedrock_addr = None;
+    for tun in tunnels {
+        let t_type = tun.get("tunnel_type").and_then(|v| v.as_str()).unwrap_or("");
+        
+        // 1. Prioritize public_allocations -> PortAllocation (contains exact auto_domain + external port)
+        let mut full_addr = None;
+        if let Some(allocs) = tun.get("public_allocations").and_then(|a| a.as_array()) {
+            for alloc in allocs {
+                if let Some(details) = alloc.get("details") {
+                    let domain = details.get("auto_domain").and_then(|s| s.as_str());
+                    let port = details.get("port").and_then(|p| p.as_u64());
+                    if let (Some(d), Some(p)) = (domain, port) {
+                        full_addr = Some(format!("{d}:{p}"));
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 2. Fallback to connect_addresses
+        if full_addr.is_none() {
+            if let Some(conns) = tun.get("connect_addresses").and_then(|a| a.as_array()) {
+                for conn in conns {
+                    if let Some(addr) = conn.get("value").and_then(|v| v.get("address")).and_then(|s| s.as_str()) {
+                        full_addr = Some(addr.to_string());
+                        break;
+                    }
+                }
+            }
+        }
+
+        if let Some(a) = full_addr {
+            if t_type.contains("bedrock") {
+                bedrock_addr = Some(a);
+            } else if t_type.contains("java") {
+                java_addr = Some(a);
+            } else if java_addr.is_none() {
+                java_addr = Some(a);
+            }
+        }
+    }
+    Some((java_addr, bedrock_addr))
+}
+
+enum PlayitEvent {
+    Claim(String),
+    Connected,
+    DirectAddress(String),
 }
 
 /// The vanilla core Paperclip wants in `cache/`: its URL and file name, read from the server jar's
@@ -1038,6 +1457,7 @@ pub fn render_server_tab(
         .id_source("server_tab_main_scroll")
         .auto_shrink([false; 2])
         .show(ui, |ui| {
+            ui.add_space(14.0);
             crate::app::heading(ui, t, "ХОСТИНГ И СЕРВЕРЫ", "Запуск локального сервера для игры с друзьями");
 
             let is_running = sm.process.is_some();
@@ -1074,8 +1494,16 @@ pub fn render_server_tab(
                         }
                     });
                 if let Some(idx) = chosen_idx {
-                    sm.selected_idx = idx;
-                    sm.reload_properties();
+                    if sm.selected_idx != idx {
+                        sm.selected_idx = idx;
+                        sm.reload_properties();
+                        if sm.running_id.as_deref() != sm.current_server().map(|s| s.id.as_str()) {
+                            sm.public_ip = None;
+                            sm.tunnel_url = None;
+                            sm.bedrock_tunnel_url = None;
+                            sm.is_tunneling = false;
+                        }
+                    }
                 }
 
                 if ui
@@ -1154,6 +1582,8 @@ pub fn render_server_tab(
                         } else {
                             format!("🌐 Playit: {url}")
                         }
+                    } else if let Some(ref b_url) = sm.bedrock_tunnel_url {
+                        format!("🌐 Playit: {b_url}")
                     } else if let Some(ref pub_ip) = sm.public_ip {
                         format!("🌐 UPnP: {pub_ip}")
                     } else if sm.is_tunneling {
@@ -1162,12 +1592,13 @@ pub fn render_server_tab(
                         "🌐 ОТКРЫТЬ В ИНТЕРНЕТ".into()
                     };
 
+                    let has_tunnel = sm.tunnel_url.is_some() || sm.bedrock_tunnel_url.is_some() || sm.public_ip.is_some();
                     if ui
                         .add(
                             egui::Button::new(
                                 RichText::new(&internet_label)
                                     .size(13.)
-                                    .color(if sm.tunnel_url.is_some() || sm.public_ip.is_some() {
+                                    .color(if has_tunnel {
                                         Color32::from_rgb(0, 220, 255)
                                     } else {
                                         theme::YELLOW
@@ -1181,10 +1612,10 @@ pub fn render_server_tab(
                         .on_hover_text("Автоматически открывает порт через UPnP или запускает Playit.gg туннель (Java + Bedrock UDP) без Radmin VPN!")
                         .clicked()
                     {
-                        if let Some(ref addr) = sm.tunnel_url.clone().or_else(|| sm.public_ip.clone()) {
+                        if let Some(ref addr) = sm.tunnel_url.clone().or_else(|| sm.bedrock_tunnel_url.clone()).or_else(|| sm.public_ip.clone()) {
                             ui.ctx().output_mut(|o| o.copied_text = addr.clone());
                             sm.status_msg = Some((true, format!("Адрес {addr} скопирован в буфер для друзей!")));
-                        } else {
+                        } else if !sm.is_tunneling {
                             sm.open_to_internet(cfg);
                         }
                     }
@@ -1389,9 +1820,9 @@ pub fn render_server_tab(
     } else {
         ("ВЫКЛЮЧЕН", theme::MUTED)
     };
-    let (s2_text, s2_col) = match (&sm.tunnel_url, &sm.public_ip) {
-        (Some(u), _) if u.contains("claim") => ("НУЖНА АКТИВАЦИЯ PLAYIT", theme::YELLOW),
-        (Some(_), _) | (_, Some(_)) => ("ПОДКЛЮЧЁН", theme::OK),
+    let (s2_text, s2_col) = match (&sm.tunnel_url, &sm.bedrock_tunnel_url, &sm.public_ip) {
+        (Some(u), _, _) if u.contains("claim") => ("НУЖНА АКТИВАЦИЯ PLAYIT", theme::YELLOW),
+        (Some(_), _, _) | (_, Some(_), _) | (_, _, Some(_)) => ("ПОДКЛЮЧЁН", theme::OK),
         _ if sm.is_tunneling => ("ПОДКЛЮЧЕНИЕ…", theme::YELLOW),
         _ => ("НЕ ПОДКЛЮЧЁН", theme::MUTED),
     };
@@ -1402,32 +1833,97 @@ pub fn render_server_tab(
     ui.add_space(6.);
 
     // Big copy buttons: the address for friends, ready to paste.
-    let lan = format!("{}:{}", local_ip(), srv.port);
+    let current_local_ip = local_ip();
+    let lan_main = format!("{}:{}", current_local_ip, srv.port);
     let claim = sm.tunnel_url.clone().filter(|u| u.contains("claim"));
-    let net = sm
-        .tunnel_url
-        .clone()
-        .filter(|u| !u.contains("claim"))
-        .or_else(|| sm.public_ip.clone())
-        .or_else(|| sm.last_tunnel.clone());
     let mut copied: Option<String> = None;
-    ui.columns(2, |c| {
-        if copy_card(&mut c[0], "В ЛОКАЛЬНОЙ СЕТИ", Some(lan.as_str()), "") {
-            copied = Some(lan.clone());
-        }
-        if let Some(url) = &claim {
+
+    if let Some(url) = &claim {
+        ui.columns(2, |c| {
+            if copy_card(&mut c[0], "В ЛОКАЛЬНОЙ СЕТИ", Some(lan_main.as_str()), "") {
+                copied = Some(lan_main.clone());
+            }
             if copy_card(&mut c[1], "PLAYIT: НАЖМИТЕ, ЧТОБЫ АКТИВИРОВАТЬ", Some(url.as_str()), "") {
                 c[1].ctx().open_url(egui::OpenUrl::new_tab(url));
             }
-        } else if copy_card(
-            &mut c[1],
-            "ДЛЯ ДРУЗЕЙ ЧЕРЕЗ ИНТЕРНЕТ",
-            net.as_deref(),
-            "нажмите «ОТКРЫТЬ В ИНТЕРНЕТ» выше",
-        ) {
-            copied = net.clone();
+        });
+    } else if srv.kind == ServerKind::CrossplayPaper {
+        // Crossplay has separate Java and Bedrock ports
+        let lan_bedrock = format!("{}:19132", current_local_ip);
+        let net_java = sm.tunnel_url.as_deref().or(sm.public_ip.as_deref());
+        let net_bedrock = sm.bedrock_tunnel_url.as_deref();
+
+        ui.columns(2, |c| {
+            if copy_card(&mut c[0], "В ЛОКАЛЬНОЙ СЕТИ: JAVA (ПК)", Some(lan_main.as_str()), "") {
+                copied = Some(lan_main.clone());
+            }
+            if copy_card(
+                &mut c[1],
+                "ДЛЯ ДРУЗЕЙ: JAVA (ПК)",
+                net_java,
+                "нажмите «ОТКРЫТЬ В ИНТЕРНЕТ» выше",
+            ) {
+                copied = net_java.map(|s| s.to_string());
+            }
+        });
+        ui.add_space(4.);
+        ui.columns(2, |c| {
+            if copy_card(&mut c[0], "В ЛОКАЛЬНОЙ СЕТИ: BEDROCK", Some(lan_bedrock.as_str()), "") {
+                copied = Some(lan_bedrock.clone());
+            }
+            if copy_card(
+                &mut c[1],
+                "ДЛЯ ДРУЗЕЙ: BEDROCK (ТЕЛЕФОНЫ)",
+                net_bedrock,
+                "нажмите «ОТКРЫТЬ В ИНТЕРНЕТ» выше",
+            ) {
+                copied = net_bedrock.map(|s| s.to_string());
+            }
+        });
+    } else if srv.kind == ServerKind::Bedrock {
+        let net_bedrock = sm.bedrock_tunnel_url.as_deref().or(sm.tunnel_url.as_deref()).or(sm.public_ip.as_deref());
+        ui.columns(2, |c| {
+            if copy_card(&mut c[0], "В ЛОКАЛЬНОЙ СЕТИ (BEDROCK)", Some(lan_main.as_str()), "") {
+                copied = Some(lan_main.clone());
+            }
+            if copy_card(
+                &mut c[1],
+                "ДЛЯ ДРУЗЕЙ ЧЕРЕЗ ИНТЕРНЕТ (BEDROCK)",
+                net_bedrock,
+                "нажмите «ОТКРЫТЬ В ИНТЕРНЕТ» выше",
+            ) {
+                copied = net_bedrock.map(|s| s.to_string());
+            }
+        });
+    } else {
+        let net = sm.tunnel_url.as_deref().or(sm.public_ip.as_deref());
+        ui.columns(2, |c| {
+            if copy_card(&mut c[0], "В ЛОКАЛЬНОЙ СЕТИ (LAN)", Some(lan_main.as_str()), "") {
+                copied = Some(lan_main.clone());
+            }
+            if copy_card(
+                &mut c[1],
+                "ДЛЯ ДРУЗЕЙ ЧЕРЕЗ ИНТЕРНЕТ (JAVA)",
+                net,
+                "нажмите «ОТКРЫТЬ В ИНТЕРНЕТ» выше",
+            ) {
+                copied = net.map(|s| s.to_string());
+            }
+        });
+        if let Some(bedrock_net) = sm.bedrock_tunnel_url.as_deref() {
+            ui.add_space(4.);
+            let lan_b = format!("{}:19132", current_local_ip);
+            ui.columns(2, |c| {
+                if copy_card(&mut c[0], "В ЛОКАЛЬНОЙ СЕТИ: BEDROCK", Some(lan_b.as_str()), "") {
+                    copied = Some(lan_b);
+                }
+                if copy_card(&mut c[1], "ДЛЯ ДРУЗЕЙ: BEDROCK (ТЕЛЕФОНЫ)", Some(bedrock_net), "") {
+                    copied = Some(bedrock_net.to_string());
+                }
+            });
         }
-    });
+    }
+
     if let Some(addr) = copied {
         ui.ctx().output_mut(|o| o.copied_text = addr.clone());
         sm.status_msg = Some((true, format!("Скопировано: {addr}")));

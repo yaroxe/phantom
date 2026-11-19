@@ -460,7 +460,18 @@ impl Game<'_> {
             };
             let mut m = Mob::new(0, kind, p.position, self.yaw);
             m.head_pitch = self.pitch;
+            if let Some((_, is_slim)) = phantom_client::skins::offline_skin() {
+                m.skin = Some("horizon/offline_skin".into());
+                m.slim = *is_slim;
+            }
             self.player_model = Some(m);
+        } else if let Some(m) = self.player_model.as_mut() {
+            if let Some((_, is_slim)) = phantom_client::skins::offline_skin() {
+                if m.skin.as_deref() != Some("horizon/offline_skin") {
+                    m.skin = Some("horizon/offline_skin".into());
+                    m.slim = *is_slim;
+                }
+            }
         }
         let pose = p.pose;
         let crouching = pose == Pose::Crouching;

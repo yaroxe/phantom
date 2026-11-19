@@ -498,6 +498,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, t: f32) {
 
     if let Some(path) = file_to_delete {
         let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        crate::modrinth::remove_installed_by_file(&target_dir, &path);
         if let Err(e) = fs::remove_file(&path) {
             app.mod_status = Some((false, format!("Ошибка удаления: {e}")));
         } else {

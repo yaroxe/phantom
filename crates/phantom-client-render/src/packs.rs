@@ -564,7 +564,8 @@ fn pack_files(pack: &Pack) -> io::Result<BTreeMap<String, Provided>> {
             for root in &roots {
                 let prefix = format!("{root}assets/");
                 for name in zip.names().filter(|name| stays_inside(name)) {
-                    if let Some(rest) = name.strip_prefix(&prefix) {
+                    let clean = name.trim_start_matches("./").trim_start_matches('/');
+                    if let Some(rest) = clean.strip_prefix(&prefix) {
                         out.insert(format!("assets/{rest}"), (None, name.to_owned()));
                     }
                 }
@@ -577,8 +578,9 @@ fn pack_files(pack: &Pack) -> io::Result<BTreeMap<String, Provided>> {
 /// (zip.rs turns `\` into `/`), none empty, `.` or `..`, and no `:` (a drive or a stream on
 /// Windows). A pack, a server's too, may name entries anything.
 fn stays_inside(name: &str) -> bool {
-    !name.contains([':', '\0'])
-        && name
+    let clean = name.trim_start_matches("./").trim_start_matches('/');
+    !clean.contains([':', '\0'])
+        && clean
             .split('/')
             .all(|part| !part.is_empty() && part != "." && part != "..")
 }
@@ -622,9 +624,20 @@ fn build_overlay_uncached(
     dependencies: &mut cache::Dependencies,
 ) -> io::Result<()> {
     if out.exists() {
-        fs::remove_dir_all(out)?;
+        phantom_core::asset_archive::invalidate_cache(out);
+        if let Err(_e) = fs::remove_dir_all(out) {
+            std::thread::sleep(std::time::Duration::from_millis(20));
+            let _ = fs::remove_dir_all(out);
+        }
     }
     fs::create_dir_all(out)?;
+    // Ensure vanilla assets.tar is available in out overlay if present in vanilla!
+    if vanilla.join("assets.tar").is_file() {
+        let out_tar = out.join("assets.tar");
+        if !out_tar.is_file() {
+            let _ = link(&vanilla.join("assets.tar"), &out_tar);
+        }
+    }
     // Final owner of every overridden file.
     let mut files: BTreeMap<String, (usize, Provided)> = BTreeMap::new();
     // Every pack's copy of the files vanilla reads as a resource stack.
@@ -702,10 +715,13 @@ fn build_overlay_uncached(
     for (name, stack) in &stacks {
         let mut layers = Vec::new();
         dependencies.file(&vanilla.join(name));
-        if !filters.iter().any(|f| f.blocks(name))
-            && let Ok(bytes) = fs::read(vanilla.join(name))
-        {
-            layers.push(bytes);
+        if !filters.iter().any(|f| f.blocks(name)) {
+            let vanilla_bytes = fs::read(vanilla.join(name))
+                .ok()
+                .or_else(|| phantom_core::asset_archive::read_asset(vanilla, name));
+            if let Some(bytes) = vanilla_bytes {
+                layers.push(bytes);
+            }
         }
         for (owner, (path, inner)) in stack {
             let bytes = match path {
@@ -775,7 +791,11 @@ fn build_overlay_uncached(
         for name in names {
             let child = format!("{prefix}{name}");
             // Vanilla's files in one file: it describes vanilla's root, not this mirror.
-            if hidden.contains(&child) || child == phantom_core::prepared_files::FILE_NAME {
+            // assets.tar is already linked at the root level and must not be relinked.
+            if hidden.contains(&child)
+                || child == phantom_core::prepared_files::FILE_NAME
+                || child == "assets.tar"
+            {
                 continue;
             }
             if let Some(bytes) = merged.get(&child) {

@@ -41,31 +41,31 @@ impl AssetReader for RootAssets {
 impl ParsedModels {
     /// Every `models/**.json` of a namespace directory, by identifier.
     pub fn load(root: &Path) -> Self {
-        let mut namespaces_list = Vec::new();
+        let mut namespaces_set = std::collections::BTreeSet::new();
         if let Ok(ns) = fs::read_dir(root.join("assets")) {
             for e in ns.flatten() {
-                namespaces_list.push(e.file_name().to_string_lossy().into_owned());
+                namespaces_set.insert(e.file_name().to_string_lossy().into_owned());
             }
-        } else if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
-            namespaces_list = archive.namespaces();
         }
-        if namespaces_list.is_empty() {
-            return Self {
-                root: root.to_owned(),
-                ..Self::default()
-            };
+        if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+            for ns in archive.namespaces() {
+                namespaces_set.insert(ns);
+            }
         }
+        if namespaces_set.is_empty() {
+            namespaces_set.insert("minecraft".to_string());
+        }
+        let namespaces_list: Vec<String> = namespaces_set.into_iter().collect();
 
         let mut files = Vec::new();
-        for namespace in namespaces_list {
-            let base = root.join("assets").join(&namespace).join("models");
-            let mut found_on_disk = false;
+        let mut seen_ids = std::collections::HashSet::new();
+        for namespace in &namespaces_list {
+            let base = root.join("assets").join(namespace).join("models");
             let mut stack = vec![base.clone()];
             while let Some(dir) = stack.pop() {
                 let Ok(entries) = fs::read_dir(&dir) else {
                     continue;
                 };
-                found_on_disk = true;
                 for e in entries.flatten() {
                     let path = e.path();
                     let is_dir = match e.file_type() {
@@ -78,17 +78,24 @@ impl ParsedModels {
                         && let Ok(rel) = path.strip_prefix(&base)
                     {
                         let rel = rel.with_extension("").to_string_lossy().replace('\\', "/");
-                        files.push((format!("{namespace}:{rel}"), path));
+                        let id = format!("{namespace}:{rel}");
+                        seen_ids.insert(id.clone());
+                        files.push((id, path));
                     }
                 }
             }
-            if !found_on_disk {
-                if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
-                    let prefix = format!("assets/{namespace}/models/");
-                    for f in archive.list(&prefix) {
-                        if let Some(rel) = f.strip_prefix(&prefix) {
-                            if let Some(clean_rel) = rel.strip_suffix(".json") {
-                                files.push((format!("{namespace}:{clean_rel}"), root.join(&f)));
+        }
+        // ALWAYS also merge models from AssetArchive (assets.tar) that were not present on disk
+        if let Some(archive) = phantom_core::asset_archive::open_cached(root) {
+            for namespace in &namespaces_list {
+                let prefix = format!("assets/{namespace}/models/");
+                for f in archive.list(&prefix) {
+                    if let Some(rel) = f.strip_prefix(&prefix) {
+                        if let Some(clean_rel) = rel.strip_suffix(".json") {
+                            let id = format!("{namespace}:{clean_rel}");
+                            if !seen_ids.contains(&id) {
+                                seen_ids.insert(id.clone());
+                                files.push((id, root.join(&f)));
                             }
                         }
                     }

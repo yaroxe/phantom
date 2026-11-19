@@ -1102,6 +1102,56 @@ impl HudAtlas {
         for folder in folders {
             walk(&textures.join(folder), &mut files);
         }
+        if let Some(def_tex) = &default_textures {
+            let mut default_files = Vec::new();
+            for folder in folders {
+                walk(&def_tex.join(folder), &mut default_files);
+            }
+            let current_rel_names: HashSet<String> = files
+                .iter()
+                .filter_map(|p| p.strip_prefix(&textures).ok().map(|r| r.to_string_lossy().replace('\\', "/")))
+                .collect();
+            for df in default_files {
+                if let Ok(rel) = df.strip_prefix(def_tex) {
+                    let rel_str = rel.to_string_lossy().replace('\\', "/");
+                    if !current_rel_names.contains(&rel_str) {
+                        files.push(df);
+                    }
+                }
+            }
+        }
+        // Also add all textures from AssetArchive (assets.tar) in root or defaults
+        let archive_opt = phantom_core::asset_archive::open_cached(root)
+            .or_else(|| phantom_core::asset_archive::open_cached(defaults));
+        if let Some(archive) = archive_opt {
+            let current_rel_names: HashSet<String> = files
+                .iter()
+                .filter_map(|p| {
+                    if let Ok(rel) = p.strip_prefix(&textures) {
+                        Some(rel.to_string_lossy().replace('\\', "/"))
+                    } else if let Some(def_tex) = &default_textures
+                        && let Ok(rel) = p.strip_prefix(def_tex)
+                    {
+                        Some(rel.to_string_lossy().replace('\\', "/"))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            for folder in folders {
+                let prefix = format!("assets/minecraft/textures/{folder}/");
+                for entry in archive.list(&prefix) {
+                    if entry.ends_with(".png") {
+                        if let Some(rel) = entry.strip_prefix("assets/minecraft/textures/") {
+                            if !current_rel_names.contains(rel) {
+                                files.push(textures.join(rel));
+                            }
+                        }
+                    }
+                }
+            }
+        }
         // Content mods' entity textures: their equipment assets name them as
         // `<ns>:<path>`, and native mods draw their block entities with them
         // (`native_draw_quad`: `<ns>:entity/...`); and their mob effects'
@@ -1218,16 +1268,17 @@ impl HudAtlas {
         let decode_one = |path: &PathBuf| -> Option<Decoded> {
             let name = if let Some(name) = named.get(path) {
                 name.clone()
+            } else if let Ok(rel) = path.strip_prefix(&textures) {
+                rel.with_extension("").to_string_lossy().replace('\\', "/")
+            } else if let Some(def_tex) = &default_textures
+                && let Ok(rel) = path.strip_prefix(def_tex)
+            {
+                rel.with_extension("").to_string_lossy().replace('\\', "/")
             } else {
-                match path.strip_prefix(&textures) {
-                    Ok(rel) => rel.with_extension("").to_string_lossy().replace('\\', "/"),
-                    Err(_) => {
-                        let rel = path.strip_prefix(&assets).ok()?.with_extension("");
-                        let rel = rel.to_string_lossy().replace('\\', "/");
-                        let (namespace, rest) = rel.split_once("/textures/")?;
-                        format!("{namespace}:{rest}")
-                    }
-                }
+                let rel = path.strip_prefix(&assets).ok()?.with_extension("");
+                let rel = rel.to_string_lossy().replace('\\', "/");
+                let (namespace, rest) = rel.split_once("/textures/")?;
+                format!("{namespace}:{rest}")
             };
             // LabPBR's maps beside a texture are the world's (sprites.rs), not images to draw.
             if let Some(base) = name.strip_suffix("_n").or_else(|| name.strip_suffix("_s"))

@@ -386,6 +386,7 @@ impl Game<'_> {
     pub(super) fn draw_item_model(&self, batch: &mut HudBatch, stack: &ItemStack, x: f32, y: f32) {
         let owner = self.player_owner(Some(stack));
         let state = self.resolve_item(stack, DisplayContext::Gui, Some(&owner), 0);
+        let start_len = batch.vertices.len();
         item_render::gui::draw(
             &state,
             &self.pack.item_renderer,
@@ -398,6 +399,27 @@ impl Game<'_> {
             self.glint_frame.speed,
             self.glint_frame.alpha,
         );
+        if batch.vertices.len() == start_len && !stack.item.is_empty() && &*stack.item != "minecraft:air" {
+            self.draw_item_fallback(batch, stack, x, y);
+        }
+    }
+
+    /// 2D sprite fallback when 3D item model quads are empty or missing.
+    pub(super) fn draw_item_fallback(&self, batch: &mut HudBatch, stack: &ItemStack, x: f32, y: f32) {
+        let (namespace, path) = stack.item.split_once(':').unwrap_or(("minecraft", &stack.item));
+        let candidates = [
+            format!("item/{path}"),
+            format!("block/{path}"),
+            format!("{namespace}:item/{path}"),
+            format!("{namespace}:block/{path}"),
+            stack.item.to_string(),
+        ];
+        for candidate in candidates {
+            if self.gui.atlas.sprites.contains_key(&candidate) {
+                batch.sprite_scaled(&self.gui.atlas, &candidate, x, y, 16.0, 16.0, u32::MAX);
+                return;
+            }
+        }
     }
     /// The glint clock, options and sprite for this frame: read once per
     /// frame, not per item (`GameRenderer.extractOptions`).

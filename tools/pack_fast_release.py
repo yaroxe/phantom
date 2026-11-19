@@ -14,16 +14,14 @@ def main():
     assets_dir = os.path.join(client_res, "assets")
     assets_tar = os.path.join(client_res, "assets.tar")
     
-    # Exclude music & records from assets.tar
-    exclude_dirs = {"music", "records", "sounds/music", "sounds/records"}
-    
+    # Exclude ONLY music and records to save space, keeping all sfx (steps, blocks, mobs, damage, ui, etc.) and sounds.json!
     def asset_filter(tarinfo):
         name = tarinfo.name.replace("\\", "/")
         if name.endswith(".log") or name.endswith(".tmp") or name.endswith(".lock"):
             return None
-        for ed in exclude_dirs:
-            if f"/{ed}/" in f"/{name}/" or name.endswith(f"/{ed}"):
-                return None
+        # Only exclude music and records under sounds
+        if "/sounds/music/" in name or name.endswith("/sounds/music") or "/sounds/records/" in name or name.endswith("/sounds/records"):
+            return None
         return tarinfo
 
     print(f"[*] Packaging assets -> {assets_tar}...")

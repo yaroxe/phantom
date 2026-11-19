@@ -160,9 +160,13 @@ impl Zip {
     /// `name`, else the folder entry `name/`, whose bytes Java reads like a
     /// file's (Loka's pack stores its `pack.mcmeta` and `pack.png` that way).
     fn index(&self, name: &str) -> Option<usize> {
+        let clean = name.replace('\\', "/");
+        let trimmed = clean.trim_start_matches("./").trim_start_matches('/');
         self.entries
             .get(name)
+            .or_else(|| self.entries.get(trimmed))
             .or_else(|| self.folders.get(name))
+            .or_else(|| self.folders.get(trimmed))
             .copied()
     }
     pub fn contains(&self, name: &str) -> bool {
